@@ -14,6 +14,26 @@ label { display: flex; flex-direction: column; font-size: 0.8rem; margin-bottom:
 input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; background: #333; color: #fff; font-size: 0.85rem;}
 .print-button { padding: 0.8rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin: 1rem 0; }
 
+/* Desktop Shortcut Button */
+.desktop-shortcut-btn {
+    background: #e67e22;
+    color: white;
+    border: none;
+    padding: 0.6rem;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-top: 10px;
+    width: 100%;
+    text-align: center;
+    border-bottom: 2px solid #b96315;
+    transition: background 0.2s;
+}
+.desktop-shortcut-btn:hover {
+    background: #d35400;
+}
+
 /* Panel Lender Header Branding */
 .panel-brand-header {
     display: flex;
@@ -132,6 +152,13 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
     .control-panel, .print-button { display: none; }
     .flyer-viewport { padding: 0; overflow: visible; justify-content: flex-start; }
     #flyer-paper { transform: scale(1); box-shadow: none; margin: 0; position: static; width: 8.5in; height: 11in; page-break-after: avoid; page-break-inside: avoid; }
+    
+    /* Specific PDF Export Trigger Styling */
+    #flyer-paper.pdf-export-mode {
+        width: 8.5in !important;
+        height: 11in !important;
+        transform: none !important;
+    }
 }
 
 /* =========================================
@@ -175,10 +202,10 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-architectural .supporting-photos { display: none !important; }
 #flyer-paper.template-architectural .financing-banner { border: 3px solid var(--accent) !important; background-color: transparent !important; border-left: 10px solid var(--accent) !important; font-family: Arial, Helvetica, sans-serif !important; margin-top: 0.03in !important; padding: 0.05in !important; }
 
-/* --- SOCIAL MEDIA SQUARE TEMPLATE (1:1 Feed Optimized) --- */
+/* --- SOCIAL MEDIA SQUARE TEMPLATE --- */
 #flyer-paper.template-social {
     width: 8.5in !important;
-    height: 8.5in !important; /* Perfect square ratio for Instagram/Facebook Feeds */
+    height: 8.5in !important;
     padding: 0.3in !important;
     font-family: Arial, sans-serif !important;
 }
