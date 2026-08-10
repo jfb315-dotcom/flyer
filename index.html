@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css?v=6">
     <!-- QR Code Script -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
-    <!-- NEW: HTML to Image Script for Social Media Download -->
+    <!-- HTML to Image Script for Social Media Download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
@@ -29,7 +29,6 @@
             </div>
         </section>
 
-        <!-- ====== NEW: PROPERTY STATUS DROPDOWN ====== -->
         <section class="controls-section">
             <h2>1. Event / Status Details</h2>
             <label>Property Status: 
@@ -124,8 +123,10 @@
                 <span class="slider"></span>
             </label>
             
-            <!-- ====== NEW: SOCIAL MEDIA DOWNLOAD BUTTON ====== -->
             <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download for Social Media</button>
+            
+            <!-- ====== NEW: COPY SOCIAL CAPTION BUTTON ====== -->
+            <button id="btn-copy-caption" class="print-button" style="background-color: #8e44ad; margin-top: 10px; width: 100%; border-bottom: 2px solid #5e3370;">📋 Copy Social Caption</button>
             
             <button onclick="window.print()" class="print-button" style="margin-top: 10px; width: 100%;">🖨️ Print PDF Flyer</button>
         </section>
@@ -137,7 +138,6 @@
             
             <header class="flyer-header">
                 <div class="header-left">
-                    <!-- ====== DYNAMIC STATUS BANNER ====== -->
                     <div id="preview-status-banner" class="open-house-banner">
                         <span id="preview-status-text">OPEN HOUSE</span><span id="open-house-prefix">: </span><span id="preview-date">Sunday, Aug 16th</span><span id="open-house-sep"> | </span><span id="preview-time">1:00 PM - 4:00 PM</span>
                     </div>
