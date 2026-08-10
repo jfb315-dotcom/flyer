@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const inputEl = document.getElementById(inputId);
         const previewEl = document.getElementById(previewId);
         if (inputEl && previewEl) {
-            inputEl.value = ""; // Clear the file input
+            inputEl.value = ""; 
             if (hideOnClear) {
                 previewEl.style.display = 'none';
                 previewEl.src = "";
@@ -74,6 +74,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     };
+
+    // --- NEW: PROPERTY STATUS TOGGLE LOGIC ---
+    const selectStatus = document.getElementById('select-status');
+    const statusBanner = document.getElementById('preview-status-banner');
+    const statusText = document.getElementById('preview-status-text');
+    const dateSpan = document.getElementById('preview-date');
+    const timeSpan = document.getElementById('preview-time');
+    const openHouseSep = document.getElementById('open-house-sep'); 
+    const openHousePrefix = document.getElementById('open-house-prefix'); 
+
+    if (selectStatus) {
+        selectStatus.addEventListener('change', () => {
+            const val = selectStatus.value;
+            if (val === 'none') {
+                statusBanner.style.display = 'none';
+            } else {
+                statusBanner.style.display = 'inline-block';
+                if (val === 'open-house') {
+                    statusText.textContent = 'OPEN HOUSE';
+                    dateSpan.style.display = 'inline';
+                    timeSpan.style.display = 'inline';
+                    if (openHouseSep) openHouseSep.style.display = 'inline';
+                    if (openHousePrefix) openHousePrefix.style.display = 'inline';
+                } else if (val === 'just-listed') {
+                    statusText.textContent = 'JUST LISTED';
+                    dateSpan.style.display = 'none';
+                    timeSpan.style.display = 'none';
+                    if (openHouseSep) openHouseSep.style.display = 'none';
+                    if (openHousePrefix) openHousePrefix.style.display = 'none';
+                } else if (val === 'price-reduced') {
+                    statusText.textContent = 'PRICE REDUCED';
+                    dateSpan.style.display = 'none';
+                    timeSpan.style.display = 'none';
+                    if (openHouseSep) openHouseSep.style.display = 'none';
+                    if (openHousePrefix) openHousePrefix.style.display = 'none';
+                }
+            }
+        });
+    }
 
     // Financing Toggle
     const financingToggle = document.getElementById('toggle-financing');
@@ -93,23 +132,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: Template Switcher (Buttons) ---
+    // Template Switcher (Buttons)
     const templateBtns = document.querySelectorAll('.template-btn');
     if (templateBtns.length > 0 && flyerPaper) {
         templateBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Remove the active blue highlight from all buttons
                 templateBtns.forEach(b => b.classList.remove('active'));
-                
-                // Add the blue highlight to the button that was just clicked
                 btn.classList.add('active');
-                
-                // Wipe the old template and load the new one
                 flyerPaper.className = ''; 
                 flyerPaper.classList.add(btn.dataset.template);
-                
-                // Keep B&W mode on if it was checked
                 if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
+            });
+        });
+    }
+
+    // --- NEW: SOCIAL MEDIA EXPORT USING HTML2CANVAS ---
+    const btnDownload = document.getElementById('btn-download');
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            // Temporarily hide UI elements that shouldn't be in the image if needed, though html2canvas only captures the flyer-paper div
+            const flyerElement = document.getElementById('flyer-paper');
+            
+            // scale: 2 ensures the image is high resolution for social media
+            html2canvas(flyerElement, { scale: 2, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Property-Flyer.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
             });
         });
     }
