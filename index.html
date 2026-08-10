@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=11">
     <!-- QR Code Script -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
     <!-- HTML to Image Script for Social Media Download -->
@@ -23,9 +23,11 @@
                 <p class="panel-provider-text">Provided by <strong>John Bischof</strong><br><span>Home Mortgage Solutions LLC</span></p>
             </div>
         </div>
-        <p class="subtitle" style="margin-top: 10px;">Create professional property flyers in seconds.</p>
         
-        <!-- ====== UPDATED: LAYOUT BUTTONS INCLUDING SOCIAL SQUARE ====== -->
+        <button id="btn-save-desktop" class="desktop-shortcut-btn">⭐ Bookmark App to Desktop / Browser</button>
+
+        <p class="subtitle" style="margin-top: 5px;">Create professional property flyers in seconds.</p>
+        
         <section class="controls-section">
             <h2>Select a Layout</h2>
             <div class="template-grid">
@@ -142,9 +144,11 @@
                 <span class="slider"></span>
             </label>
             
-            <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download for Social Media</button>
-            <button id="btn-copy-caption" class="print-button" style="background-color: #8e44ad; margin-top: 10px; width: 100%; border-bottom: 2px solid #5e3370;">📋 Copy Social Caption</button>
-            <button onclick="window.print()" class="print-button" style="margin-top: 10px; width: 100%;">🖨️ Print PDF Flyer</button>
+            <!-- ====== UPDATED EXPORT BUTTONS ====== -->
+            <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download Social Square</button>
+            <button id="btn-copy-caption" class="print-button" style="background-color: #8e44ad; margin-top: 8px; width: 100%; border-bottom: 2px solid #5e3370;">📋 Copy Social Caption</button>
+            <button id="btn-save-pdf" class="print-button" style="background-color: #d35400; margin-top: 8px; width: 100%; border-bottom: 2px solid #a03c00;">💾 Save as PDF</button>
+            <button onclick="window.print()" class="print-button" style="background-color: #27ae60; margin-top: 8px; width: 100%; border-bottom: 2px solid #1e8449;">🖨️ Print Flyer</button>
         </section>
     </aside>
 
