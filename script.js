@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSaveDesktop = document.getElementById('btn-save-desktop');
     if (btnSaveDesktop) {
         btnSaveDesktop.addEventListener('click', () => {
-            // Generates a standard internet shortcut file (.url) that downloads to their computer
             const appUrl = window.location.href;
             const shortcutContent = `[InternetShortcut]\nURL=${appUrl}\n`;
             const blob = new Blob([shortcutContent], { type: 'text/plain' });
@@ -226,7 +225,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- CAPTION GENERATOR HELPER FUNCTION ---
+    function generateCaptionText() {
+        let finalStatus = "CHECK OUT THIS PROPERTY!";
+        if (selectStatus) {
+            if (selectStatus.value === 'custom') {
+                finalStatus = inputCustomStatus.value.toUpperCase() || "CHECK OUT THIS PROPERTY!";
+            } else {
+                finalStatus = selectStatus.options[selectStatus.selectedIndex].text.toUpperCase();
+            }
+        }
+        
+        const address = document.getElementById('input-address').value || "123 Main St, Anytown";
+        const price = document.getElementById('input-price').value || "$450,000";
+        const beds = document.getElementById('input-beds').value || "3";
+        const baths = document.getElementById('input-baths').value || "2.5";
+        const desc = document.getElementById('input-description').value || "Stunning open-concept home with modern updates.";
+        
+        const h1 = document.getElementById('input-highlight1').value;
+        const h2 = document.getElementById('input-highlight2').value;
+        const h3 = document.getElementById('input-highlight3').value;
+        
+        let highlightsText = "";
+        if(h1 || h2 || h3) {
+            highlightsText = "\n✨ Key Features:\n" + [h1, h2, h3].filter(Boolean).map(h => `• ${h}`).join('\n') + "\n";
+        }
+        
+        return `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n${highlightsText}\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
+    }
+
+    // --- SMART SOCIAL MEDIA DOWNLOAD WITH POP-UP MODAL ---
     const btnDownload = document.getElementById('btn-download');
+    const captionModal = document.getElementById('caption-modal');
+    const modalCaptionText = document.getElementById('modal-caption-text');
+    const modalBtnCopy = document.getElementById('modal-btn-copy');
+    const modalBtnClose = document.getElementById('modal-btn-close');
+
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
             const previousClass = flyerPaper.className;
@@ -241,8 +275,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     flyerPaper.className = previousClass;
+
+                    // Trigger Pop-up Modal with Generated Caption
+                    if (captionModal && modalCaptionText) {
+                        modalCaptionText.value = generateCaptionText();
+                        captionModal.style.display = 'flex';
+                    }
                 });
             }, 100);
+        });
+    }
+
+    // Modal Copy Button
+    if (modalBtnCopy) {
+        modalBtnCopy.addEventListener('click', () => {
+            modalCaptionText.select();
+            navigator.clipboard.writeText(modalCaptionText.value).then(() => {
+                const originalText = modalBtnCopy.textContent;
+                modalBtnCopy.textContent = "✅ Caption Copied!";
+                setTimeout(() => {
+                    modalBtnCopy.textContent = originalText;
+                }, 2000);
+            });
+        });
+    }
+
+    // Modal Close Button
+    if (modalBtnClose) {
+        modalBtnClose.addEventListener('click', () => {
+            captionModal.style.display = 'none';
+        });
+    }
+
+    // Standalone Copy Caption Button
+    const btnCopyCaption = document.getElementById('btn-copy-caption');
+    if (btnCopyCaption) {
+        btnCopyCaption.addEventListener('click', () => {
+            const caption = generateCaptionText();
+            navigator.clipboard.writeText(caption).then(() => {
+                const originalText = btnCopyCaption.innerHTML;
+                btnCopyCaption.innerHTML = "✅ Caption Copied!";
+                setTimeout(() => {
+                    btnCopyCaption.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy caption: ', err);
+                alert("Unable to copy caption automatically.");
+            });
         });
     }
 
@@ -254,48 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 flyerPaper.classList.remove('pdf-export-mode');
             }, 1000);
-        });
-    }
-
-    const btnCopyCaption = document.getElementById('btn-copy-caption');
-    if (btnCopyCaption) {
-        btnCopyCaption.addEventListener('click', () => {
-            let finalStatus = "CHECK OUT THIS PROPERTY!";
-            if (selectStatus) {
-                if (selectStatus.value === 'custom') {
-                    finalStatus = inputCustomStatus.value.toUpperCase() || "CHECK OUT THIS PROPERTY!";
-                } else {
-                    finalStatus = selectStatus.options[selectStatus.selectedIndex].text.toUpperCase();
-                }
-            }
-            
-            const address = document.getElementById('input-address').value || "123 Main St, Anytown";
-            const price = document.getElementById('input-price').value || "$450,000";
-            const beds = document.getElementById('input-beds').value || "3";
-            const baths = document.getElementById('input-baths').value || "2.5";
-            const desc = document.getElementById('input-description').value || "Stunning open-concept home with modern updates.";
-            
-            const h1 = document.getElementById('input-highlight1').value;
-            const h2 = document.getElementById('input-highlight2').value;
-            const h3 = document.getElementById('input-highlight3').value;
-            
-            let highlightsText = "";
-            if(h1 || h2 || h3) {
-                highlightsText = "\n✨ Key Features:\n" + [h1, h2, h3].filter(Boolean).map(h => `• ${h}`).join('\n') + "\n";
-            }
-            
-            const caption = `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n${highlightsText}\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
-            
-            navigator.clipboard.writeText(caption).then(() => {
-                const originalText = btnCopyCaption.innerHTML;
-                btnCopyCaption.innerHTML = "✅ Caption Copied!";
-                setTimeout(() => {
-                    btnCopyCaption.innerHTML = originalText;
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy caption: ', err);
-                alert("Unable to copy caption automatically.");
-            });
         });
     }
 });
