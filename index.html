@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=4">
+    <!-- Cache buster updated to v=5 to ensure the browser loads the new buttons -->
+    <link rel="stylesheet" href="style.css?v=5">
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
 </head>
 <body>
@@ -16,6 +17,17 @@
         <h1>FlyerGen</h1>
         <p class="subtitle">Create professional open house flyers in seconds.</p>
         
+        <!-- ====== NEW: TEMPLATE SELECTOR BUTTONS ====== -->
+        <section class="controls-section">
+            <h2>Select a Layout</h2>
+            <div class="template-grid">
+                <button class="template-btn active" data-template="template-architectural">Bold Architectural</button>
+                <button class="template-btn" data-template="template-modern">Modern Grid</button>
+                <button class="template-btn" data-template="template-classic">Classic Traditional</button>
+                <button class="template-btn" data-template="template-minimalist">Minimalist</button>
+            </div>
+        </section>
+
         <section class="controls-section">
             <h2>1. Event Details</h2>
             <div class="row">
@@ -79,7 +91,7 @@
             <label>Website: <input type="text" id="input-agent-web" placeholder="www.janedoesells.com"></label>
         </section>
 
-<section class="controls-section">
+        <section class="controls-section">
             <h2>5. Financing Spotlight</h2>
             <label class="toggle">
                 <span>Show Financing Highlight</span>
@@ -93,19 +105,9 @@
                 </select>
             </label>
         </section>
-            </label>
-        </section>
 
         <section class="controls-section">
             <h2>6. Print Settings</h2>
-            <label>Layout Style:
-                <select id="select-template">
-                    <option value="template-architectural" selected>Bold Architectural (Low Ink)</option>
-                    <option value="template-modern">Modern Grid</option>
-                    <option value="template-classic">Classic Traditional</option>
-                    <option value="template-minimalist">Minimalist</option>
-                </select>
-            </label>
             <label class="toggle">
                 <span>Black &amp; White Mode</span>
                 <input type="checkbox" id="toggle-bw">
@@ -172,20 +174,20 @@
                 </div>
             </div>
 
-           <!-- Optional Financing Banner -->
+            <!-- Changed default text to match No USDA option -->
             <div id="preview-financing-banner" class="financing-banner">
                 <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Conventional, FHA, VA 100%. Apply online below to see if you qualify!</span>
             </div>
 
-<!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
+            <!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
             <footer class="lender-block">
                 <div class="lender-info">
                     <img src="john-photo.jpg" alt="John Bischof" class="lender-headshot">
                     <div class="lender-text">
                         <h3>John Bischof</h3>
-                        <p>Loan Originator NMLS #165831</p> <!-- Update NMLS -->
+                        <p>Loan Originator NMLS #123456</p> <!-- Update NMLS -->
                         <p>Home Mortgage Solutions LLC</p>
-                        <p>(423) 505-9811 | john@hmsloan.com</p> <!-- Update Contact -->
+                        <p>(555) 123-4567 | john@example.com</p> <!-- Update Contact -->
                     </div>
                 </div>
                 
