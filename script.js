@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- YOUR APP LINK FOR THE QR CODE ---
-    const yourApplicationUrl = "https://homemortgagesolutionsllc1.godaddysites.com";
+    const yourApplicationUrl = "https://your-actual-mortgage-app-link.com/";
     
     const qrContainer = document.getElementById("qrcode");
     new QRCode(qrContainer, {
@@ -57,7 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
     handleImage('photo-supp1', 'preview-photo-supp1');
     handleImage('photo-supp2', 'preview-photo-supp2');
     handleImage('photo-agent', 'preview-photo-agent');
-    handleImage('photo-broker-logo', 'preview-broker-logo', true); // Unhides logo once uploaded
+    handleImage('photo-broker-logo', 'preview-broker-logo', true);
+
+    // Global Clear Image Function
+    window.clearImage = (inputId, previewId, placeholderSrc, hideOnClear = false) => {
+        const inputEl = document.getElementById(inputId);
+        const previewEl = document.getElementById(previewId);
+        if (inputEl && previewEl) {
+            inputEl.value = ""; // Clear the file input
+            if (hideOnClear) {
+                previewEl.style.display = 'none';
+                previewEl.src = "";
+            } else {
+                previewEl.src = placeholderSrc;
+                previewEl.style.display = 'block';
+            }
+        }
+    };
 
     // Financing Toggle
     const financingToggle = document.getElementById('toggle-financing');
