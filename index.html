@@ -157,7 +157,6 @@
 <!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
             <footer class="lender-block">
                 <div class="lender-info">
-                    <!-- Action: Save your headshot as john-photo.jpg in the folder -->
                     <img src="john-photo.jpg" alt="John Bischof" class="lender-headshot">
                     <div class="lender-text">
                         <h3>John Bischof</h3>
@@ -167,12 +166,12 @@
                     </div>
                 </div>
                 
-                <!-- NEW SECTION: Logo and QR Code Grouped on the Right -->
-                <div class="lender-branding-right">
-                    <img src="email-logo.png" alt="Company Logo" class="lender-company-logo">
-                    <div class="qr-code-wrapper">
+                <!-- NEW SECTION: Forced Inline Styling to Fix the Giant Logo -->
+                <div class="lender-branding-right" style="display: flex; align-items: center; gap: 0.2in;">
+                    <img src="email-logo.png" alt="Company Logo" style="max-width: 1.5in; max-height: 0.8in; object-fit: contain;">
+                    <div class="qr-code-wrapper" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                         <div id="qrcode"></div>
-                        <p>Apply Online</p>
+                        <p style="margin: 0; font-size: 0.65rem; font-weight: bold;">Apply Online</p>
                     </div>
                 </div>
             </footer>
