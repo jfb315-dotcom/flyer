@@ -78,35 +78,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Financing Toggle
     const financingToggle = document.getElementById('toggle-financing');
     const financingBanner = document.getElementById('preview-financing-banner');
-    financingToggle.addEventListener('change', () => {
-        financingBanner.style.display = financingToggle.checked ? 'block' : 'none';
-    });
+    if (financingToggle && financingBanner) {
+        financingToggle.addEventListener('change', () => {
+            financingBanner.style.display = financingToggle.checked ? 'block' : 'none';
+        });
+    }
 
     // B&W Toggle
     const bwToggle = document.getElementById('toggle-bw');
     const flyerPaper = document.getElementById('flyer-paper');
-    bwToggle.addEventListener('change', () => {
-        bwToggle.checked ? flyerPaper.classList.add('bw-mode') : flyerPaper.classList.remove('bw-mode');
-    });
-
-    // Template Switcher (Buttons)
-    const templateBtns = document.querySelectorAll('.template-btn');
-    const flyerPaper = document.getElementById('flyer-paper');
-    const bwToggle = document.getElementById('toggle-bw');
-
-    templateBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Remove the active blue highlight from all buttons
-            templateBtns.forEach(b => b.classList.remove('active'));
-            
-            // Add the blue highlight to the button that was just clicked
-            btn.classList.add('active');
-            
-            // Wipe the old template and load the new one
-            flyerPaper.className = ''; 
-            flyerPaper.classList.add(btn.dataset.template);
-            
-            // Keep B&W mode on if it was checked
-            if (bwToggle.checked) flyerPaper.classList.add('bw-mode');
+    if (bwToggle && flyerPaper) {
+        bwToggle.addEventListener('change', () => {
+            bwToggle.checked ? flyerPaper.classList.add('bw-mode') : flyerPaper.classList.remove('bw-mode');
         });
-    });
+    }
+
+    // --- NEW: Template Switcher (Buttons) ---
+    const templateBtns = document.querySelectorAll('.template-btn');
+    if (templateBtns.length > 0 && flyerPaper) {
+        templateBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove the active blue highlight from all buttons
+                templateBtns.forEach(b => b.classList.remove('active'));
+                
+                // Add the blue highlight to the button that was just clicked
+                btn.classList.add('active');
+                
+                // Wipe the old template and load the new one
+                flyerPaper.className = ''; 
+                flyerPaper.classList.add(btn.dataset.template);
+                
+                // Keep B&W mode on if it was checked
+                if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
+            });
+        });
+    }
+});
