@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
     <!-- QR Code Script -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
     <!-- HTML to Image Script for Social Media Download -->
@@ -24,7 +24,6 @@
             </div>
         </div>
         
-        <!-- ====== TRUE DOWNLOAD SHORTCUT BUTTON ====== -->
         <button id="btn-save-desktop" class="desktop-shortcut-btn">⭐ Download App Shortcut to Desktop</button>
 
         <p class="subtitle" style="margin-top: 5px;">Create professional property flyers in seconds.</p>
@@ -242,6 +241,20 @@
     </main>
 
 </div>
+
+<!-- ====== POP-UP MODAL FOR SOCIAL CAPTION ====== -->
+<div id="caption-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3>📱 Social Square Downloaded!</h3>
+        <p>Your social media image is downloading. Here is your ready-to-paste caption:</p>
+        <textarea id="modal-caption-text" rows="8" readonly></textarea>
+        <div class="modal-btn-row">
+            <button id="modal-btn-copy" class="print-button" style="background-color: #27ae60; margin: 0; flex: 1;">📋 Copy Caption</button>
+            <button id="modal-btn-close" class="print-button" style="background-color: #e74c3c; margin: 0; width: 100px;">Close</button>
+        </div>
+    </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
