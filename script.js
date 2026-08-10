@@ -89,11 +89,24 @@ document.addEventListener('DOMContentLoaded', () => {
         bwToggle.checked ? flyerPaper.classList.add('bw-mode') : flyerPaper.classList.remove('bw-mode');
     });
 
-    // Template Switcher Placeholder
-    const templateSelect = document.getElementById('select-template');
-    templateSelect.addEventListener('change', () => {
-        flyerPaper.className = ''; // reset classes
-        flyerPaper.classList.add(templateSelect.value);
-        if(bwToggle.checked) flyerPaper.classList.add('bw-mode');
+    // Template Switcher (Buttons)
+    const templateBtns = document.querySelectorAll('.template-btn');
+    const flyerPaper = document.getElementById('flyer-paper');
+    const bwToggle = document.getElementById('toggle-bw');
+
+    templateBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove the active blue highlight from all buttons
+            templateBtns.forEach(b => b.classList.remove('active'));
+            
+            // Add the blue highlight to the button that was just clicked
+            btn.classList.add('active');
+            
+            // Wipe the old template and load the new one
+            flyerPaper.className = ''; 
+            flyerPaper.classList.add(btn.dataset.template);
+            
+            // Keep B&W mode on if it was checked
+            if (bwToggle.checked) flyerPaper.classList.add('bw-mode');
+        });
     });
-});
