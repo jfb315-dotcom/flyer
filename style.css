@@ -15,6 +15,12 @@ label { display: flex; flex-direction: column; font-size: 0.8rem; margin-bottom:
 input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; background: #333; color: #fff; font-size: 0.85rem;}
 .print-button { padding: 0.8rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin: 1rem 0; }
 
+/* Clear Photo Buttons */
+.photo-upload-row { display: flex; align-items: flex-end; gap: 5px; margin-bottom: 0.4rem; }
+.photo-upload-row label { flex-grow: 1; margin-bottom: 0; }
+.clear-btn { background: #e74c3c; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; height: 1.9rem; margin-bottom: 2px;}
+.clear-btn:hover { background: #c0392b; }
+
 .toggle { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin: 0.5rem 0;}
 .toggle .slider { width: 2.2rem; height: 1.1rem; background: #555; border-radius: 1rem; position: relative; transition: 0.3s; }
 .toggle .slider::after { content: ''; position: absolute; width: 0.9rem; height: 0.9rem; background: #fff; border-radius: 50%; top: 0.1rem; left: 0.1rem; transition: 0.3s; }
@@ -33,7 +39,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 .flyer-header p { font-size: 1.5rem; margin: 0; font-weight: bold; color: var(--accent); }
 #preview-broker-logo { max-width: 1.5in; max-height: 0.8in; object-fit: contain; }
 
-/* ====== NEW: REALTOR TOP BAR ====== */
+/* ====== REALTOR TOP BAR ====== */
 .realtor-contact-block { display: flex; gap: 0.15in; align-items: center; background: #f9f9f9; padding: 0.1in; border-radius: 4px; margin-bottom: 0.15in; }
 .agent-headshot { width: 0.8in; height: 1in; object-fit: cover; border-radius: 4px; }
 .agent-info { flex: 1; }
@@ -66,6 +72,14 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 .lender-text h3 { margin: 0; font-size: 1rem; color: #2c3e50; }
 .lender-text p { margin: 1px 0; font-size: 0.7rem; }
 
+/* Right side branding grouping for Logo and QR Code */
+.lender-branding-right { display: flex; align-items: center; gap: 0.2in; }
+.lender-company-logo { max-width: 1.5in; max-height: 0.8in; object-fit: contain; }
+
+.qr-code-wrapper { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#qrcode img { width: 0.8in !important; height: 0.8in !important; }
+.qr-code-wrapper p { margin: 0; font-size: 0.65rem; font-weight: bold; }
+
 /* Utility Classes & Print Overrides */
 #flyer-paper.bw-mode { filter: grayscale(100%); }
 @media print {
@@ -97,7 +111,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-minimalist .details-sidebar { gap: 0.3in; }
 #flyer-paper.template-minimalist .financing-banner { background-color: transparent; border: 1px solid #ccc; text-align: center; }
 
-/* --- BOLD ARCHITECTURAL TEMPLATE (FORCED OVERRIDES FIX) --- */
+/* --- BOLD ARCHITECTURAL TEMPLATE (ONE PHOTO FIX) --- */
 #flyer-paper.template-architectural {
     font-family: 'Arial Black', Impact, sans-serif !important;
 }
@@ -121,8 +135,6 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-architectural .flyer-header p {
     color: #111 !important; font-size: 1.6rem !important; margin: 0 !important; font-weight: 900 !important;
 }
-
-/* Realtor Top Bar Override for Architectural */
 #flyer-paper.template-architectural .realtor-contact-block {
     border: 3px solid #111 !important; background-color: transparent !important; margin-bottom: 0.05in !important; 
     border-radius: 0 !important; padding: 0.05in 0.1in !important;
@@ -132,7 +144,6 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-architectural .agent-contact-details p {
     color: #111 !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: bold !important;
 }
-
 #flyer-paper.template-architectural .flyer-main-content {
     flex-direction: column !important; 
     gap: 0.05in !important;
@@ -141,7 +152,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-architectural .main-photo-wrapper {
     width: 100% !important; 
     flex: none !important;
-    height: 2.85in !important; 
+    height: 3in !important; 
 }
 #flyer-paper.template-architectural .main-photo-wrapper img {
     border: 4px solid #111 !important; box-sizing: border-box !important; 
@@ -162,13 +173,12 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-architectural #preview-description {
     font-size: 0.8rem !important; margin-bottom: 0.05in !important; line-height: 1.2 !important;
 }
+
+/* FIX: This HIDES the two bottom photos entirely for the Bold Layout to make room for long text */
 #flyer-paper.template-architectural .supporting-photos {
-    margin-top: 0.05in !important; justify-content: space-between !important; display: flex !important;
+    display: none !important;
 }
-#flyer-paper.template-architectural .supporting-photos img {
-    border: 3px solid #111 !important; box-sizing: border-box !important; height: 1.5in !important; width: 48% !important;
-    display: block !important; background-color: #e2e2e2 !important;
-}
+
 #flyer-paper.template-architectural .financing-banner {
     border: 3px solid #111 !important; background-color: transparent !important; border-left: 10px solid #111 !important; 
     font-family: Arial, Helvetica, sans-serif !important; margin-top: 0.05in !important; padding: 0.05in !important;
