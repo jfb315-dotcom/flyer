@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
     <!-- QR Code Script -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
     <!-- HTML to Image Script for Social Media Download -->
@@ -16,8 +16,14 @@
     
     <!-- ====== LEFT SIDE: CONTROL PANEL ====== -->
     <aside class="control-panel">
-        <h1>FlyerGen</h1>
-        <p class="subtitle">Create professional property flyers in seconds.</p>
+        <div class="panel-brand-header">
+            <img src="john-photo.jpg" alt="John Bischof" class="panel-lender-thumb">
+            <div>
+                <h1>FlyerGen</h1>
+                <p class="panel-provider-text">Provided by <strong>John Bischof</strong><br><span>Home Mortgage Solutions LLC</span></p>
+            </div>
+        </div>
+        <p class="subtitle" style="margin-top: 10px;">Create professional property flyers in seconds.</p>
         
         <section class="controls-section">
             <h2>Select a Layout</h2>
@@ -63,7 +69,6 @@
             </div>
             <label>Description: <textarea id="input-description" rows="2" placeholder="Brief property summary..."></textarea></label>
             
-            <!-- ====== NEW: HIGHLIGHT REEL INPUTS ====== -->
             <label style="margin-top: 8px;">Highlight 1: <input type="text" id="input-highlight1" placeholder="e.g., Fully Renovated Kitchen"></label>
             <label>Highlight 2: <input type="text" id="input-highlight2" placeholder="e.g., New Roof & HVAC (2024)"></label>
             <label>Highlight 3: <input type="text" id="input-highlight3" placeholder="e.g., Fenced Backyard & Deck"></label>
@@ -125,7 +130,6 @@
         <section class="controls-section">
             <h2>6. Export Settings</h2>
             
-            <!-- ====== NEW: BRAND COLOR PICKER ====== -->
             <label style="margin-bottom: 10px;">Brand Accent Color: 
                 <input type="color" id="input-brand-color" value="#3498db" style="width: 100%; height: 35px; padding: 0; cursor: pointer; background: none; border: none;">
             </label>
@@ -191,7 +195,6 @@
                     
                     <p id="preview-description">Stunning open-concept home with modern updates. Perfect for families!</p>
                     
-                    <!-- ====== NEW: HIGHLIGHT REEL LIST ====== -->
                     <ul id="preview-highlights-list" class="highlights-list">
                         <li id="preview-hi1">Fully Renovated Kitchen</li>
                         <li id="preview-hi2">New Roof & HVAC (2024)</li>
