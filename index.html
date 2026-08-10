@@ -29,16 +29,20 @@
             </div>
         </section>
 
+        <!-- ====== UPDATED: STATUS DETAILS ====== -->
         <section class="controls-section">
             <h2>1. Event / Status Details</h2>
             <label>Property Status: 
-                <select id="select-status" style="margin-bottom: 10px;">
+                <select id="select-status" style="margin-bottom: 5px;">
                     <option value="open-house" selected>Open House</option>
                     <option value="just-listed">Just Listed</option>
                     <option value="price-reduced">Price Reduced</option>
-                    <option value="none">None (Hide Banner)</option>
+                    <option value="custom">Custom Status...</option>
                 </select>
             </label>
+            <!-- This hidden input appears when "Custom Status" is selected -->
+            <input type="text" id="input-custom-status" placeholder="e.g., UNDER CONTRACT" style="display: none; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+            
             <div class="row">
                 <label>Date: <input type="text" id="input-date" placeholder="Sunday, Aug 16th"></label>
                 <label>Time: <input type="text" id="input-time" placeholder="1:00 PM - 4:00 PM"></label>
@@ -124,10 +128,7 @@
             </label>
             
             <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download for Social Media</button>
-            
-            <!-- ====== NEW: COPY SOCIAL CAPTION BUTTON ====== -->
             <button id="btn-copy-caption" class="print-button" style="background-color: #8e44ad; margin-top: 10px; width: 100%; border-bottom: 2px solid #5e3370;">📋 Copy Social Caption</button>
-            
             <button onclick="window.print()" class="print-button" style="margin-top: 10px; width: 100%;">🖨️ Print PDF Flyer</button>
         </section>
     </aside>
