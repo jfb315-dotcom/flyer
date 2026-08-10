@@ -11,13 +11,18 @@ document.addEventListener('DOMContentLoaded', () => {
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    // --- DESKTOP BOOKMARK HELPER BUTTON ---
+    // --- TRUE DESKTOP SHORTCUT FILE GENERATOR ---
     const btnSaveDesktop = document.getElementById('btn-save-desktop');
     if (btnSaveDesktop) {
         btnSaveDesktop.addEventListener('click', () => {
-            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-            const shortcut = isMac ? 'Cmd + D' : 'Ctrl + D';
-            alert(`To save this app directly to your bookmarks bar for quick access anytime, simply press:\n\n⭐ ${shortcut} ⭐\n\nYour profile settings and headshot will remain saved automatically!`);
+            // Generates a standard internet shortcut file (.url) that downloads to their computer
+            const appUrl = window.location.href;
+            const shortcutContent = `[InternetShortcut]\nURL=${appUrl}\n`;
+            const blob = new Blob([shortcutContent], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'FlyerGen-Shortcut.url';
+            link.click();
         });
     }
 
@@ -208,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Template Switcher (Buttons)
     const templateBtns = document.querySelectorAll('.template-btn');
     if (templateBtns.length > 0 && flyerPaper) {
         templateBtns.forEach(btn => {
@@ -222,33 +226,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- SMART SOCIAL MEDIA DOWNLOAD (Auto-switches to Square format instantly) ---
     const btnDownload = document.getElementById('btn-download');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
-            const previousClass = flyerPaper.className; // Remember what template they were on
-            
-            // Temporarily force square template
+            const previousClass = flyerPaper.className;
             flyerPaper.className = '';
             flyerPaper.classList.add('template-social');
             if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
 
-            // Wait a split second for the browser to render the square dimensions, then capture
             setTimeout(() => {
                 html2canvas(flyerPaper, { scale: 2, useCORS: true }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'Social-Media-Flyer.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
-
-                    // Restore their previous template right back
                     flyerPaper.className = previousClass;
                 });
             }, 100);
         });
     }
 
-    // --- SAVE AS PDF BUTTON ---
     const btnSavePdf = document.getElementById('btn-save-pdf');
     if (btnSavePdf) {
         btnSavePdf.addEventListener('click', () => {
@@ -260,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Copy Social Media Caption
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
