@@ -11,22 +11,48 @@ document.addEventListener('DOMContentLoaded', () => {
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    // Simple Text Binder
+    // --- LOCAL STORAGE AUTO-SAVE SYSTEM ---
+    const saveField = (el) => {
+        if (el.id) {
+            localStorage.setItem('flyer_' + el.id, el.value);
+        }
+    };
+
+    const loadField = (el) => {
+        if (el.id) {
+            const savedVal = localStorage.getItem('flyer_' + el.id);
+            if (savedVal !== null) {
+                el.value = savedVal;
+                // Trigger input event to update previews immediately
+                el.dispatchEvent(new Event('input'));
+                el.dispatchEvent(new Event('change'));
+            }
+        }
+    };
+
+    // Simple Text Binder with Auto-Save
     const linkInput = (inputId, previewId) => {
         const inputEl = document.getElementById(inputId);
         const previewEl = document.getElementById(previewId);
         if(inputEl && previewEl) {
-            inputEl.addEventListener('input', () => previewEl.textContent = inputEl.value);
+            loadField(inputEl);
+            inputEl.addEventListener('input', () => {
+                previewEl.textContent = inputEl.value;
+                saveField(inputEl);
+            });
+            // Set initial preview text if loaded
+            if(inputEl.value) previewEl.textContent = inputEl.value;
         }
     };
 
-    // Bind all static text fields
+    // Bind all static text fields (including highlights)
     const textFields = [
         ['input-date', 'preview-date'], ['input-time', 'preview-time'],
         ['input-address', 'preview-address'], ['input-price', 'preview-price'],
         ['input-beds', 'preview-beds'], ['input-baths', 'preview-baths'], ['input-sqft', 'preview-sqft'],
         ['input-year', 'preview-year'], ['input-lot', 'preview-lot'], ['input-hoa', 'preview-hoa'],
         ['input-description', 'preview-description'],
+        ['input-highlight1', 'preview-hi1'], ['input-highlight2', 'preview-hi2'], ['input-highlight3', 'preview-hi3'],
         ['input-agent-name', 'preview-agent-name'], ['input-agent-license', 'preview-agent-license'],
         ['input-agent-company', 'preview-agent-company'], ['input-agent-phone', 'preview-agent-phone'],
         ['input-agent-email', 'preview-agent-email'], ['input-agent-web', 'preview-agent-web'],
@@ -34,18 +60,39 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     textFields.forEach(pair => linkInput(pair[0], pair[1]));
 
-    // Image Upload Handler
+    // Auto-save specific handling for dropdowns & custom text
+    const inputsToPersist = ['select-status', 'input-custom-status', 'input-brand-color'];
+    inputsToPersist.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            loadField(el);
+            el.addEventListener('change', () => saveField(el));
+            el.addEventListener('input', () => saveField(el));
+        }
+    });
+
+    // Image Upload Handler with Auto-Save (Base64 LocalStorage)
     const handleImage = (inputId, previewId, showOnLoad = false) => {
         const fileInput = document.getElementById(inputId);
         const imagePreview = document.getElementById(previewId);
+        
+        // Check if image is saved in local storage
+        const savedImage = localStorage.getItem('flyer_img_' + inputId);
+        if (savedImage && imagePreview) {
+            imagePreview.setAttribute('src', savedImage);
+            if(showOnLoad) imagePreview.style.display = 'block';
+        }
+
         if(fileInput && imagePreview) {
             fileInput.addEventListener('change', function() {
                 const file = this.files[0];
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function() {
-                        imagePreview.setAttribute('src', this.result);
+                        const base64Data = this.result;
+                        imagePreview.setAttribute('src', base64Data);
                         if(showOnLoad) imagePreview.style.display = 'block';
+                        localStorage.setItem('flyer_img_' + inputId, base64Data);
                     };
                     reader.readAsDataURL(file);
                 }
@@ -65,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const previewEl = document.getElementById(previewId);
         if (inputEl && previewEl) {
             inputEl.value = ""; 
+            localStorage.removeItem('flyer_img_' + inputId);
             if (hideOnClear) {
                 previewEl.style.display = 'none';
                 previewEl.src = "";
@@ -75,7 +123,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- UPDATED: HYBRID PROPERTY STATUS LOGIC ---
+    // --- BRAND ACCENT COLOR PICKER LOGIC ---
+    const brandColorPicker = document.getElementById('input-brand-color');
+    if (brandColorPicker) {
+        brandColorPicker.addEventListener('input', () => {
+            const color = brandColorPicker.value;
+            document.documentElement.style.setProperty('--accent', color);
+        });
+        // Apply on load if saved
+        if(brandColorPicker.value) {
+            document.documentElement.style.setProperty('--accent', brandColorPicker.value);
+        }
+    }
+
+    // Property Status Toggle Logic
     const selectStatus = document.getElementById('select-status');
     const inputCustomStatus = document.getElementById('input-custom-status');
     const statusBanner = document.getElementById('preview-status-banner');
@@ -85,46 +146,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const openHouseSep = document.getElementById('open-house-sep'); 
     const openHousePrefix = document.getElementById('open-house-prefix'); 
 
-    if (selectStatus) {
-        selectStatus.addEventListener('change', () => {
-            const val = selectStatus.value;
-            
-            if (val === 'open-house') {
-                inputCustomStatus.style.display = 'none';
-                statusText.textContent = 'OPEN HOUSE';
-                dateSpan.style.display = 'inline';
-                timeSpan.style.display = 'inline';
-                if (openHouseSep) openHouseSep.style.display = 'inline';
-                if (openHousePrefix) openHousePrefix.style.display = 'inline';
-                
-            } else if (val === 'just-listed') {
-                inputCustomStatus.style.display = 'none';
-                statusText.textContent = 'JUST LISTED';
-                dateSpan.style.display = 'none';
-                timeSpan.style.display = 'none';
-                if (openHouseSep) openHouseSep.style.display = 'none';
-                if (openHousePrefix) openHousePrefix.style.display = 'none';
-                
-            } else if (val === 'price-reduced') {
-                inputCustomStatus.style.display = 'none';
-                statusText.textContent = 'PRICE REDUCED';
-                dateSpan.style.display = 'none';
-                timeSpan.style.display = 'none';
-                if (openHouseSep) openHouseSep.style.display = 'none';
-                if (openHousePrefix) openHousePrefix.style.display = 'none';
-                
-            } else if (val === 'custom') {
-                inputCustomStatus.style.display = 'block';
-                statusText.textContent = inputCustomStatus.value.toUpperCase() || 'CUSTOM STATUS';
-                dateSpan.style.display = 'none';
-                timeSpan.style.display = 'none';
-                if (openHouseSep) openHouseSep.style.display = 'none';
-                if (openHousePrefix) openHousePrefix.style.display = 'none';
-            }
-        });
+    function updateStatusDisplay() {
+        const val = selectStatus.value;
+        if (val === 'open-house') {
+            if(inputCustomStatus) inputCustomStatus.style.display = 'none';
+            statusText.textContent = 'OPEN HOUSE';
+            dateSpan.style.display = 'inline';
+            timeSpan.style.display = 'inline';
+            if (openHouseSep) openHouseSep.style.display = 'inline';
+            if (openHousePrefix) openHousePrefix.style.display = 'inline';
+        } else if (val === 'just-listed') {
+            if(inputCustomStatus) inputCustomStatus.style.display = 'none';
+            statusText.textContent = 'JUST LISTED';
+            dateSpan.style.display = 'none';
+            timeSpan.style.display = 'none';
+            if (openHouseSep) openHouseSep.style.display = 'none';
+            if (openHousePrefix) openHousePrefix.style.display = 'none';
+        } else if (val === 'price-reduced') {
+            if(inputCustomStatus) inputCustomStatus.style.display = 'none';
+            statusText.textContent = 'PRICE REDUCED';
+            dateSpan.style.display = 'none';
+            timeSpan.style.display = 'none';
+            if (openHouseSep) openHouseSep.style.display = 'none';
+            if (openHousePrefix) openHousePrefix.style.display = 'none';
+        } else if (val === 'custom') {
+            if(inputCustomStatus) inputCustomStatus.style.display = 'block';
+            statusText.textContent = inputCustomStatus.value.toUpperCase() || 'CUSTOM STATUS';
+            dateSpan.style.display = 'none';
+            timeSpan.style.display = 'none';
+            if (openHouseSep) openHouseSep.style.display = 'none';
+            if (openHousePrefix) openHousePrefix.style.display = 'none';
+        }
     }
 
-    // Live update for the custom text box
+    if (selectStatus) {
+        selectStatus.addEventListener('change', updateStatusDisplay);
+        updateStatusDisplay();
+    }
+
     if (inputCustomStatus) {
         inputCustomStatus.addEventListener('input', () => {
             if (selectStatus.value === 'custom') {
@@ -179,12 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- UPDATED: COPY SOCIAL MEDIA CAPTION ---
+    // Copy Social Media Caption (With Highlights)
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
-            
-            // Determine the correct status text (Dropdown vs Custom Input)
             let finalStatus = "CHECK OUT THIS PROPERTY!";
             if (selectStatus) {
                 if (selectStatus.value === 'custom') {
@@ -198,12 +255,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const price = document.getElementById('input-price').value || "$450,000";
             const beds = document.getElementById('input-beds').value || "3";
             const baths = document.getElementById('input-baths').value || "2.5";
-            const desc = document.getElementById('input-description').value || "Stunning open-concept home with modern updates. Perfect for families!";
+            const desc = document.getElementById('input-description').value || "Stunning open-concept home with modern updates.";
             
-            // Format the string
-            const caption = `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
+            const h1 = document.getElementById('input-highlight1').value;
+            const h2 = document.getElementById('input-highlight2').value;
+            const h3 = document.getElementById('input-highlight3').value;
             
-            // Copy to clipboard
+            let highlightsText = "";
+            if(h1 || h2 || h3) {
+                highlightsText = "\n✨ Key Features:\n" + [h1, h2, h3].filter(Boolean).map(h => `• ${h}`).join('\n') + "\n";
+            }
+            
+            const caption = `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n${highlightsText}\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
+            
             navigator.clipboard.writeText(caption).then(() => {
                 const originalText = btnCopyCaption.innerHTML;
                 btnCopyCaption.innerHTML = "✅ Caption Copied!";
