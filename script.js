@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Bind all text fields
+    // Bind all static text fields
     const textFields = [
         ['input-date', 'preview-date'], ['input-time', 'preview-time'],
         ['input-address', 'preview-address'], ['input-price', 'preview-price'],
@@ -75,8 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Property Status Toggle Logic
+    // --- UPDATED: HYBRID PROPERTY STATUS LOGIC ---
     const selectStatus = document.getElementById('select-status');
+    const inputCustomStatus = document.getElementById('input-custom-status');
     const statusBanner = document.getElementById('preview-status-banner');
     const statusText = document.getElementById('preview-status-text');
     const dateSpan = document.getElementById('preview-date');
@@ -87,29 +88,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectStatus) {
         selectStatus.addEventListener('change', () => {
             const val = selectStatus.value;
-            if (val === 'none') {
-                statusBanner.style.display = 'none';
-            } else {
-                statusBanner.style.display = 'inline-block';
-                if (val === 'open-house') {
-                    statusText.textContent = 'OPEN HOUSE';
-                    dateSpan.style.display = 'inline';
-                    timeSpan.style.display = 'inline';
-                    if (openHouseSep) openHouseSep.style.display = 'inline';
-                    if (openHousePrefix) openHousePrefix.style.display = 'inline';
-                } else if (val === 'just-listed') {
-                    statusText.textContent = 'JUST LISTED';
-                    dateSpan.style.display = 'none';
-                    timeSpan.style.display = 'none';
-                    if (openHouseSep) openHouseSep.style.display = 'none';
-                    if (openHousePrefix) openHousePrefix.style.display = 'none';
-                } else if (val === 'price-reduced') {
-                    statusText.textContent = 'PRICE REDUCED';
-                    dateSpan.style.display = 'none';
-                    timeSpan.style.display = 'none';
-                    if (openHouseSep) openHouseSep.style.display = 'none';
-                    if (openHousePrefix) openHousePrefix.style.display = 'none';
-                }
+            
+            if (val === 'open-house') {
+                inputCustomStatus.style.display = 'none';
+                statusText.textContent = 'OPEN HOUSE';
+                dateSpan.style.display = 'inline';
+                timeSpan.style.display = 'inline';
+                if (openHouseSep) openHouseSep.style.display = 'inline';
+                if (openHousePrefix) openHousePrefix.style.display = 'inline';
+                
+            } else if (val === 'just-listed') {
+                inputCustomStatus.style.display = 'none';
+                statusText.textContent = 'JUST LISTED';
+                dateSpan.style.display = 'none';
+                timeSpan.style.display = 'none';
+                if (openHouseSep) openHouseSep.style.display = 'none';
+                if (openHousePrefix) openHousePrefix.style.display = 'none';
+                
+            } else if (val === 'price-reduced') {
+                inputCustomStatus.style.display = 'none';
+                statusText.textContent = 'PRICE REDUCED';
+                dateSpan.style.display = 'none';
+                timeSpan.style.display = 'none';
+                if (openHouseSep) openHouseSep.style.display = 'none';
+                if (openHousePrefix) openHousePrefix.style.display = 'none';
+                
+            } else if (val === 'custom') {
+                inputCustomStatus.style.display = 'block';
+                statusText.textContent = inputCustomStatus.value.toUpperCase() || 'CUSTOM STATUS';
+                dateSpan.style.display = 'none';
+                timeSpan.style.display = 'none';
+                if (openHouseSep) openHouseSep.style.display = 'none';
+                if (openHousePrefix) openHousePrefix.style.display = 'none';
+            }
+        });
+    }
+
+    // Live update for the custom text box
+    if (inputCustomStatus) {
+        inputCustomStatus.addEventListener('input', () => {
+            if (selectStatus.value === 'custom') {
+                statusText.textContent = inputCustomStatus.value.toUpperCase() || 'CUSTOM STATUS';
             }
         });
     }
@@ -160,14 +179,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: COPY SOCIAL MEDIA CAPTION ---
+    // --- UPDATED: COPY SOCIAL MEDIA CAPTION ---
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
             
-            // Gather input values, fallback to placeholders if empty
-            const rawStatus = selectStatus ? selectStatus.options[selectStatus.selectedIndex].text : "Check out this property!";
-            const finalStatus = rawStatus.includes('None') ? 'Check out this property!' : rawStatus.toUpperCase();
+            // Determine the correct status text (Dropdown vs Custom Input)
+            let finalStatus = "CHECK OUT THIS PROPERTY!";
+            if (selectStatus) {
+                if (selectStatus.value === 'custom') {
+                    finalStatus = inputCustomStatus.value.toUpperCase() || "CHECK OUT THIS PROPERTY!";
+                } else {
+                    finalStatus = selectStatus.options[selectStatus.selectedIndex].text.toUpperCase();
+                }
+            }
             
             const address = document.getElementById('input-address').value || "123 Main St, Anytown";
             const price = document.getElementById('input-price').value || "$450,000";
@@ -180,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Copy to clipboard
             navigator.clipboard.writeText(caption).then(() => {
-                // Visual feedback that the copy was successful
                 const originalText = btnCopyCaption.innerHTML;
                 btnCopyCaption.innerHTML = "✅ Caption Copied!";
                 setTimeout(() => {
