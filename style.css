@@ -111,7 +111,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.template-minimalist .details-sidebar { gap: 0.3in; }
 #flyer-paper.template-minimalist .financing-banner { background-color: transparent; border: 1px solid #ccc; text-align: center; }
 
-/* --- BOLD ARCHITECTURAL TEMPLATE (ONE PHOTO FIX) --- */
+/* --- BOLD ARCHITECTURAL TEMPLATE (FINAL PHOTO ADJUSTMENT) --- */
 #flyer-paper.template-architectural {
     font-family: 'Arial Black', Impact, sans-serif !important;
 }
@@ -149,16 +149,19 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
     gap: 0.05in !important;
     min-height: 0 !important;
 }
+
+/* THE UPGRADE: Making the Hero Photo massive */
 #flyer-paper.template-architectural .main-photo-wrapper {
     width: 100% !important; 
     flex: none !important;
-    height: 3in !important; 
+    height: 4.25in !important; 
 }
 #flyer-paper.template-architectural .main-photo-wrapper img {
     border: 4px solid #111 !important; box-sizing: border-box !important; 
     width: 100% !important; height: 100% !important; object-fit: cover !important;
     display: block !important; background-color: #e2e2e2 !important; 
 }
+
 #flyer-paper.template-architectural .details-sidebar {
     width: 100% !important; flex: none !important; display: block !important; font-family: Arial, Helvetica, sans-serif !important; 
 }
@@ -174,7 +177,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
     font-size: 0.8rem !important; margin-bottom: 0.05in !important; line-height: 1.2 !important;
 }
 
-/* FIX: This HIDES the two bottom photos entirely for the Bold Layout to make room for long text */
+/* Hides the two bottom photos entirely for the Bold Layout */
 #flyer-paper.template-architectural .supporting-photos {
     display: none !important;
 }
