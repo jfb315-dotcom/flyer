@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
 </head>
 <body>
@@ -64,7 +64,7 @@
             <label>Website: <input type="text" id="input-agent-web" placeholder="www.janedoesells.com"></label>
         </section>
 
-       <section class="controls-section">
+        <section class="controls-section">
             <h2>5. Financing Spotlight</h2>
             <label class="toggle">
                 <span>Show Financing Highlight</span>
@@ -81,7 +81,7 @@
 
         <section class="controls-section">
             <h2>6. Print Settings</h2>
-<label>Layout Style:
+            <label>Layout Style:
                 <select id="select-template">
                     <option value="template-architectural" selected>Bold Architectural (Low Ink)</option>
                     <option value="template-modern">Modern Grid</option>
@@ -95,14 +95,12 @@
                 <span class="slider"></span>
             </label>
 
-            <!-- Print Button moved exactly where you requested -->
             <button onclick="window.print()" class="print-button" style="margin-top: 15px; width: 100%;">🖨️ Print This Flyer</button>
         </section>
     </aside>
 
-<!-- ====== RIGHT SIDE: FLYER PREVIEW ====== -->
+    <!-- ====== RIGHT SIDE: FLYER PREVIEW ====== -->
     <main class="flyer-viewport">
-        <!-- Changed default class to template-architectural -->
         <div id="flyer-paper" class="template-architectural">
             
             <header class="flyer-header">
@@ -117,6 +115,20 @@
                     <img id="preview-broker-logo" src="placeholder-logo.png" alt="Brokerage Logo" style="display: none;">
                 </div>
             </header>
+
+            <!-- ====== MOVED: REALTOR INFO IS NOW AT THE TOP ====== -->
+            <div class="realtor-contact-block">
+                <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
+                <div class="agent-info">
+                    <p class="agent-name">Presented By: <span id="preview-agent-name">Agent Name</span> <span id="preview-agent-license" class="small-text"></span></p>
+                    <p id="preview-agent-company">Brokerage Name</p>
+                </div>
+                <div class="agent-contact-details">
+                    <p id="preview-agent-phone">📞 (555) 555-5555</p>
+                    <p id="preview-agent-email">✉️ agent@example.com</p>
+                    <p id="preview-agent-web">🌐 www.website.com</p>
+                </div>
+            </div>
 
             <div class="flyer-main-content">
                 <div class="main-photo-wrapper">
@@ -141,22 +153,10 @@
                         <img id="preview-photo-supp1" src="placeholder-supp.jpg" alt="Supporting Photo 1">
                         <img id="preview-photo-supp2" src="placeholder-supp.jpg" alt="Supporting Photo 2">
                     </div>
-
-                    <div class="realtor-contact-block">
-                        <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
-                        <div class="agent-info">
-                            <h3>Presented By:</h3>
-                            <p class="agent-name"><span id="preview-agent-name">Agent Name</span> <span id="preview-agent-license" class="small-text"></span></p>
-                            <p id="preview-agent-company">Brokerage Name</p>
-                            <p id="preview-agent-phone">(555) 555-5555</p>
-                            <p id="preview-agent-email">agent@example.com</p>
-                            <p id="preview-agent-web">www.website.com</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-          <!-- Optional Financing Banner -->
+            <!-- Optional Financing Banner -->
             <div id="preview-financing-banner" class="financing-banner">
                 <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Conventional, FHA, VA 100%, USDA 100%. Apply online below to see if you qualify!</span>
             </div>
@@ -173,7 +173,6 @@
                     </div>
                 </div>
                 
-                <!-- NEW SECTION: Forced Inline Styling to Fix the Giant Logo -->
                 <div class="lender-branding-right" style="display: flex; align-items: center; gap: 0.2in;">
                     <img src="email-logo.png" alt="Company Logo" style="max-width: 1.5in; max-height: 0.8in; object-fit: contain;">
                     <div class="qr-code-wrapper" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
