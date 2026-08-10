@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
 </head>
 <body>
@@ -43,15 +43,30 @@
 
         <section class="controls-section">
             <h2>3. Property Photos</h2>
-            <label>Main Photo: <input type="file" id="photo-hero" accept="image/*"></label>
-            <label>Support 1: <input type="file" id="photo-supp1" accept="image/*"></label>
-            <label>Support 2: <input type="file" id="photo-supp2" accept="image/*"></label>
+            <div class="photo-upload-row">
+                <label>Main Photo: <input type="file" id="photo-hero" accept="image/*"></label>
+                <button class="clear-btn" onclick="clearImage('photo-hero', 'preview-photo-hero', 'placeholder-hero.jpg')">Clear</button>
+            </div>
+            <div class="photo-upload-row">
+                <label>Support 1: <input type="file" id="photo-supp1" accept="image/*"></label>
+                <button class="clear-btn" onclick="clearImage('photo-supp1', 'preview-photo-supp1', 'placeholder-supp.jpg')">Clear</button>
+            </div>
+            <div class="photo-upload-row">
+                <label>Support 2: <input type="file" id="photo-supp2" accept="image/*"></label>
+                <button class="clear-btn" onclick="clearImage('photo-supp2', 'preview-photo-supp2', 'placeholder-supp.jpg')">Clear</button>
+            </div>
         </section>
 
         <section class="controls-section">
             <h2>4. Realtor Info</h2>
-            <label>Headshot: <input type="file" id="photo-agent" accept="image/*"></label>
-            <label>Brokerage Logo: <input type="file" id="photo-broker-logo" accept="image/*"></label>
+            <div class="photo-upload-row">
+                <label>Headshot: <input type="file" id="photo-agent" accept="image/*"></label>
+                <button class="clear-btn" onclick="clearImage('photo-agent', 'preview-photo-agent', 'placeholder-agent.jpg')">Clear</button>
+            </div>
+            <div class="photo-upload-row">
+                <label>Broker Logo: <input type="file" id="photo-broker-logo" accept="image/*"></label>
+                <button class="clear-btn" onclick="clearImage('photo-broker-logo', 'preview-broker-logo', 'placeholder-logo.png', true)">Clear</button>
+            </div>
             <div class="row">
                 <label>Name: <input type="text" id="input-agent-name" placeholder="Jane Doe"></label>
                 <label>License #: <input type="text" id="input-agent-license" placeholder="DRE #1234567"></label>
@@ -116,7 +131,6 @@
                 </div>
             </header>
 
-            <!-- ====== MOVED: REALTOR INFO IS NOW AT THE TOP ====== -->
             <div class="realtor-contact-block">
                 <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
                 <div class="agent-info">
@@ -156,7 +170,6 @@
                 </div>
             </div>
 
-            <!-- Optional Financing Banner -->
             <div id="preview-financing-banner" class="financing-banner">
                 <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Conventional, FHA, VA 100%, USDA 100%. Apply online below to see if you qualify!</span>
             </div>
