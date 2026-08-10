@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- YOUR APP LINK FOR THE QR CODE & CAPTION ---
-    const yourApplicationUrl = "https://
-homemortgagesolutionsllc1.godaddysites.com";
+    const yourApplicationUrl = "https://your-actual-mortgage-app-link.com/";
     
     const qrContainer = document.getElementById("qrcode");
     new QRCode(qrContainer, {
@@ -11,6 +10,16 @@ homemortgagesolutionsllc1.godaddysites.com";
         colorDark : "#000000", colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
     });
+
+    // --- DESKTOP BOOKMARK HELPER BUTTON ---
+    const btnSaveDesktop = document.getElementById('btn-save-desktop');
+    if (btnSaveDesktop) {
+        btnSaveDesktop.addEventListener('click', () => {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const shortcut = isMac ? 'Cmd + D' : 'Ctrl + D';
+            alert(`To save this app directly to your bookmarks bar for quick access anytime, simply press:\n\n⭐ ${shortcut} ⭐\n\nYour profile settings and headshot will remain saved automatically!`);
+        });
+    }
 
     // --- LOCAL STORAGE AUTO-SAVE SYSTEM ---
     const saveField = (el) => {
@@ -199,6 +208,7 @@ homemortgagesolutionsllc1.godaddysites.com";
         });
     }
 
+    // Template Switcher (Buttons)
     const templateBtns = document.querySelectorAll('.template-btn');
     if (templateBtns.length > 0 && flyerPaper) {
         templateBtns.forEach(btn => {
@@ -212,19 +222,45 @@ homemortgagesolutionsllc1.godaddysites.com";
         });
     }
 
+    // --- SMART SOCIAL MEDIA DOWNLOAD (Auto-switches to Square format instantly) ---
     const btnDownload = document.getElementById('btn-download');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
-            const flyerElement = document.getElementById('flyer-paper');
-            html2canvas(flyerElement, { scale: 2, useCORS: true }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'Property-Flyer.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
+            const previousClass = flyerPaper.className; // Remember what template they were on
+            
+            // Temporarily force square template
+            flyerPaper.className = '';
+            flyerPaper.classList.add('template-social');
+            if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
+
+            // Wait a split second for the browser to render the square dimensions, then capture
+            setTimeout(() => {
+                html2canvas(flyerPaper, { scale: 2, useCORS: true }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'Social-Media-Flyer.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Restore their previous template right back
+                    flyerPaper.className = previousClass;
+                });
+            }, 100);
         });
     }
 
+    // --- SAVE AS PDF BUTTON ---
+    const btnSavePdf = document.getElementById('btn-save-pdf');
+    if (btnSavePdf) {
+        btnSavePdf.addEventListener('click', () => {
+            flyerPaper.classList.add('pdf-export-mode');
+            window.print();
+            setTimeout(() => {
+                flyerPaper.classList.remove('pdf-export-mode');
+            }, 1000);
+        });
+    }
+
+    // Copy Social Media Caption
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
