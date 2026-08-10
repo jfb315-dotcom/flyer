@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- YOUR APP LINK FOR THE QR CODE ---
-    const yourApplicationUrl = "https://your-actual-mortgage-app-link.com/";
+    const yourApplicationUrl = "https://homemortgagesolutionsllc1.godaddysites.com";
     
     const qrContainer = document.getElementById("qrcode");
     new QRCode(qrContainer, {
