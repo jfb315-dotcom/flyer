@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlyerGen | Open House Flyer Maker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- ====== LEFT SIDE: CONTROL PANEL ====== -->
+    <aside class="control-panel">
+        <h1>FlyerGen</h1>
+        <p class="subtitle">Create professional open house flyers in seconds.</p>
+        <button onclick="window.print()" class="print-button">Print This Flyer</button>
+
+        <section class="controls-section">
+            <h2>1. Event Details</h2>
+            <div class="row">
+                <label>Date: <input type="text" id="input-date" placeholder="Sunday, Aug 16th"></label>
+                <label>Time: <input type="text" id="input-time" placeholder="1:00 PM - 4:00 PM"></label>
+            </div>
+        </section>
+
+        <section class="controls-section">
+            <h2>2. Property Details</h2>
+            <label>Address: <input type="text" id="input-address" placeholder="123 Main St, Anytown"></label>
+            <label>Price: <input type="text" id="input-price" placeholder="$450,000"></label>
+            <div class="row">
+                <label>Beds: <input type="number" id="input-beds" placeholder="3"></label>
+                <label>Baths: <input type="number" id="input-baths" placeholder="2.5"></label>
+                <label>SqFt: <input type="number" id="input-sqft" placeholder="2100"></label>
+            </div>
+            <div class="row">
+                <label>Year Built: <input type="number" id="input-year" placeholder="2015"></label>
+                <label>Lot Size: <input type="text" id="input-lot" placeholder="0.5 Acres"></label>
+                <label>HOA/Mo: <input type="text" id="input-hoa" placeholder="$50"></label>
+            </div>
+            <label>Description: <textarea id="input-description" rows="3" placeholder="Brief property summary..."></textarea></label>
+        </section>
+
+        <section class="controls-section">
+            <h2>3. Property Photos</h2>
+            <label>Main Photo: <input type="file" id="photo-hero" accept="image/*"></label>
+            <label>Support 1: <input type="file" id="photo-supp1" accept="image/*"></label>
+            <label>Support 2: <input type="file" id="photo-supp2" accept="image/*"></label>
+        </section>
+
+        <section class="controls-section">
+            <h2>4. Realtor Info</h2>
+            <label>Headshot: <input type="file" id="photo-agent" accept="image/*"></label>
+            <label>Brokerage Logo: <input type="file" id="photo-broker-logo" accept="image/*"></label>
+            <div class="row">
+                <label>Name: <input type="text" id="input-agent-name" placeholder="Jane Doe"></label>
+                <label>License #: <input type="text" id="input-agent-license" placeholder="DRE #1234567"></label>
+            </div>
+            <label>Company: <input type="text" id="input-agent-company" placeholder="Premier Realty"></label>
+            <div class="row">
+                <label>Phone: <input type="text" id="input-agent-phone" placeholder="(555) 555-5555"></label>
+                <label>Email: <input type="text" id="input-agent-email" placeholder="jane@example.com"></label>
+            </div>
+            <label>Website: <input type="text" id="input-agent-web" placeholder="www.janedoesells.com"></label>
+        </section>
+
+        <section class="controls-section">
+            <h2>5. Financing Spotlight</h2>
+            <label class="toggle">
+                <span>Show Financing Highlight</span>
+                <input type="checkbox" id="toggle-financing" checked>
+                <span class="slider"></span>
+            </label>
+            <label>Message: <input type="text" id="input-financing-msg" placeholder="Ask about our 2-1 Buydown options!"></label>
+        </section>
+
+        <section class="controls-section">
+            <h2>6. Print Settings</h2>
+            <label>Layout Style:
+                <select id="select-template">
+                    <option value="template-modern" selected>Modern Grid</option>
+                    <option value="template-classic">Classic Traditional</option>
+                    <option value="template-minimalist">Minimalist</option>
+                </select>
+            </label>
+            <label class="toggle">
+                <span>Black &amp; White Mode</span>
+                <input type="checkbox" id="toggle-bw">
+                <span class="slider"></span>
+            </label>
+        </section>
+    </aside>
+
+    <!-- ====== RIGHT SIDE: FLYER PREVIEW ====== -->
+    <main class="flyer-viewport">
+        <div id="flyer-paper" class="template-modern">
+            
+            <header class="flyer-header">
+                <div class="header-left">
+                    <div class="open-house-banner">
+                        OPEN HOUSE: <span id="preview-date">Sunday, Aug 16th</span> | <span id="preview-time">1:00 PM - 4:00 PM</span>
+                    </div>
+                    <h1 id="preview-address">123 Main St, Anytown</h1>
+                    <p id="preview-price">$450,000</p>
+                </div>
+                <div class="header-right">
+                    <img id="preview-broker-logo" src="placeholder-logo.png" alt="Brokerage Logo" style="display: none;">
+                </div>
+            </header>
+
+            <div class="flyer-main-content">
+                <div class="main-photo-wrapper">
+                    <img id="preview-photo-hero" src="placeholder-hero.jpg" alt="Property Hero Photo">
+                </div>
+                
+                <div class="details-sidebar">
+                    <div class="specs">
+                        <div><span id="preview-beds">3</span> Beds</div>
+                        <div><span id="preview-baths">2.5</span> Baths</div>
+                        <div><span id="preview-sqft">2,100</span> SqFt</div>
+                    </div>
+                    <div class="sub-specs">
+                        Year Built: <span id="preview-year">2015</span> | 
+                        Lot: <span id="preview-lot">0.5 Acres</span> | 
+                        HOA: <span id="preview-hoa">$50</span>/mo
+                    </div>
+                    
+                    <p id="preview-description">Stunning open-concept home with modern updates. Perfect for families!</p>
+                    
+                    <div class="supporting-photos">
+                        <img id="preview-photo-supp1" src="placeholder-supp.jpg" alt="Supporting Photo 1">
+                        <img id="preview-photo-supp2" src="placeholder-supp.jpg" alt="Supporting Photo 2">
+                    </div>
+
+                    <div class="realtor-contact-block">
+                        <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
+                        <div class="agent-info">
+                            <h3>Presented By:</h3>
+                            <p class="agent-name"><span id="preview-agent-name">Agent Name</span> <span id="preview-agent-license" class="small-text"></span></p>
+                            <p id="preview-agent-company">Brokerage Name</p>
+                            <p id="preview-agent-phone">(555) 555-5555</p>
+                            <p id="preview-agent-email">agent@example.com</p>
+                            <p id="preview-agent-web">www.website.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional Financing Banner -->
+            <div id="preview-financing-banner" class="financing-banner">
+                <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Ask about our 2-1 Buydown options!</span>
+            </div>
+
+            <!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
+            <footer class="lender-block">
+                <div class="lender-info">
+                    <!-- Action: Save your headshot as john-photo.jpg in the folder -->
+                    <img src="john-photo.jpg" alt="John Bischof" class="lender-headshot">
+                    <div class="lender-text">
+                        <h3>John Bischof</h3>
+                        <p>Loan Originator NMLS #123456</p> <!-- Update NMLS -->
+                        <p>Home Mortgage Solutions LLC</p>
+                        <p>(555) 123-4567 | john@example.com</p> <!-- Update Contact -->
+                    </div>
+                </div>
+                <div class="qr-code-wrapper">
+                    <div id="qrcode"></div>
+                    <p>Apply Online</p>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
