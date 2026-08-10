@@ -23,14 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const savedVal = localStorage.getItem('flyer_' + el.id);
             if (savedVal !== null) {
                 el.value = savedVal;
-                // Trigger input event to update previews immediately
                 el.dispatchEvent(new Event('input'));
                 el.dispatchEvent(new Event('change'));
             }
         }
     };
 
-    // Simple Text Binder with Auto-Save
     const linkInput = (inputId, previewId) => {
         const inputEl = document.getElementById(inputId);
         const previewEl = document.getElementById(previewId);
@@ -40,12 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewEl.textContent = inputEl.value;
                 saveField(inputEl);
             });
-            // Set initial preview text if loaded
             if(inputEl.value) previewEl.textContent = inputEl.value;
         }
     };
 
-    // Bind all static text fields (including highlights)
     const textFields = [
         ['input-date', 'preview-date'], ['input-time', 'preview-time'],
         ['input-address', 'preview-address'], ['input-price', 'preview-price'],
@@ -60,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     textFields.forEach(pair => linkInput(pair[0], pair[1]));
 
-    // Auto-save specific handling for dropdowns & custom text
     const inputsToPersist = ['select-status', 'input-custom-status', 'input-brand-color'];
     inputsToPersist.forEach(id => {
         const el = document.getElementById(id);
@@ -71,12 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Image Upload Handler with Auto-Save (Base64 LocalStorage)
     const handleImage = (inputId, previewId, showOnLoad = false) => {
         const fileInput = document.getElementById(inputId);
         const imagePreview = document.getElementById(previewId);
         
-        // Check if image is saved in local storage
         const savedImage = localStorage.getItem('flyer_img_' + inputId);
         if (savedImage && imagePreview) {
             imagePreview.setAttribute('src', savedImage);
@@ -106,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     handleImage('photo-agent', 'preview-photo-agent');
     handleImage('photo-broker-logo', 'preview-broker-logo', true);
 
-    // Global Clear Image Function
     window.clearImage = (inputId, previewId, placeholderSrc, hideOnClear = false) => {
         const inputEl = document.getElementById(inputId);
         const previewEl = document.getElementById(previewId);
@@ -130,13 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const color = brandColorPicker.value;
             document.documentElement.style.setProperty('--accent', color);
         });
-        // Apply on load if saved
         if(brandColorPicker.value) {
             document.documentElement.style.setProperty('--accent', brandColorPicker.value);
         }
     }
 
-    // Property Status Toggle Logic
     const selectStatus = document.getElementById('select-status');
     const inputCustomStatus = document.getElementById('input-custom-status');
     const statusBanner = document.getElementById('preview-status-banner');
@@ -192,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Financing Toggle
     const financingToggle = document.getElementById('toggle-financing');
     const financingBanner = document.getElementById('preview-financing-banner');
     if (financingToggle && financingBanner) {
@@ -201,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // B&W Toggle
     const bwToggle = document.getElementById('toggle-bw');
     const flyerPaper = document.getElementById('flyer-paper');
     if (bwToggle && flyerPaper) {
@@ -210,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Template Switcher (Buttons)
     const templateBtns = document.querySelectorAll('.template-btn');
     if (templateBtns.length > 0 && flyerPaper) {
         templateBtns.forEach(btn => {
@@ -224,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Social Media Export
     const btnDownload = document.getElementById('btn-download');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
@@ -238,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Copy Social Media Caption (With Highlights)
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
