@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- YOUR APP LINK FOR THE QR CODE ---
+    // --- YOUR APP LINK FOR THE QR CODE & CAPTION ---
     const yourApplicationUrl = "https://your-actual-mortgage-app-link.com/";
     
     const qrContainer = document.getElementById("qrcode");
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- NEW: PROPERTY STATUS TOGGLE LOGIC ---
+    // Property Status Toggle Logic
     const selectStatus = document.getElementById('select-status');
     const statusBanner = document.getElementById('preview-status-banner');
     const statusText = document.getElementById('preview-status-text');
@@ -146,19 +146,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: SOCIAL MEDIA EXPORT USING HTML2CANVAS ---
+    // Social Media Export
     const btnDownload = document.getElementById('btn-download');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
-            // Temporarily hide UI elements that shouldn't be in the image if needed, though html2canvas only captures the flyer-paper div
             const flyerElement = document.getElementById('flyer-paper');
-            
-            // scale: 2 ensures the image is high resolution for social media
             html2canvas(flyerElement, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'Property-Flyer.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+            });
+        });
+    }
+
+    // --- NEW: COPY SOCIAL MEDIA CAPTION ---
+    const btnCopyCaption = document.getElementById('btn-copy-caption');
+    if (btnCopyCaption) {
+        btnCopyCaption.addEventListener('click', () => {
+            
+            // Gather input values, fallback to placeholders if empty
+            const rawStatus = selectStatus ? selectStatus.options[selectStatus.selectedIndex].text : "Check out this property!";
+            const finalStatus = rawStatus.includes('None') ? 'Check out this property!' : rawStatus.toUpperCase();
+            
+            const address = document.getElementById('input-address').value || "123 Main St, Anytown";
+            const price = document.getElementById('input-price').value || "$450,000";
+            const beds = document.getElementById('input-beds').value || "3";
+            const baths = document.getElementById('input-baths').value || "2.5";
+            const desc = document.getElementById('input-description').value || "Stunning open-concept home with modern updates. Perfect for families!";
+            
+            // Format the string
+            const caption = `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(caption).then(() => {
+                // Visual feedback that the copy was successful
+                const originalText = btnCopyCaption.innerHTML;
+                btnCopyCaption.innerHTML = "✅ Caption Copied!";
+                setTimeout(() => {
+                    btnCopyCaption.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy caption: ', err);
+                alert("Unable to copy caption automatically.");
             });
         });
     }
