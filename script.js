@@ -25,6 +25,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- LIVE VIEW MODE SWITCHER TABS LOGIC ---
+    const viewTabs = document.querySelectorAll('.view-tab');
+    const flyerPaper = document.getElementById('flyer-paper');
+    
+    if (viewTabs.length > 0 && flyerPaper) {
+        viewTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                viewTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                flyerPaper.classList.remove('view-print', 'view-square', 'view-story');
+                flyerPaper.classList.add(tab.dataset.view);
+            });
+        });
+    }
+
     // --- LOCAL STORAGE AUTO-SAVE SYSTEM ---
     const saveField = (el) => {
         if (el.id) {
@@ -205,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const bwToggle = document.getElementById('toggle-bw');
-    const flyerPaper = document.getElementById('flyer-paper');
     if (bwToggle && flyerPaper) {
         bwToggle.addEventListener('change', () => {
             bwToggle.checked ? flyerPaper.classList.add('bw-mode') : flyerPaper.classList.remove('bw-mode');
@@ -218,9 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => {
                 templateBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                flyerPaper.className = ''; 
+                
+                flyerPaper.className = flyerPaper.className.replace(/template-\S+/g, '');
                 flyerPaper.classList.add(btn.dataset.template);
-                if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
             });
         });
     }
@@ -254,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `🏡 ${finalStatus}\n📍 ${address}\n💰 ${price}\n🛏️ ${beds} Beds | 🛁 ${baths} Baths\n\n${desc}\n${highlightsText}\n---\nNeed to get pre-approved? I'm partnering with John Bischof at Home Mortgage Solutions LLC! \nClick here to apply online and see what you qualify for: ${yourApplicationUrl}`;
     }
 
-    // --- SMART SOCIAL MEDIA DOWNLOAD WITH POP-UP MODAL ---
+    // --- DOWNLOAD CURRENT VIEW IMAGE WITH POP-UP MODAL ---
     const btnDownload = document.getElementById('btn-download');
     const captionModal = document.getElementById('caption-modal');
     const modalCaptionText = document.getElementById('modal-caption-text');
@@ -263,30 +278,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
-            const previousClass = flyerPaper.className;
-            flyerPaper.className = '';
-            flyerPaper.classList.add('template-social');
-            if (bwToggle && bwToggle.checked) flyerPaper.classList.add('bw-mode');
+            html2canvas(flyerPaper, { scale: 2, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Property-Marketing-Asset.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
 
-            setTimeout(() => {
-                html2canvas(flyerPaper, { scale: 2, useCORS: true }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'Social-Media-Flyer.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    flyerPaper.className = previousClass;
-
-                    // Trigger Pop-up Modal with Generated Caption
-                    if (captionModal && modalCaptionText) {
-                        modalCaptionText.value = generateCaptionText();
-                        captionModal.style.display = 'flex';
-                    }
-                });
-            }, 100);
+                if (captionModal && modalCaptionText) {
+                    modalCaptionText.value = generateCaptionText();
+                    captionModal.style.display = 'flex';
+                }
+            });
         });
     }
 
-    // Modal Copy Button
     if (modalBtnCopy) {
         modalBtnCopy.addEventListener('click', () => {
             modalCaptionText.select();
@@ -300,14 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal Close Button
     if (modalBtnClose) {
         modalBtnClose.addEventListener('click', () => {
             captionModal.style.display = 'none';
         });
     }
 
-    // Standalone Copy Caption Button
     const btnCopyCaption = document.getElementById('btn-copy-caption');
     if (btnCopyCaption) {
         btnCopyCaption.addEventListener('click', () => {
