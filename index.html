@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlyerGen | Open House Flyer Maker</title>
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=15">
     <!-- QR Code Script -->
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
     <!-- HTML to Image Script for Social Media Download -->
@@ -29,13 +29,12 @@
         <p class="subtitle" style="margin-top: 5px;">Create professional property flyers in seconds.</p>
         
         <section class="controls-section">
-            <h2>Select a Layout</h2>
+            <h2>Select a Base Design Style</h2>
             <div class="template-grid">
                 <button class="template-btn active" data-template="template-architectural">Bold Architectural</button>
                 <button class="template-btn" data-template="template-modern">Modern Grid</button>
                 <button class="template-btn" data-template="template-classic">Classic Traditional</button>
                 <button class="template-btn" data-template="template-minimalist">Minimalist</button>
-                <button class="template-btn" data-template="template-social" style="grid-column: span 2; background-color: #2980b9; border-color: #2980b9;">📱 Social Media Square (Feed)</button>
             </div>
         </section>
 
@@ -144,99 +143,109 @@
                 <span class="slider"></span>
             </label>
             
-            <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download Social Square</button>
+            <button id="btn-download" class="print-button" style="background-color: #2980b9; margin-top: 15px; width: 100%; border-bottom: 2px solid #1c5982;">📱 Download Current View Image</button>
             <button id="btn-copy-caption" class="print-button" style="background-color: #8e44ad; margin-top: 8px; width: 100%; border-bottom: 2px solid #5e3370;">📋 Copy Social Caption</button>
             <button id="btn-save-pdf" class="print-button" style="background-color: #d35400; margin-top: 8px; width: 100%; border-bottom: 2px solid #a03c00;">💾 Save as PDF</button>
             <button onclick="window.print()" class="print-button" style="background-color: #27ae60; margin-top: 8px; width: 100%; border-bottom: 2px solid #1e8449;">🖨️ Print Flyer</button>
         </section>
     </aside>
 
-    <!-- ====== RIGHT SIDE: FLYER PREVIEW ====== -->
+    <!-- ====== RIGHT SIDE: PREVIEW & VIEW TABS ====== -->
     <main class="flyer-viewport">
-        <div id="flyer-paper" class="template-architectural">
-            
-            <header class="flyer-header">
-                <div class="header-left">
-                    <div id="preview-status-banner" class="open-house-banner">
-                        <span id="preview-status-text">OPEN HOUSE</span><span id="open-house-prefix">: </span><span id="preview-date">Sunday, Aug 16th</span><span id="open-house-sep"> | </span><span id="preview-time">1:00 PM - 4:00 PM</span>
-                    </div>
-                    <h1 id="preview-address">123 Main St, Anytown</h1>
-                    <p id="preview-price">$450,000</p>
-                </div>
-                <div class="header-right">
-                    <img id="preview-broker-logo" src="placeholder-logo.png" alt="Brokerage Logo" style="display: none;">
-                </div>
-            </header>
-
-            <div class="realtor-contact-block">
-                <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
-                <div class="agent-info">
-                    <p class="agent-name">Presented By: <span id="preview-agent-name">Agent Name</span> <span id="preview-agent-license" class="small-text"></span></p>
-                    <p id="preview-agent-company">Brokerage Name</p>
-                </div>
-                <div class="agent-contact-details">
-                    <p id="preview-agent-phone">📞 (555) 555-5555</p>
-                    <p id="preview-agent-email">✉️ agent@example.com</p>
-                    <p id="preview-agent-web">🌐 www.website.com</p>
-                </div>
+        <div class="viewport-wrapper">
+            <!-- Live View Mode Switcher Tabs -->
+            <div class="view-mode-tabs">
+                <button class="view-tab active" data-view="view-print">🖨️ Print View (Letter)</button>
+                <button class="view-tab" data-view="view-square">📱 Social Square (1:1)</button>
+                <button class="view-tab" data-view="view-story">📸 Story Format (9:16)</button>
             </div>
 
-            <div class="flyer-main-content">
-                <div class="main-photo-wrapper">
-                    <img id="preview-photo-hero" src="placeholder-hero.jpg" alt="Property Hero Photo">
-                </div>
+            <!-- Flyer Paper Canvas -->
+            <div id="flyer-paper" class="template-architectural view-print">
                 
-                <div class="details-sidebar">
-                    <div class="specs">
-                        <div><span id="preview-beds">3</span> Beds</div>
-                        <div><span id="preview-baths">2.5</span> Baths</div>
-                        <div><span id="preview-sqft">2,100</span> SqFt</div>
+                <header class="flyer-header">
+                    <div class="header-left">
+                        <div id="preview-status-banner" class="open-house-banner">
+                            <span id="preview-status-text">OPEN HOUSE</span><span id="open-house-prefix">: </span><span id="preview-date">Sunday, Aug 16th</span><span id="open-house-sep"> | </span><span id="preview-time">1:00 PM - 4:00 PM</span>
+                        </div>
+                        <h1 id="preview-address">123 Main St, Anytown</h1>
+                        <p id="preview-price">$450,000</p>
                     </div>
-                    <div class="sub-specs">
-                        Year Built: <span id="preview-year">2015</span> | 
-                        Lot: <span id="preview-lot">0.5 Acres</span> | 
-                        HOA: <span id="preview-hoa">$50</span>/mo
+                    <div class="header-right">
+                        <img id="preview-broker-logo" src="placeholder-logo.png" alt="Brokerage Logo" style="display: none;">
                     </div>
-                    
-                    <p id="preview-description">Stunning open-concept home with modern updates. Perfect for families!</p>
-                    
-                    <ul id="preview-highlights-list" class="highlights-list">
-                        <li id="preview-hi1">Fully Renovated Kitchen</li>
-                        <li id="preview-hi2">New Roof & HVAC (2024)</li>
-                        <li id="preview-hi3">Fenced Backyard & Deck</li>
-                    </ul>
-                    
-                    <div class="supporting-photos">
-                        <img id="preview-photo-supp1" src="placeholder-supp.jpg" alt="Supporting Photo 1">
-                        <img id="preview-photo-supp2" src="placeholder-supp.jpg" alt="Supporting Photo 2">
-                    </div>
-                </div>
-            </div>
+                </header>
 
-            <div id="preview-financing-banner" class="financing-banner">
-                <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Conventional, FHA, VA 100%. Apply online below to see if you qualify!</span>
-            </div>
+                <div class="realtor-contact-block">
+                    <img id="preview-photo-agent" src="placeholder-agent.jpg" alt="Agent Headshot" class="agent-headshot">
+                    <div class="agent-info">
+                        <p class="agent-name">Presented By: <span id="preview-agent-name">Agent Name</span> <span id="preview-agent-license" class="small-text"></span></p>
+                        <p id="preview-agent-company">Brokerage Name</p>
+                    </div>
+                    <div class="agent-contact-details">
+                        <p id="preview-agent-phone">📞 (555) 555-5555</p>
+                        <p id="preview-agent-email">✉️ agent@example.com</p>
+                        <p id="preview-agent-web">🌐 www.website.com</p>
+                    </div>
+                </div>
 
-            <!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
-            <footer class="lender-block">
-                <div class="lender-info">
-                    <img src="john-photo.jpg" alt="John Bischof" class="lender-headshot">
-                    <div class="lender-text">
-                        <h3>John Bischof</h3>
-                        <p>Loan Originator NMLS #165831</p> 
-                        <p>Home Mortgage Solutions LLC</p>
-                        <p>(423) 505-9811 | john@hmsloan.com</p>
+                <div class="flyer-main-content">
+                    <div class="main-photo-wrapper">
+                        <img id="preview-photo-hero" src="placeholder-hero.jpg" alt="Property Hero Photo">
+                    </div>
+                    
+                    <div class="details-sidebar">
+                        <div class="specs">
+                            <div><span id="preview-beds">3</span> Beds</div>
+                            <div><span id="preview-baths">2.5</span> Baths</div>
+                            <div><span id="preview-sqft">2,100</span> SqFt</div>
+                        </div>
+                        <div class="sub-specs">
+                            Year Built: <span id="preview-year">2015</span> | 
+                            Lot: <span id="preview-lot">0.5 Acres</span> | 
+                            HOA: <span id="preview-hoa">$50</span>/mo
+                        </div>
+                        
+                        <p id="preview-description">Stunning open-concept home with modern updates. Perfect for families!</p>
+                        
+                        <ul id="preview-highlights-list" class="highlights-list">
+                            <li id="preview-hi1">Fully Renovated Kitchen</li>
+                            <li id="preview-hi2">New Roof & HVAC (2024)</li>
+                            <li id="preview-hi3">Fenced Backyard & Deck</li>
+                        </ul>
+                        
+                        <div class="supporting-photos">
+                            <img id="preview-photo-supp1" src="placeholder-supp.jpg" alt="Supporting Photo 1">
+                            <img id="preview-photo-supp2" src="placeholder-supp.jpg" alt="Supporting Photo 2">
+                        </div>
                     </div>
                 </div>
-                
-                <div class="lender-branding-right" style="display: flex; align-items: center; gap: 0.2in;">
-                    <img src="email-logo.png" alt="Company Logo" style="max-width: 1.5in; max-height: 0.8in; object-fit: contain;">
-                    <div class="qr-code-wrapper" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <div id="qrcode"></div>
-                        <p style="margin: 0; font-size: 0.65rem; font-weight: bold;">Apply Online</p>
-                    </div>
+
+                <div id="preview-financing-banner" class="financing-banner">
+                    <strong>Financing Highlight:</strong> <span id="preview-financing-msg">Conventional, FHA, VA 100%. Apply online below to see if you qualify!</span>
                 </div>
-            </footer>
+
+                <!-- ====== MANDATORY: LENDER CO-BRANDING BLOCK ====== -->
+                <footer class="lender-block">
+                    <div class="lender-info">
+                        <img src="john-photo.jpg" alt="John Bischof" class="lender-headshot">
+                        <div class="lender-text">
+                            <h3>John Bischof</h3>
+                            <p>Loan Originator NMLS #165831</p> 
+                            <p>Home Mortgage Solutions LLC</p>
+                            <p>(423) 505-9811 | john@hmsloan.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="lender-branding-right" style="display: flex; align-items: center; gap: 0.2in;">
+                        <img src="email-logo.png" alt="Company Logo" style="max-width: 1.5in; max-height: 0.8in; object-fit: contain;">
+                        <div class="qr-code-wrapper" style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <div id="qrcode"></div>
+                            <p style="margin: 0; font-size: 0.65rem; font-weight: bold;">Apply Online</p>
+                        </div>
+                    </div>
+                </footer>
+            </div>
         </div>
     </main>
 
@@ -245,8 +254,8 @@
 <!-- ====== POP-UP MODAL FOR SOCIAL CAPTION ====== -->
 <div id="caption-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <h3>📱 Social Square Downloaded!</h3>
-        <p>Your social media image is downloading. Here is your ready-to-paste caption:</p>
+        <h3>📱 Social Asset Downloaded!</h3>
+        <p>Your graphics image is downloading. Here is your ready-to-paste caption:</p>
         <textarea id="modal-caption-text" rows="8" readonly></textarea>
         <div class="modal-btn-row">
             <button id="modal-btn-copy" class="print-button" style="background-color: #27ae60; margin: 0; flex: 1;">📋 Copy Caption</button>
