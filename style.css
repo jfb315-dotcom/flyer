@@ -82,30 +82,30 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 /* --- VIEW MODE 1: PRINT VIEW (8.5 x 11 Letter) --- */
 #flyer-paper.view-print { width: 8.5in; height: 11in; padding: 0.4in; }
 
-/* --- VIEW MODE 2: SOCIAL SQUARE (1:1 Billboard Hero Spotlight) --- */
+/* --- VIEW MODE 2: SOCIAL SQUARE (1:1 Billboard Hero Spotlight - High Contrast Text Fix) --- */
 #flyer-paper.view-square { width: 8.5in; height: 8.5in; padding: 0.25in; background: #111; color: #fff; justify-content: space-between; }
-#flyer-paper.view-square .flyer-header { display: flex; justify-content: space-between; align-items: center; margin: 0; background: rgba(0,0,0,0.8); padding: 0.1in; z-index: 2; border-radius: 4px; }
-#flyer-paper.view-square .flyer-header h1 { font-size: 1.6rem !important; color: #fff !important; margin: 0; }
-#flyer-paper.view-square .flyer-header p { font-size: 1.4rem !important; color: var(--accent) !important; background: #fff; padding: 2px 10px; border-radius: 4px; }
-#flyer-paper.view-square .open-house-banner { background-color: var(--accent) !important; font-size: 0.75rem !important; margin-bottom: 2px; }
+#flyer-paper.view-square .flyer-header { display: flex; justify-content: space-between; align-items: center; margin: 0; background: rgba(0, 0, 0, 0.85); padding: 0.15in; z-index: 2; border-radius: 6px; border: 2px solid rgba(255,255,255,0.1); }
+#flyer-paper.view-square .flyer-header h1 { font-size: 1.8rem !important; color: #ffffff !important; margin: 4px 0 0 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+#flyer-paper.view-square .flyer-header p { font-size: 1.4rem !important; color: #ffffff !important; background: var(--accent); padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+#flyer-paper.view-square .open-house-banner { background-color: var(--accent) !important; font-size: 0.8rem !important; margin-bottom: 2px; color: #fff !important; }
 #flyer-paper.view-square .realtor-contact-block, 
 #flyer-paper.view-square .sub-specs, 
 #flyer-paper.view-square .highlights-list, 
 #flyer-paper.view-square .supporting-photos, 
-#flyer-paper.view-square .financing-banner { display: none !important; } /* Stripped to absolute minimalist focus */
+#flyer-paper.view-square .financing-banner { display: none !important; }
 #flyer-paper.view-square .flyer-main-content { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; z-index: 1; }
 #flyer-paper.view-square .main-photo-wrapper { width: 100%; height: 100%; }
 #flyer-paper.view-square .main-photo-wrapper img { width: 100%; height: 100%; object-fit: cover; }
 #flyer-paper.view-square .details-sidebar { display: none !important; }
-#flyer-paper.view-square .lender-block { background: rgba(17, 17, 17, 0.95); padding: 0.1in; border-top: 3px solid var(--accent); z-index: 2; margin-top: auto; }
+#flyer-paper.view-square .lender-block { background: rgba(17, 17, 17, 0.95); padding: 0.12in; border-top: 4px solid var(--accent); z-index: 2; margin-top: auto; }
 #flyer-paper.view-square .lender-text h3, #flyer-paper.view-square .lender-text p { color: #fff !important; }
 
-/* --- VIEW MODE 3: STORY FORMAT (9:16 Vertical Billboard Hero) --- */
+/* --- VIEW MODE 3: STORY FORMAT (9:16 Vertical Billboard Hero - High Contrast Text Fix) --- */
 #flyer-paper.view-story { width: 6.5in; height: 11.5in; padding: 0.25in; background: #111; color: #fff; justify-content: space-between; }
-#flyer-paper.view-story .flyer-header { display: block !important; text-align: center !important; background: rgba(0,0,0,0.8); padding: 0.1in; z-index: 2; border-radius: 4px; }
-#flyer-paper.view-story .flyer-header h1 { font-size: 1.5rem !important; color: #fff !important; }
-#flyer-paper.view-story .flyer-header p { font-size: 1.5rem !important; color: var(--accent) !important; margin-top: 4px; }
-#flyer-paper.view-story .open-house-banner { background-color: var(--accent) !important; font-size: 0.8rem !important; }
+#flyer-paper.view-story .flyer-header { display: block !important; text-align: center !important; background: rgba(0, 0, 0, 0.85); padding: 0.15in; z-index: 2; border-radius: 6px; border: 2px solid rgba(255,255,255,0.1); }
+#flyer-paper.view-story .flyer-header h1 { font-size: 1.6rem !important; color: #ffffff !important; margin-top: 4px !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+#flyer-paper.view-story .flyer-header p { font-size: 1.5rem !important; color: #ffffff !important; background: var(--accent); display: inline-block; padding: 4px 14px; border-radius: 4px; margin-top: 6px; font-weight: bold; }
+#flyer-paper.view-story .open-house-banner { background-color: var(--accent) !important; font-size: 0.85rem !important; color: #fff !important; }
 #flyer-paper.view-story .realtor-contact-block, 
 #flyer-paper.view-story .sub-specs, 
 #flyer-paper.view-story .highlights-list, 
@@ -115,7 +115,7 @@ input, textarea, select { padding: 0.5rem; border: none; border-radius: 4px; bac
 #flyer-paper.view-story .main-photo-wrapper { width: 100%; height: 100%; }
 #flyer-paper.view-story .main-photo-wrapper img { width: 100%; height: 100%; object-fit: cover; }
 #flyer-paper.view-story .details-sidebar { display: none !important; }
-#flyer-paper.view-story .lender-block { background: rgba(17, 17, 17, 0.95); padding: 0.1in; border-top: 3px solid var(--accent); z-index: 2; margin-top: auto; }
+#flyer-paper.view-story .lender-block { background: rgba(17, 17, 17, 0.95); padding: 0.12in; border-top: 4px solid var(--accent); z-index: 2; margin-top: auto; }
 #flyer-paper.view-story .lender-text h3, #flyer-paper.view-story .lender-text p { color: #fff !important; }
 
 /* Standard Components */
