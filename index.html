@@ -4466,15 +4466,14 @@
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
       await runExclusive(async () => {
-        showBusy('Rendering animated Facebook post… this can take up to 30-40 seconds at full quality.');
+        showBusy('Rendering animated Facebook post… this can take a minute or two at full quality.');
         // Background is the realtor's actual selected flyer design, at its
         // own natural aspect ratio (no forced landscape frame, no
-        // cropping/padding) — same approach as the static export. Capped
-        // a bit below the static export's max size so the GIF still renders
-        // in a reasonable time, but high enough to keep text and details
-        // sharp (GIF's 256-color palette is the real limit on photo quality,
-        // not resolution — this just avoids compounding that with blur).
-        const bgImg = await renderFlyerNatural($('#flyer'), 1400);
+        // cropping/padding) — same approach as the static export, now at
+        // essentially the same top resolution. GIF's 256-color palette is
+        // still the hard limit on photo quality (not resolution), but a
+        // bigger source image means finer detail survives that quantizing.
+        const bgImg = await renderFlyerNatural($('#flyer'), 2000);
         const fmt = { w: bgImg.width, h: bgImg.height };
 
         const out = document.createElement('canvas');
@@ -4524,7 +4523,7 @@
         // a sampling interval, not a 1-10 rating) — this trades some render
         // time for a noticeably less banded, sharper-looking result.
         const gif = new GIF({
-          workers: 4, quality: 3, width: fmt.w, height: fmt.h, repeat: 0,
+          workers: 4, quality: 1, width: fmt.w, height: fmt.h, repeat: 0,
           workerScript: workerScriptURL
         });
 
@@ -4544,7 +4543,7 @@
         const blob = await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             reject(new Error('GIF rendering timed out — this usually means the gif.worker.js file couldn\'t be reached. Check your internet connection (or try disabling an ad-blocker/privacy extension) and try again.'));
-          }, 60000);
+          }, 120000);
           gif.on('finished', (b) => { clearTimeout(timeoutId); resolve(b); });
           gif.on('abort', () => { clearTimeout(timeoutId); reject(new Error('GIF rendering was aborted.')); });
           try { gif.render(); } catch (e) { clearTimeout(timeoutId); reject(e); }
