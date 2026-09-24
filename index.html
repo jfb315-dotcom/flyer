@@ -4502,9 +4502,14 @@
         // while still reading as smooth motion for a badge/particle effect.
         const fps = 12;
         const frameCount = Math.round(durationSec * fps);
+        // gif.js needs a separate "worker" script to do the actual encoding.
+        // This app is a single self-contained HTML file with no assets
+        // folder to host that in, so it's always loaded straight from the
+        // same public CDN the main library uses — this requires an internet
+        // connection at click-time, same as the main gif.js load above.
         const gif = new GIF({
           workers: 2, quality: 10, width: fmt.w, height: fmt.h, repeat: 0,
-          workerScript: 'assets/js/gif.worker.js'
+          workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
         });
 
         for (let i = 0; i < frameCount; i++) {
@@ -4515,10 +4520,17 @@
           gif.addFrame(ctx, { copy: true, delay: Math.round(1000 / fps) });
         }
 
+        // Safety net: if the worker script can't load (blocked network,
+        // ad-blocker, offline) gif.js has no built-in way to report that —
+        // it just never fires an event. Without this timeout, that would
+        // hang the "Rendering…" overlay forever with no explanation.
         const blob = await new Promise((resolve, reject) => {
-          gif.on('finished', resolve);
-          gif.on('abort', () => reject(new Error('GIF rendering was aborted.')));
-          try { gif.render(); } catch (e) { reject(e); }
+          const timeoutId = setTimeout(() => {
+            reject(new Error('GIF rendering timed out — this usually means the gif.worker.js file couldn\'t be reached. Check your internet connection (or try disabling an ad-blocker/privacy extension) and try again.'));
+          }, 25000);
+          gif.on('finished', (b) => { clearTimeout(timeoutId); resolve(b); });
+          gif.on('abort', () => { clearTimeout(timeoutId); reject(new Error('GIF rendering was aborted.')); });
+          try { gif.render(); } catch (e) { clearTimeout(timeoutId); reject(e); }
         });
 
         const url = URL.createObjectURL(blob);
