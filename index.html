@@ -4031,33 +4031,58 @@
     }
 
     /* ---------- True-pixel social media exports ----------
-       These now export the realtor's ACTUAL selected flyer design — not a
-       separate simplified card — rasterized at high resolution and then
-       "contain"-fit (whole flyer visible, nothing cropped) onto a canvas of
-       the platform's exact required pixel dimensions, with the letterbox
-       bars (if any) filled in a neutral dark tone so it still looks
-       intentional rather than like empty space. */
+       These export the realtor's ACTUAL selected flyer design — not a
+       separate simplified card — rasterized at high resolution, then placed
+       onto a canvas of the platform's exact required pixel dimensions.
+       The whole flyer is always fully visible (never cropped): a blurred,
+       darkened, edge-to-edge copy of the same flyer fills the frame behind
+       it (like Instagram Stories does for photos that don't match its
+       aspect ratio), so there are no flat black bars — just a soft
+       continuation of the flyer's own colors — and the sharp flyer sits on
+       top, centered, at the largest size that fits without cropping. */
     const SOCIAL_FORMATS = {
       igPost:   { label: 'Instagram Post',  slug: 'instagram-post',  w: 1080, h: 1080 },
       igStory:  { label: 'Instagram Story', slug: 'instagram-story', w: 1080, h: 1920 },
       facebook: { label: 'Facebook',        slug: 'facebook',        w: 1200, h: 630 }
     };
-    const SOCIAL_LETTERBOX_COLOR = '#1c1815';
 
     // Rasterizes flyerEl and draws it centered ("contain" fit — the whole
     // flyer stays visible, never cropped) onto a canvas of exactly
-    // targetW x targetH. Returns that canvas.
+    // targetW x targetH, with a blurred/darkened "cover" fit copy of the
+    // same image filling the background so mismatched aspect ratios don't
+    // show as flat letterbox bars. Returns that canvas.
     async function renderFlyerToFixedCanvas(flyerEl, targetW, targetH) {
       const raw = await html2canvas(flyerEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
       const out = document.createElement('canvas');
       out.width = targetW; out.height = targetH;
       const ctx = out.getContext('2d');
-      ctx.fillStyle = SOCIAL_LETTERBOX_COLOR;
+
+      // Background: scale the flyer up to fully COVER the frame (cropping
+      // whatever overflows), blur it, and darken it — this only shows in
+      // the margins around the sharp flyer on top, so the crop never
+      // matters, and it reads as an intentional soft backdrop instead of
+      // empty space.
+      const coverScale = Math.max(targetW / raw.width, targetH / raw.height);
+      const coverW = raw.width * coverScale, coverH = raw.height * coverScale;
+      ctx.save();
+      ctx.filter = 'blur(28px) brightness(0.55) saturate(1.15)';
+      ctx.drawImage(raw, (targetW - coverW) / 2 - 20, (targetH - coverH) / 2 - 20, coverW + 40, coverH + 40);
+      ctx.restore();
+      // A slight dark scrim on top of the blurred backdrop keeps the sharp
+      // flyer as the clear focal point and hides any blur-edge artifacts.
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ctx.fillRect(0, 0, targetW, targetH);
+
+      // Foreground: the whole flyer, sharp, at the largest size that fits
+      // without cropping any content.
       const s = Math.min(targetW / raw.width, targetH / raw.height);
       const drawW = raw.width * s, drawH = raw.height * s;
       const dx = (targetW - drawW) / 2, dy = (targetH - drawH) / 2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 24;
       ctx.drawImage(raw, dx, dy, drawW, drawH);
+      ctx.restore();
       return out;
     }
 
