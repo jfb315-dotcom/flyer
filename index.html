@@ -7,16 +7,22 @@
   <!--
     OFFLINE SUPPORT: these try a local copy first (works with no signal at a
     showing) and only reach out to the CDN if that local file is missing.
-    One-time setup for full offline capability — download these 3 files and
+    One-time setup for full offline capability — download these 5 files and
     save them at these exact paths next to this HTML file:
       assets/js/html2canvas.min.js  <- https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
       assets/js/jspdf.umd.min.js    <- https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
       assets/js/qrcode.min.js       <- https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js
+      assets/js/gif.js              <- https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js
+      assets/js/gif.worker.js       <- https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js
     Until you do that, the app works exactly as before (loads from the CDN).
+    Note: the animated-post GIF export always needs a live internet
+    connection at the moment you click it (to fetch its background worker
+    script), even if you've saved the files above for everything else.
   -->
   <script src="assets/js/html2canvas.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';document.head.appendChild(s);"></script>
   <script src="assets/js/jspdf.umd.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';document.head.appendChild(s);"></script>
   <script src="assets/js/qrcode.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';document.head.appendChild(s);"></script>
+  <script src="assets/js/gif.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js';document.head.appendChild(s);"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -798,7 +804,7 @@
       <div class="section mobile-hide" id="animateSection">
         <div class="section-title">Animate for Facebook Post</div>
         <div style="font-size:10px;color:var(--text-muted);line-height:1.5;margin:-2px 0 10px">
-          Adds real motion and exports as a short MP4 video &mdash; great for a Facebook post. Instagram doesn&rsquo;t accept a raw upload like this, so it&rsquo;s Facebook-only.
+          Adds real motion over your flyer and exports as a looping GIF &mdash; it plays automatically the moment it&rsquo;s posted, no tap needed. Instagram doesn&rsquo;t accept a raw upload like this, so it&rsquo;s Facebook-only.
         </div>
         <div class="form-group">
           <label>Effect</label>
@@ -844,7 +850,7 @@
           <label style="display:flex;justify-content:space-between">Effect Scale <span id="animScaleVal">1.0&times;</span></label>
           <input type="range" id="animationScale" min="0.5" max="2" step="0.1" value="1" />
         </div>
-        <button class="btn btn-secondary" id="btnDownloadAnimatedFb" disabled>Download Animated Facebook Post</button>
+        <button class="btn btn-secondary" id="btnDownloadAnimatedFb" disabled>Download Animated Facebook Post (GIF)</button>
       </div>
     </aside>
 
@@ -4025,119 +4031,34 @@
     }
 
     /* ---------- True-pixel social media exports ----------
-       Each format gets its own composition laid out at exactly half the
-       target size in CSS px, rendered in #social-stage, captured by
-       html2canvas at scale 2, then drawn onto a canvas of the literal target
-       dimensions so the file is always exactly e.g. 1080x1920. */
+       These now export the realtor's ACTUAL selected flyer design — not a
+       separate simplified card — rasterized at high resolution and then
+       "contain"-fit (whole flyer visible, nothing cropped) onto a canvas of
+       the platform's exact required pixel dimensions, with the letterbox
+       bars (if any) filled in a neutral dark tone so it still looks
+       intentional rather than like empty space. */
     const SOCIAL_FORMATS = {
-      igPost:   { label: 'Instagram Post',  slug: 'instagram-post',  w: 1080, h: 1080, cssW: 540, cssH: 540 },
-      igStory:  { label: 'Instagram Story', slug: 'instagram-story', w: 1080, h: 1920, cssW: 540, cssH: 960 },
-      facebook: { label: 'Facebook',        slug: 'facebook',        w: 1200, h: 630,  cssW: 600, cssH: 315 }
+      igPost:   { label: 'Instagram Post',  slug: 'instagram-post',  w: 1080, h: 1080 },
+      igStory:  { label: 'Instagram Story', slug: 'instagram-story', w: 1080, h: 1920 },
+      facebook: { label: 'Facebook',        slug: 'facebook',        w: 1200, h: 630 }
     };
+    const SOCIAL_LETTERBOX_COLOR = '#1c1815';
 
-    function socialPhotoHTML(i, w, h) {
-      const photo = getPhotoAt(i);
-      const src = photo ? photo.src : placeholder(w, h, 'Upload Property Photo');
-      const off = photo ? getOffsetFor(photo.id) : { relX: 0.5, relY: 0.5, zoom: 1 };
-      return `<div class="pan-container" style="width:${w}px;height:${h}px"><img data-natural-pending="1" data-rel-x="${off.relX}" data-rel-y="${off.relY}" data-zoom="${off.zoom}" src="${src}" /></div>`;
-    }
-    function socialBadge(text, fontPx) {
-      if (!text) return '';
-      return `<span style="display:inline-block;padding:${Math.round(fontPx * 0.7)}px ${Math.round(fontPx * 1.5)}px;background:${state.accent};color:#ffffff;font-size:${fontPx}px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.35)">${text}</span>`;
-    }
-    function socialLenderLine(fontPx) {
-      const L = CONFIG.lender;
-      return `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px;font-size:${fontPx}px;color:rgba(255,255,255,0.72);line-height:1.4">
-          <div>Financing: <strong style="color:#ffffff">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; ${L.phone}</div>
-          ${ehoMark('#d6d4d2', Math.round(fontPx * 1.3), Math.max(7, fontPx - 1))}
-        </div>`;
-    }
-    function socialStatsLine(beds, baths, sqft) {
-      // number+label pairs never split across lines; wraps only between pairs
-      const pair = t => `<span style="white-space:nowrap">${t}</span>`;
-      return `${pair(beds + ' Beds')} &nbsp;&middot;&nbsp; ${pair(baths + ' Baths')} &nbsp;&middot;&nbsp; ${pair(sqft + ' Sq Ft')}`;
-    }
-
-    function buildSocialHTML(key) {
-      const isSold = state.layout === 'sold';
-      const address = val('address', '137 DRAKE DR NW');
-      const price = isSold ? val('price', '') : val('price', '$450,000');
-      const beds = val('beds', '3');
-      const baths = val('baths', '2.5');
-      const sqft = val('sqft', '2,100');
-      const shortDesc = val('shortDesc', 'Stunning open-concept home with modern updates, fully renovated kitchen, and fenced backyard.');
-      const coName = coAgentActive() ? val('coAgentName', '').trim() : '';
-      const agentName = val('agentName', 'Your Name') + (coName ? ' &amp; ' + coName : '');
-      const agentCompany = val('agentCompany', 'Brokerage Name');
-      const agentPhone = val('agentPhone', '(555) 000-0000');
-      const statText = effectiveStatusText();
-      const accentD = accentOnDark();
-      const logo = state.agentLogo ? `<img src="${state.agentLogo}" style="max-height:40px;max-width:90px;object-fit:contain;flex-shrink:0" alt="" />` : '';
-
-      if (key === 'igPost') {
-        return `
-          <div style="position:relative;width:540px;height:540px;overflow:hidden;background:#1c1815;color:#ffffff">
-            <div style="position:absolute;left:0;top:0">${socialPhotoHTML(0, 540, 540)}</div>
-            <div style="position:absolute;left:0;top:0;width:540px;height:540px;background:linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.9) 100%)"></div>
-            ${statText ? `<div style="position:absolute;top:24px;left:24px">${socialBadge(statText, isSold ? 15 : 12)}</div>` : ''}
-            <div style="position:absolute;left:0;right:0;bottom:0;padding:0 28px 22px">
-              ${price ? `<div style="font-family:var(--font-serif);font-size:44px;font-weight:800;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,0.6)">${isSold ? '<span style="font-size:14px;letter-spacing:2px;text-transform:uppercase;font-family:var(--font-flyer);font-weight:700;vertical-align:middle;margin-right:8px">Sold at</span>' : ''}${price}</div>` : ''}
-              <div style="font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.88);margin-top:6px">${address}</div>
-              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${accentD};margin-top:8px;font-weight:700">${socialStatsLine(beds, baths, sqft)}</div>
-              <div style="height:1px;background:${accentD};opacity:0.6;margin:16px 0 12px"></div>
-              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
-                <div style="min-width:0">
-                  <div style="font-family:var(--font-serif);font-size:17px;font-weight:700">${agentName}</div>
-                  <div style="font-size:11px;color:rgba(255,255,255,0.72);margin-top:2px">${agentCompany} &middot; ${agentPhone}</div>
-                </div>
-                ${logo}
-              </div>
-              ${isSold ? '' : `<div style="margin-top:10px">${socialLenderLine(9)}</div>`}
-            </div>
-          </div>`;
-      }
-
-      if (key === 'igStory') {
-        const body = isSold
-          ? `<div style="font-family:var(--font-serif);font-style:italic;font-size:15px;color:rgba(255,255,255,0.8);line-height:1.55;text-align:center">Congratulations to the new homeowners! Thinking about making a move? Let&rsquo;s talk about what your home could sell for.</div>`
-          : `<div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;text-align:center">${shortDesc.length > 170 ? shortDesc.substring(0, 170) + '&hellip;' : shortDesc}</div>`;
-        return `
-          <div style="width:540px;height:960px;display:flex;flex-direction:column;background:#1c1815;color:#ffffff;overflow:hidden">
-            <div style="position:relative;width:540px;height:500px;flex-shrink:0">
-              ${socialPhotoHTML(0, 540, 500)}
-              <div style="position:absolute;left:0;top:0;width:540px;height:500px;background:linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 26%, rgba(28,24,21,0) 68%, #1c1815 100%)"></div>
-              ${statText ? `<div style="position:absolute;top:78px;left:0;right:0;text-align:center">${socialBadge(statText, isSold ? 18 : 14)}</div>` : ''}
-            </div>
-            <div style="flex:1;padding:0 34px;display:flex;flex-direction:column;min-height:0">
-              ${price ? `<div style="text-align:center;font-family:var(--font-serif);font-size:48px;font-weight:800;color:${accentD};line-height:1.05">${price}</div>` : ''}
-              <div style="text-align:center;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-top:6px">${address}</div>
-              <div style="margin:20px 0 18px">${statBar(beds, baths, sqft, true)}</div>
-              ${body}
-              <div style="margin-top:auto">${presentedByBar(true)}</div>
-              ${isSold ? '' : `<div style="margin-top:12px">${socialLenderLine(9.5)}</div>`}
-              <div style="height:72px;flex-shrink:0"></div>
-            </div>
-          </div>`;
-      }
-
-      // facebook
-      return `
-        <div style="width:600px;height:315px;display:flex;background:#1c1815;color:#ffffff;overflow:hidden">
-          <div style="position:relative;width:330px;height:315px;flex-shrink:0">
-            ${socialPhotoHTML(0, 330, 315)}
-            ${statText ? `<div style="position:absolute;top:16px;left:16px">${socialBadge(statText, 10)}</div>` : ''}
-          </div>
-          <div style="flex:1;min-width:0;padding:20px 20px 14px;display:flex;flex-direction:column">
-            ${price ? `<div style="font-family:var(--font-serif);font-size:30px;font-weight:800;color:${accentD};line-height:1.05">${price}</div>` : `<div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${accentD};line-height:1.05">Just Sold</div>`}
-            <div style="font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.8);margin-top:5px;word-break:break-word">${address}</div>
-            <div style="font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-top:8px;font-weight:600">${socialStatsLine(beds, baths, sqft)}</div>
-            <div style="height:1px;background:${accentD};opacity:0.6;margin:12px 0 10px"></div>
-            <div style="font-family:var(--font-serif);font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${agentName}</div>
-            <div style="font-size:9.5px;color:rgba(255,255,255,0.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${agentCompany}</div>
-            <div style="font-size:9.5px;color:rgba(255,255,255,0.8);margin-top:1px">${agentPhone}</div>
-            ${isSold ? '' : `<div style="margin-top:auto">${socialLenderLine(7.5)}</div>`}
-          </div>
-        </div>`;
+    // Rasterizes flyerEl and draws it centered ("contain" fit — the whole
+    // flyer stays visible, never cropped) onto a canvas of exactly
+    // targetW x targetH. Returns that canvas.
+    async function renderFlyerToFixedCanvas(flyerEl, targetW, targetH) {
+      const raw = await html2canvas(flyerEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const out = document.createElement('canvas');
+      out.width = targetW; out.height = targetH;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = SOCIAL_LETTERBOX_COLOR;
+      ctx.fillRect(0, 0, targetW, targetH);
+      const s = Math.min(targetW / raw.width, targetH / raw.height);
+      const drawW = raw.width * s, drawH = raw.height * s;
+      const dx = (targetW - drawW) / 2, dy = (targetH - drawH) / 2;
+      ctx.drawImage(raw, dx, dy, drawW, drawH);
+      return out;
     }
 
     async function downloadSocial(key) {
@@ -4145,34 +4066,9 @@
       if (!fmt || !exportLibsReady(false)) return;
       await runExclusive(async () => {
         showBusy(`Rendering ${fmt.label} (${fmt.w}×${fmt.h})…`);
-        const stage = $('#social-stage');
-        stage.style.width = fmt.cssW + 'px';
-        stage.style.height = fmt.cssH + 'px';
-        stage.innerHTML = buildSocialHTML(key);
-        stage.style.display = 'block';
-        try {
-          await waitForImages(stage);
-          renderPreviewImages(stage);
-          await nextFrame();
-          const raw = await html2canvas(stage, {
-            scale: fmt.w / fmt.cssW, width: fmt.cssW, height: fmt.cssH,
-            windowWidth: Math.max(window.innerWidth, fmt.cssW), windowHeight: Math.max(window.innerHeight, fmt.cssH),
-            useCORS: true, backgroundColor: '#1c1815', logging: false
-          });
-          // Guarantee the literal target size regardless of rounding / DPR.
-          const out = document.createElement('canvas');
-          out.width = fmt.w;
-          out.height = fmt.h;
-          const ctx = out.getContext('2d');
-          ctx.fillStyle = '#1c1815';
-          ctx.fillRect(0, 0, fmt.w, fmt.h);
-          ctx.drawImage(raw, 0, 0, fmt.w, fmt.h);
-          triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-${fmt.slug}-${fmt.w}x${fmt.h}.jpg`);
-          markExported();
-        } finally {
-          stage.style.display = 'none';
-          stage.innerHTML = '';
-        }
+        const out = await renderFlyerToFixedCanvas($('#flyer'), fmt.w, fmt.h);
+        triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-${fmt.slug}-${fmt.w}x${fmt.h}.jpg`);
+        markExported();
         hideBusy();
         showCaptionModal();
       });
@@ -4541,129 +4437,71 @@
       if (hasType || hasBadge) startLivePreview();
     }
 
-    // Records a fresh render at the real 1200x630 Facebook resolution using
-    // the browser's native MediaRecorder — no external video library needed.
-    // Facebook's own accepted-formats list is MP4/MOV; it does not list WebM,
-    // so we ask the browser for a real .mp4 first (current Chrome and Edge
-    // can record MP4 directly) and only fall back to WebM if the browser
-    // truly can't do MP4 (older Chrome, or Firefox) — in which case we warn
-    // the realtor that Facebook may reject it until it's converted. Instagram
-    // doesn't accept either format from a raw upload like this, so this stays
-    // Facebook-only either way (see the section note).
+    // Builds a real animated .gif at the exact 1200x630 Facebook resolution
+    // (via the gif.js library) instead of a video: a GIF autoplays and loops
+    // the instant it's posted on Facebook, with no play button and no tap
+    // required, which a video can need depending on the platform/settings.
+    // Frames are generated directly (fixed dt per frame) rather than
+    // captured in real time, so this doesn't depend on MediaRecorder at all.
+    // Instagram doesn't accept a raw upload like this, so this stays
+    // Facebook-only (see the section note).
     async function downloadAnimatedFacebook() {
       const type = $('#animationType').value;
       const badge = $('#animationBadge') ? $('#animationBadge').value : '';
       if (!type && !badge) return;
       if (!exportLibsReady(false)) return;
-      if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
-        alert('This browser doesn\'t support recording video (needs a recent Chrome, Edge, or Firefox). Try again from one of those.');
+      if (typeof GIF === 'undefined') {
+        alert('The GIF export tool didn\'t load — this needs an internet connection the moment you click this button (even if the rest of the app works offline). Check your connection and try again.');
         return;
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
       await runExclusive(async () => {
         const fmt = SOCIAL_FORMATS.facebook;
         showBusy('Rendering animated Facebook post…');
-        const stage = $('#social-stage');
-        stage.style.width = fmt.cssW + 'px';
-        stage.style.height = fmt.cssH + 'px';
-        stage.innerHTML = buildSocialHTML('facebook');
-        stage.style.display = 'block';
-        let bgImg;
-        try {
-          await waitForImages(stage);
-          renderPreviewImages(stage);
-          await nextFrame();
-          bgImg = await html2canvas(stage, {
-            scale: fmt.w / fmt.cssW, width: fmt.cssW, height: fmt.cssH,
-            windowWidth: Math.max(window.innerWidth, fmt.cssW), windowHeight: Math.max(window.innerHeight, fmt.cssH),
-            useCORS: true, backgroundColor: '#1c1815', logging: false
-          });
-        } finally {
-          stage.style.display = 'none';
-          stage.innerHTML = '';
-        }
+        // Background is the realtor's actual selected flyer design,
+        // contain-fit into the Facebook frame — same as the static export —
+        // so the animation plays over the real flyer, not a separate card.
+        const bgImg = await renderFlyerToFixedCanvas($('#flyer'), fmt.w, fmt.h);
 
         const out = document.createElement('canvas');
         out.width = fmt.w; out.height = fmt.h;
         const ctx = out.getContext('2d');
-        // Particle sizes were tuned against the 540px-wide preview stage;
-        // scale them up proportionally for the real 1200px export canvas.
-        const scale = scaleInput * (fmt.w / fmt.cssW);
+        const scale = scaleInput * 2;
         const animState = makeAnimState(type, fmt.w, fmt.h, scale);
-        const durationSec = (type === 'sunrise' || type === 'sunset') ? 4.5 : 5;
+        const durationSec = (type === 'sunrise' || type === 'sunset') ? 4.5 : 4;
 
-        // Some platforms' upload validators reject a video that has no audio
-        // track at all (even when the container/codec are otherwise fine), so
-        // we always attach a real (silent) audio track rather than a
-        // video-only stream — cheap, safe, and a known fix for exactly this
-        // class of "video upload failed" error with no other explanation.
-        let silentAudioCtx = null, silentOsc = null;
-        let audioTrack = null;
-        try {
-          silentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const dest = silentAudioCtx.createMediaStreamDestination();
-          const gain = silentAudioCtx.createGain();
-          gain.gain.value = 0;
-          silentOsc = silentAudioCtx.createOscillator();
-          silentOsc.connect(gain);
-          gain.connect(dest);
-          silentOsc.start();
-          audioTrack = dest.stream.getAudioTracks()[0];
-        } catch (e) { /* if the browser blocks audio without a user gesture, just ship video-only */ }
+        // A real animated GIF instead of a video: it autoplays and loops
+        // everywhere the moment it's posted — no play button, no tap needed,
+        // which a video (even a muted one) can require depending on the
+        // platform and settings. 12fps keeps the file a reasonable size
+        // while still reading as smooth motion for a badge/particle effect.
+        const fps = 12;
+        const frameCount = Math.round(durationSec * fps);
+        const gif = new GIF({
+          workers: 2, quality: 10, width: fmt.w, height: fmt.h, repeat: 0,
+          workerScript: 'assets/js/gif.worker.js'
+        });
 
-        const videoStream = out.captureStream(24);
-        const stream = audioTrack ? new MediaStream([...videoStream.getVideoTracks(), audioTrack]) : videoStream;
-
-        const codecCandidates = [
-          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-          'video/mp4;codecs=h264,aac',
-          'video/mp4',
-          'video/webm;codecs=vp9,opus',
-          'video/webm;codecs=vp9',
-          'video/webm'
-        ];
-        const recMime = codecCandidates.find(m => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || 'video/webm';
-        let recorder;
-        try {
-          recorder = new MediaRecorder(stream, { mimeType: recMime });
-        } catch (e) {
-          recorder = new MediaRecorder(stream);
-        }
-        const chunks = [];
-        recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-        const recordingDone = new Promise(resolve => { recorder.onstop = resolve; });
-
-        let lastT = performance.now();
-        const startT = lastT;
-        const drawFrame = (now) => {
-          const dt = Math.min(0.05, (now - lastT) / 1000);
-          lastT = now;
+        for (let i = 0; i < frameCount; i++) {
+          const dt = 1 / fps;
           ctx.drawImage(bgImg, 0, 0, fmt.w, fmt.h);
           updateAndDrawAnim(ctx, animState, fmt.w, fmt.h, dt, scale, accentOnDark());
           drawBadge(ctx, badge, fmt.w, fmt.h, animState.t, scale, accentOnDark());
-          if ((now - startT) / 1000 < durationSec) {
-            requestAnimationFrame(drawFrame);
-          } else {
-            recorder.stop();
-          }
-        };
-        recorder.start();
-        requestAnimationFrame(drawFrame);
+          gif.addFrame(ctx, { copy: true, delay: Math.round(1000 / fps) });
+        }
 
-        await recordingDone;
-        try { if (silentOsc) silentOsc.stop(); if (silentAudioCtx) silentAudioCtx.close(); } catch (e) { /* noop */ }
-        const isMp4 = recorder.mimeType && recorder.mimeType.indexOf('mp4') !== -1;
-        const outExt = isMp4 ? 'mp4' : 'webm';
-        const blob = new Blob(chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
+        const blob = await new Promise((resolve, reject) => {
+          gif.on('finished', resolve);
+          gif.on('abort', () => reject(new Error('GIF rendering was aborted.')));
+          try { gif.render(); } catch (e) { reject(e); }
+        });
+
         const url = URL.createObjectURL(blob);
         const nameParts = [type, badge].filter(Boolean);
-        triggerDownload(url, `${fileBase()}-facebook-animated-${nameParts.join('-') || 'badge'}.${outExt}`);
+        triggerDownload(url, `${fileBase()}-facebook-animated-${nameParts.join('-') || 'badge'}.gif`);
         markExported();
         setTimeout(() => URL.revokeObjectURL(url), 4000);
         hideBusy();
-        if (!isMp4) {
-          alert('Heads up: your browser could only record this as a .webm file. Facebook\'s own accepted formats are MP4/MOV and may not take a .webm directly. For a guaranteed-to-work file, try this same download from a recent Chrome or Edge browser (they can record real .mp4), or convert the downloaded .webm to .mp4 with a free tool like CloudConvert before posting.');
-        }
       });
     }
 
