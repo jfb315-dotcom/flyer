@@ -792,10 +792,10 @@
         <button class="btn btn-primary" id="btnPdf">Download PDF Flyer</button>
         <button class="btn btn-secondary mobile-hide" id="btnPng">Download High-Res PNG</button>
         <button class="btn btn-secondary share-btn" id="btnShare" style="display:none" title="Send the flyer image straight to Messages, email, AirDrop and more">Share Flyer Image&hellip;</button>
-        <div class="export-group-label">Social media &mdash; exact pixel sizes</div>
-        <button class="btn btn-secondary" id="btnIgPost">Instagram Post &middot; 1080&times;1080</button>
-        <button class="btn btn-secondary" id="btnIgStory">Instagram Story &middot; 1080&times;1920</button>
-        <button class="btn btn-secondary" id="btnFacebook">Facebook &middot; 1200&times;630</button>
+        <div class="export-group-label">Social media &mdash; full flyer, high quality</div>
+        <button class="btn btn-secondary" id="btnIgPost">Save for Instagram Post</button>
+        <button class="btn btn-secondary" id="btnIgStory">Save for Instagram Story</button>
+        <button class="btn btn-secondary" id="btnFacebook">Save for Facebook</button>
         <button class="btn btn-secondary mobile-hide" id="btnExportAll">Export All Layouts (One PDF)</button>
         <button class="btn btn-text" id="btnCopy">Copy Listing Text Feed</button>
       </div>
@@ -906,9 +906,9 @@
         <button type="button" id="btnPng2" class="pill-btn mobile-hide">Download PNG</button>
         <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app">Share&hellip;</button>
         <span class="export-divider mobile-hide"></span>
-        <button type="button" id="btnIgPost2" class="pill-btn" title="1080 x 1080 px">Instagram Post</button>
-        <button type="button" id="btnIgStory2" class="pill-btn" title="1080 x 1920 px">Instagram Story</button>
-        <button type="button" id="btnFacebook2" class="pill-btn" title="1200 x 630 px">Facebook</button>
+        <button type="button" id="btnIgPost2" class="pill-btn" title="Full flyer, high quality — ready to post">Instagram Post</button>
+        <button type="button" id="btnIgStory2" class="pill-btn" title="Full flyer, high quality — ready to post">Instagram Story</button>
+        <button type="button" id="btnFacebook2" class="pill-btn" title="Full flyer, high quality — ready to post">Facebook</button>
         <span class="export-divider"></span>
         <button type="button" id="btnExportAll2" class="pill-btn mobile-hide">All Layouts PDF</button>
         <button type="button" id="btnCopy2" class="pill-btn">Copy Listing Text</button>
@@ -4030,59 +4030,44 @@
       });
     }
 
-    /* ---------- True-pixel social media exports ----------
+    /* ---------- Social media exports ----------
        These export the realtor's ACTUAL selected flyer design — not a
-       separate simplified card — rasterized at high resolution, then placed
-       onto a canvas of the platform's exact required pixel dimensions.
-       The whole flyer is always fully visible (never cropped): a blurred,
-       darkened, edge-to-edge copy of the same flyer fills the frame behind
-       it (like Instagram Stories does for photos that don't match its
-       aspect ratio), so there are no flat black bars — just a soft
-       continuation of the flyer's own colors — and the sharp flyer sits on
-       top, centered, at the largest size that fits without cropping. */
+       separate simplified card — at its own natural aspect ratio, at high
+       resolution. Earlier versions tried to force the flyer into each
+       platform's "recommended" pixel dimensions (1200x630 for Facebook,
+       1080x1080 for Instagram, etc.), which either cropped content off or
+       added padding/letterbox bars around it — neither looked right, since
+       the flyer itself is a tall card, not a wide photo. Facebook and
+       Instagram both accept a direct photo/post upload at any aspect ratio
+       (those "recommended" sizes are really for link-preview thumbnails,
+       not for a photo you upload yourself), so the simplest, best-looking
+       fix is to just export the real flyer, uncropped, unpadded, at good
+       quality — exactly what's on screen. */
     const SOCIAL_FORMATS = {
-      igPost:   { label: 'Instagram Post',  slug: 'instagram-post',  w: 1080, h: 1080 },
-      igStory:  { label: 'Instagram Story', slug: 'instagram-story', w: 1080, h: 1920 },
-      facebook: { label: 'Facebook',        slug: 'facebook',        w: 1200, h: 630 }
+      igPost:   { label: 'Instagram Post' },
+      igStory:  { label: 'Instagram Story' },
+      facebook: { label: 'Facebook' }
     };
+    // Longest edge to cap the export at, in pixels — plenty for a sharp,
+    // full-quality post without producing an unnecessarily huge file.
+    const SOCIAL_MAX_LONG_EDGE = 2400;
 
-    // Rasterizes flyerEl and draws it centered ("contain" fit — the whole
-    // flyer stays visible, never cropped) onto a canvas of exactly
-    // targetW x targetH, with a blurred/darkened "cover" fit copy of the
-    // same image filling the background so mismatched aspect ratios don't
-    // show as flat letterbox bars. Returns that canvas.
-    async function renderFlyerToFixedCanvas(flyerEl, targetW, targetH) {
-      const raw = await html2canvas(flyerEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    // Rasterizes flyerEl at high resolution and returns it as-is (its own
+    // natural aspect ratio, no cropping or padding), downscaled only if it
+    // exceeds SOCIAL_MAX_LONG_EDGE on its longest side.
+    async function renderFlyerNatural(flyerEl, maxLongEdge) {
+      maxLongEdge = maxLongEdge || SOCIAL_MAX_LONG_EDGE;
+      const raw = await html2canvas(flyerEl, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const longEdge = Math.max(raw.width, raw.height);
+      if (longEdge <= maxLongEdge) return raw;
+      const s = maxLongEdge / longEdge;
       const out = document.createElement('canvas');
-      out.width = targetW; out.height = targetH;
+      out.width = Math.round(raw.width * s);
+      out.height = Math.round(raw.height * s);
       const ctx = out.getContext('2d');
-
-      // Background: scale the flyer up to fully COVER the frame (cropping
-      // whatever overflows), blur it, and darken it — this only shows in
-      // the margins around the sharp flyer on top, so the crop never
-      // matters, and it reads as an intentional soft backdrop instead of
-      // empty space.
-      const coverScale = Math.max(targetW / raw.width, targetH / raw.height);
-      const coverW = raw.width * coverScale, coverH = raw.height * coverScale;
-      ctx.save();
-      ctx.filter = 'blur(28px) brightness(0.55) saturate(1.15)';
-      ctx.drawImage(raw, (targetW - coverW) / 2 - 20, (targetH - coverH) / 2 - 20, coverW + 40, coverH + 40);
-      ctx.restore();
-      // A slight dark scrim on top of the blurred backdrop keeps the sharp
-      // flyer as the clear focal point and hides any blur-edge artifacts.
-      ctx.fillStyle = 'rgba(0,0,0,0.18)';
-      ctx.fillRect(0, 0, targetW, targetH);
-
-      // Foreground: the whole flyer, sharp, at the largest size that fits
-      // without cropping any content.
-      const s = Math.min(targetW / raw.width, targetH / raw.height);
-      const drawW = raw.width * s, drawH = raw.height * s;
-      const dx = (targetW - drawW) / 2, dy = (targetH - drawH) / 2;
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.35)';
-      ctx.shadowBlur = 24;
-      ctx.drawImage(raw, dx, dy, drawW, drawH);
-      ctx.restore();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(raw, 0, 0, out.width, out.height);
       return out;
     }
 
@@ -4090,22 +4075,22 @@
       const fmt = SOCIAL_FORMATS[key];
       if (!fmt || !exportLibsReady(false)) return;
       await runExclusive(async () => {
-        showBusy(`Rendering ${fmt.label} (${fmt.w}×${fmt.h})…`);
-        const out = await renderFlyerToFixedCanvas($('#flyer'), fmt.w, fmt.h);
-        triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-${fmt.slug}-${fmt.w}x${fmt.h}.jpg`);
+        showBusy(`Rendering ${fmt.label}…`);
+        const out = await renderFlyerNatural($('#flyer'));
+        triggerDownload(out.toDataURL('image/jpeg', 0.98), `${fileBase()}-${key}-${out.width}x${out.height}.jpg`);
         markExported();
         hideBusy();
         showCaptionModal();
       });
     }
 
-    /* ---------- Animated Facebook post (live preview + video export) ----------
+    /* ---------- Animated Facebook post (live preview + GIF export) ----------
        These effects are canvas-drawn (no external assets needed). The live
        preview runs an on-screen requestAnimationFrame loop purely for
-       visual feedback; the actual export records a fresh render at the
-       Facebook target resolution using the browser's native MediaRecorder,
-       so what downloads always matches the real 1200x630 output regardless
-       of how the on-screen preview happens to be scaled. */
+       visual feedback; the actual export re-renders fresh frames at the
+       flyer's own natural resolution (see downloadAnimatedFacebook below),
+       so what downloads always matches the real flyer regardless of how
+       the on-screen preview happens to be scaled. */
     function rand(min, max) { return min + Math.random() * (max - min); }
 
     function roundRectPath(ctx, x, y, w, h, r) {
@@ -4462,7 +4447,7 @@
       if (hasType || hasBadge) startLivePreview();
     }
 
-    // Builds a real animated .gif at the exact 1200x630 Facebook resolution
+    // Builds a real animated .gif at the flyer's own natural resolution
     // (via the gif.js library) instead of a video: a GIF autoplays and loops
     // the instant it's posted on Facebook, with no play button and no tap
     // required, which a video can need depending on the platform/settings.
@@ -4481,12 +4466,14 @@
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
       await runExclusive(async () => {
-        const fmt = SOCIAL_FORMATS.facebook;
         showBusy('Rendering animated Facebook post…');
-        // Background is the realtor's actual selected flyer design,
-        // contain-fit into the Facebook frame — same as the static export —
-        // so the animation plays over the real flyer, not a separate card.
-        const bgImg = await renderFlyerToFixedCanvas($('#flyer'), fmt.w, fmt.h);
+        // Background is the realtor's actual selected flyer design, at its
+        // own natural aspect ratio (no forced landscape frame, no
+        // cropping/padding) — same approach as the static export. Capped
+        // to a smaller size than the static export so the GIF renders in a
+        // reasonable time and stays a postable file size.
+        const bgImg = await renderFlyerNatural($('#flyer'), 900);
+        const fmt = { w: bgImg.width, h: bgImg.height };
 
         const out = document.createElement('canvas');
         out.width = fmt.w; out.height = fmt.h;
@@ -4503,13 +4490,26 @@
         const fps = 12;
         const frameCount = Math.round(durationSec * fps);
         // gif.js needs a separate "worker" script to do the actual encoding.
-        // This app is a single self-contained HTML file with no assets
-        // folder to host that in, so it's always loaded straight from the
-        // same public CDN the main library uses — this requires an internet
-        // connection at click-time, same as the main gif.js load above.
+        // Browsers refuse to construct a Worker directly from a URL on a
+        // different domain (a stricter rule than the one that lets a plain
+        // <script> tag load cross-domain), so pointing workerScript straight
+        // at the CDN URL fails with a "cannot be accessed from origin"
+        // error. The fix: fetch the worker's code as plain text — which is
+        // allowed cross-domain — and hand the browser its own same-origin
+        // (blob:) copy instead. Still requires an internet connection at
+        // click-time, same as the main gif.js load above.
+        let workerScriptURL;
+        try {
+          const workerResp = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
+          if (!workerResp.ok) throw new Error('HTTP ' + workerResp.status);
+          const workerCode = await workerResp.text();
+          workerScriptURL = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+        } catch (e) {
+          throw new Error('Could not load the GIF rendering helper file. Check your internet connection and try again.');
+        }
         const gif = new GIF({
           workers: 2, quality: 10, width: fmt.w, height: fmt.h, repeat: 0,
-          workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+          workerScript: workerScriptURL
         });
 
         for (let i = 0; i < frameCount; i++) {
@@ -4532,6 +4532,7 @@
           gif.on('abort', () => { clearTimeout(timeoutId); reject(new Error('GIF rendering was aborted.')); });
           try { gif.render(); } catch (e) { clearTimeout(timeoutId); reject(e); }
         });
+        URL.revokeObjectURL(workerScriptURL);
 
         const url = URL.createObjectURL(blob);
         const nameParts = [type, badge].filter(Boolean);
