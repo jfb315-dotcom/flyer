@@ -4466,13 +4466,15 @@
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
       await runExclusive(async () => {
-        showBusy('Rendering animated Facebook post…');
+        showBusy('Rendering animated Facebook post… this can take up to 30-40 seconds at full quality.');
         // Background is the realtor's actual selected flyer design, at its
         // own natural aspect ratio (no forced landscape frame, no
         // cropping/padding) — same approach as the static export. Capped
-        // to a smaller size than the static export so the GIF renders in a
-        // reasonable time and stays a postable file size.
-        const bgImg = await renderFlyerNatural($('#flyer'), 900);
+        // a bit below the static export's max size so the GIF still renders
+        // in a reasonable time, but high enough to keep text and details
+        // sharp (GIF's 256-color palette is the real limit on photo quality,
+        // not resolution — this just avoids compounding that with blur).
+        const bgImg = await renderFlyerNatural($('#flyer'), 1400);
         const fmt = { w: bgImg.width, h: bgImg.height };
 
         const out = document.createElement('canvas');
@@ -4491,7 +4493,7 @@
         const octx = overlay.getContext('2d');
         const scale = scaleInput * 2;
         const animState = makeAnimState(type, fmt.w, fmt.h, scale);
-        const durationSec = (type === 'sunrise' || type === 'sunset') ? 4.5 : 4;
+        const durationSec = (type === 'sunrise' || type === 'sunset') ? 7 : 6;
 
         // A real animated GIF instead of a video: it autoplays and loops
         // everywhere the moment it's posted — no play button, no tap needed,
@@ -4518,8 +4520,11 @@
         } catch (e) {
           throw new Error('Could not load the GIF rendering helper file. Check your internet connection and try again.');
         }
+        // Lower "quality" here means a finer color sample (gif.js quality is
+        // a sampling interval, not a 1-10 rating) — this trades some render
+        // time for a noticeably less banded, sharper-looking result.
         const gif = new GIF({
-          workers: 2, quality: 10, width: fmt.w, height: fmt.h, repeat: 0,
+          workers: 4, quality: 3, width: fmt.w, height: fmt.h, repeat: 0,
           workerScript: workerScriptURL
         });
 
@@ -4539,7 +4544,7 @@
         const blob = await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             reject(new Error('GIF rendering timed out — this usually means the gif.worker.js file couldn\'t be reached. Check your internet connection (or try disabling an ad-blocker/privacy extension) and try again.'));
-          }, 25000);
+          }, 60000);
           gif.on('finished', (b) => { clearTimeout(timeoutId); resolve(b); });
           gif.on('abort', () => { clearTimeout(timeoutId); reject(new Error('GIF rendering was aborted.')); });
           try { gif.render(); } catch (e) { clearTimeout(timeoutId); reject(e); }
