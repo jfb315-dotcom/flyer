@@ -4592,10 +4592,37 @@
         const animState = makeAnimState(type, fmt.w, fmt.h, scale);
         const durationSec = (type === 'sunrise' || type === 'sunset') ? 4.5 : 5;
 
-        const stream = out.captureStream(24);
-        const mp4Supported = typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('video/mp4');
-        const recMime = mp4Supported ? 'video/mp4'
-          : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm');
+        // Some platforms' upload validators reject a video that has no audio
+        // track at all (even when the container/codec are otherwise fine), so
+        // we always attach a real (silent) audio track rather than a
+        // video-only stream — cheap, safe, and a known fix for exactly this
+        // class of "video upload failed" error with no other explanation.
+        let silentAudioCtx = null, silentOsc = null;
+        let audioTrack = null;
+        try {
+          silentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const dest = silentAudioCtx.createMediaStreamDestination();
+          const gain = silentAudioCtx.createGain();
+          gain.gain.value = 0;
+          silentOsc = silentAudioCtx.createOscillator();
+          silentOsc.connect(gain);
+          gain.connect(dest);
+          silentOsc.start();
+          audioTrack = dest.stream.getAudioTracks()[0];
+        } catch (e) { /* if the browser blocks audio without a user gesture, just ship video-only */ }
+
+        const videoStream = out.captureStream(24);
+        const stream = audioTrack ? new MediaStream([...videoStream.getVideoTracks(), audioTrack]) : videoStream;
+
+        const codecCandidates = [
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=h264,aac',
+          'video/mp4',
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp9',
+          'video/webm'
+        ];
+        const recMime = codecCandidates.find(m => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || 'video/webm';
         let recorder;
         try {
           recorder = new MediaRecorder(stream, { mimeType: recMime });
@@ -4624,6 +4651,7 @@
         requestAnimationFrame(drawFrame);
 
         await recordingDone;
+        try { if (silentOsc) silentOsc.stop(); if (silentAudioCtx) silentAudioCtx.close(); } catch (e) { /* noop */ }
         const isMp4 = recorder.mimeType && recorder.mimeType.indexOf('mp4') !== -1;
         const outExt = isMp4 ? 'mp4' : 'webm';
         const blob = new Blob(chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
