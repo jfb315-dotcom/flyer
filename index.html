@@ -7,17 +7,18 @@
   <!--
     OFFLINE SUPPORT: these try a local copy first (works with no signal at a
     showing) and only reach out to the CDN if that local file is missing.
-    One-time setup for full offline capability — download these 5 files and
+    One-time setup for full offline capability — download these 4 files and
     save them at these exact paths next to this HTML file:
       assets/js/html2canvas.min.js  <- https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
       assets/js/jspdf.umd.min.js    <- https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
       assets/js/qrcode.min.js       <- https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js
       assets/js/gif.js              <- https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js
-      assets/js/gif.worker.js       <- https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js
     Until you do that, the app works exactly as before (loads from the CDN).
     Note: the animated-post GIF export always needs a live internet
-    connection at the moment you click it (to fetch its background worker
-    script), even if you've saved the files above for everything else.
+    connection at the moment you click it (it fetches its background
+    worker script fresh from the CDN every time, by design — that file
+    can't be hosted locally the same way), even if you've saved the files
+    above for everything else.
   -->
   <script src="assets/js/html2canvas.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';document.head.appendChild(s);"></script>
   <script src="assets/js/jspdf.umd.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';document.head.appendChild(s);"></script>
@@ -4466,14 +4467,17 @@
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
       await runExclusive(async () => {
-        showBusy('Rendering animated Facebook post… this can take a minute or two at full quality.');
+        showBusy('Rendering animated Facebook post… this can take 20-30 seconds.');
         // Background is the realtor's actual selected flyer design, at its
         // own natural aspect ratio (no forced landscape frame, no
-        // cropping/padding) — same approach as the static export, now at
-        // essentially the same top resolution. GIF's 256-color palette is
-        // still the hard limit on photo quality (not resolution), but a
-        // bigger source image means finer detail survives that quantizing.
-        const bgImg = await renderFlyerNatural($('#flyer'), 2000);
+        // cropping/padding) — same approach as the static export, capped a
+        // bit below it. GIF's 256-color palette is still the hard limit on
+        // photo quality (not resolution) — pushing resolution any higher
+        // than this just makes the render dramatically slower (a browser
+        // GIF encoder is single-threaded-per-worker JS, not a fast native
+        // video codec) without meaningfully outrunning that color-count
+        // ceiling.
+        const bgImg = await renderFlyerNatural($('#flyer'), 1200);
         const fmt = { w: bgImg.width, h: bgImg.height };
 
         const out = document.createElement('canvas');
@@ -4490,16 +4494,30 @@
         const overlay = document.createElement('canvas');
         overlay.width = fmt.w; overlay.height = fmt.h;
         const octx = overlay.getContext('2d');
-        const scale = scaleInput * 2;
+        // Particle/badge sizes are computed in absolute pixels from `scale`
+        // (see makeAnimState/drawBadge), not relative to canvas size — so
+        // they need a resolution-compensation factor here, or an effect
+        // that looks right in the on-screen preview (drawn at the flyer's
+        // actual CSS pixel size) would render too small once scaled up to
+        // this export's much higher pixel resolution. This computes that
+        // factor from the real ratio between the two instead of a hardcoded
+        // guess, so it stays correct if the export resolution changes again.
+        const previewRect = $('#flyer').getBoundingClientRect();
+        const previewLongEdge = Math.max(previewRect.width || 0, previewRect.height || 0) || 640;
+        const exportLongEdge = Math.max(fmt.w, fmt.h);
+        const resCompensation = exportLongEdge / previewLongEdge;
+        const scale = scaleInput * resCompensation;
         const animState = makeAnimState(type, fmt.w, fmt.h, scale);
         const durationSec = (type === 'sunrise' || type === 'sunset') ? 7 : 6;
 
         // A real animated GIF instead of a video: it autoplays and loops
         // everywhere the moment it's posted — no play button, no tap needed,
         // which a video (even a muted one) can require depending on the
-        // platform and settings. 12fps keeps the file a reasonable size
-        // while still reading as smooth motion for a badge/particle effect.
-        const fps = 12;
+        // platform and settings. 10fps keeps the total frame count (and so
+        // the render time) down while still reading as smooth motion for a
+        // badge/particle effect — this isn't a video codec, every frame is
+        // real encoder work.
+        const fps = 10;
         const frameCount = Math.round(durationSec * fps);
         // gif.js needs a separate "worker" script to do the actual encoding.
         // Browsers refuse to construct a Worker directly from a URL on a
@@ -4520,10 +4538,12 @@
           throw new Error('Could not load the GIF rendering helper file. Check your internet connection and try again.');
         }
         // Lower "quality" here means a finer color sample (gif.js quality is
-        // a sampling interval, not a 1-10 rating) — this trades some render
-        // time for a noticeably less banded, sharper-looking result.
+        // a sampling interval, not a 1-10 rating) — going too low (e.g. 1)
+        // made this take minutes instead of seconds, so this is a middle
+        // ground: sharper than the original default (10) without the render
+        // time blowing past what someone will actually wait for.
         const gif = new GIF({
-          workers: 4, quality: 1, width: fmt.w, height: fmt.h, repeat: 0,
+          workers: 4, quality: 8, width: fmt.w, height: fmt.h, repeat: 0,
           workerScript: workerScriptURL
         });
 
@@ -4542,8 +4562,8 @@
         // hang the "Rendering…" overlay forever with no explanation.
         const blob = await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
-            reject(new Error('GIF rendering timed out — this usually means the gif.worker.js file couldn\'t be reached. Check your internet connection (or try disabling an ad-blocker/privacy extension) and try again.'));
-          }, 120000);
+            reject(new Error('GIF rendering timed out — this usually means the gif.worker.js file couldn\'t be reached (check your internet connection, or try disabling an ad-blocker/privacy extension) or that rendering is just taking unusually long on this device. Try again, and if it keeps happening let John know.'));
+          }, 60000);
           gif.on('finished', (b) => { clearTimeout(timeoutId); resolve(b); });
           gif.on('abort', () => { clearTimeout(timeoutId); reject(new Error('GIF rendering was aborted.')); });
           try { gif.render(); } catch (e) { clearTimeout(timeoutId); reject(e); }
