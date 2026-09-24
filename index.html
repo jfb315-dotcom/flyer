@@ -4478,6 +4478,17 @@
         const out = document.createElement('canvas');
         out.width = fmt.w; out.height = fmt.h;
         const ctx = out.getContext('2d');
+        // updateAndDrawAnim() starts every frame with a clearRect — correct
+        // for the on-screen live preview, where it's a transparent overlay
+        // sitting on top of the real flyer element in the page, but wrong
+        // here where it would wipe out the flyer image drawn onto this same
+        // canvas. So the effect is drawn onto its own transparent overlay
+        // canvas instead, then composited on top of a freshly-redrawn
+        // flyer each frame — this was the cause of the exported GIF showing
+        // only the animation on a plain black background.
+        const overlay = document.createElement('canvas');
+        overlay.width = fmt.w; overlay.height = fmt.h;
+        const octx = overlay.getContext('2d');
         const scale = scaleInput * 2;
         const animState = makeAnimState(type, fmt.w, fmt.h, scale);
         const durationSec = (type === 'sunrise' || type === 'sunset') ? 4.5 : 4;
@@ -4514,8 +4525,9 @@
 
         for (let i = 0; i < frameCount; i++) {
           const dt = 1 / fps;
+          updateAndDrawAnim(octx, animState, fmt.w, fmt.h, dt, scale, accentOnDark());
           ctx.drawImage(bgImg, 0, 0, fmt.w, fmt.h);
-          updateAndDrawAnim(ctx, animState, fmt.w, fmt.h, dt, scale, accentOnDark());
+          ctx.drawImage(overlay, 0, 0, fmt.w, fmt.h);
           drawBadge(ctx, badge, fmt.w, fmt.h, animState.t, scale, accentOnDark());
           gif.addFrame(ctx, { copy: true, delay: Math.round(1000 / fps) });
         }
