@@ -120,6 +120,9 @@
     }
     .section-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
     .section-hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+    .char-count { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+    .char-count.full { color: #f0b429; }
+    .char-count.over { color: #f85149; }
 
     .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
     .form-group { flex: 1; margin-bottom: 10px; }
@@ -755,7 +758,8 @@
         </div>
         <div class="form-group">
           <label>Main Summary Description</label>
-          <textarea id="shortDesc" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
+          <textarea id="shortDesc" maxlength="350" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
+          <div class="char-count" id="descCount" aria-live="polite"></div>
         </div>
         <div class="form-group">
           <label>Listing Link for the QR Code (optional)</label>
@@ -1110,7 +1114,7 @@
         email: 'john@hmsloan.com',
         website: 'https://hmsloan.com/',
         photoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg',
-        logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/logoemail1.png',
+        logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/email-logo.png',
         tagline: 'Three decades of mortgage lending expertise, proudly serving Cleveland, Tennessee and the surrounding communities.',
         // Fair-lending legend printed beside the NMLS line (with the house
         // icon) on every layout and every social export. "Equal Housing
@@ -1420,7 +1424,7 @@
             <div><strong style="color:${nameColor}">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; ${L.phone}</div>
             <div style="margin-top:2px">${ehoMark(dark ? '#d6d4d2' : '#4a453e', 8.5, 6.5)}</div>
           </div>
-          <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="Company logo" style="max-height:20px;max-width:44px;object-fit:contain;flex-shrink:0;border-radius:0" />
+          <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="Company logo" style="max-height:30px;max-width:66px;object-fit:contain;flex-shrink:0;border-radius:0" />
           <div id="qrcode" data-pdf-link="${qrTargetUrl()}" style="flex-shrink:0;transform:scale(0.8);transform-origin:right center"></div>
         </div>`;
     }
@@ -2624,7 +2628,27 @@
     }
 
     let lastFlyerHTML = null;
+    // Long descriptions make every design taller (and print smaller), so the
+    // description is capped at DESC_MAX characters with a live counter.
+    const DESC_MAX = 350;
+    let descPasteCut = false;
+    function updateDescCount() {
+      const el = $('#descCount'), n = ($('#shortDesc').value || '').length;
+      if (!el) return;
+      el.classList.toggle('over', n > DESC_MAX);
+      el.classList.toggle('full', n === DESC_MAX);
+      el.textContent = n > DESC_MAX ? `${n} / ${DESC_MAX} characters — please shorten so it fits the flyer`
+        : descPasteCut && n === DESC_MAX ? `${n} / ${DESC_MAX} — your pasted text was cut to fit; trim it to finish the last sentence`
+        : `${n} / ${DESC_MAX} characters`;
+    }
+    $('#shortDesc').addEventListener('paste', e => {
+      const t = e.target, pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      descPasteCut = t.value.length - (t.selectionEnd - t.selectionStart) + pasted.length > DESC_MAX;
+    });
+    $('#shortDesc').addEventListener('input', e => { if (e.inputType !== 'insertFromPaste') descPasteCut = false; updateDescCount(); });
+
     function updatePreview() {
+      updateDescCount();
       const flyer = $('#flyer');
       flyer.className = '';
       if (state.aspect === 'square') flyer.classList.add('square');
