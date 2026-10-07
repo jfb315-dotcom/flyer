@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-title" content="FlyerGen" />
   <title>FlyerGen Nexus – Provided by John Bischof | Home Mortgage Solutions LLC</title>
   <!--
     OFFLINE SUPPORT: these try a local copy first (works with no signal at a
@@ -119,6 +120,9 @@
     }
     .section-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
     .section-hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+    .char-count { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+    .char-count.full { color: #f0b429; }
+    .char-count.over { color: #f85149; }
 
     .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
     .form-group { flex: 1; margin-bottom: 10px; }
@@ -319,6 +323,7 @@
       font-family: var(--font-flyer); transition: width 0.25s ease; flex-shrink: 0; word-break: break-word;
     }
     #flyer.square { width: 420px; }
+    #flyer.no-qr #qrcode, #flyer.square #qrcode { display: none !important; }
     /* Standard Print, in Print format: widened so the proportions match a
        full letter page (8.5x11) instead of a narrow phone-card shape that
        leaves big empty margins on the sides when placed on a printed page. */
@@ -516,6 +521,7 @@
     /* FIRST-RUN WALKTHROUGH (spotlight ring + small card) */
     .tour-layer { position: fixed; inset: 0; z-index: 10020; display: none; }
     .tour-layer.show { display: block; }
+    body:has(.tour-layer.show) .preview-jump { display: none; }
     .tour-spot {
       position: fixed; border: 2px solid var(--accent); border-radius: 12px; pointer-events: none;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 0 18px var(--accent-glow);
@@ -575,8 +581,72 @@
          its own real fixed pixel dimensions, completely independent of
          this on-screen size. */
       .preview-container { padding: 20px 14px; }
-      #flyer, #flyer.full-page, #flyer.square { width: min(440px, calc(100vw - 28px)) !important; }
+      html:not(.export-size) #flyer, html:not(.export-size) #flyer.full-page, html:not(.export-size) #flyer.square { width: min(440px, calc(100vw - 28px)) !important; }
+
+      /* One normal scrolling page instead of two small scrolling panes. */
+      body { height: auto; overflow: visible; display: block; }
+      .main, .left-panel, .right-panel, .preview-container { height: auto; overflow: visible; }
+      .main { display: block; }
+      .left-panel { width: 100%; padding: 16px; border-right: 0; display: flex; flex-direction: column; }
+      /* Phone order: photos first, then the details, then the realtor's own info. */
+      #photosSection { order: 1; }
+      #detailsSection { order: 2; }
+      #statusSection { order: 3; }
+      #realtorSection { order: 4; }
+      .right-panel { border-top: 1px solid var(--border); }
+
+      /* Header: stack the title and put the brand colors on their own row. */
+      .header { height: auto; flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+      .header-accent-bar, .header h1 span { display: none; }
+      .header-photo-square { width: 44px; height: 44px; }
+      .header-text h1 { font-size: 21px; }
+      .accent-picker { width: 100%; justify-content: space-between; }
+      .color-swatches { gap: 10px; }
+      .swatch { width: 32px; height: 32px; }
+      input[type="color"] { width: 30px; height: 30px; }
+
+      /* 16px text stops iPhones from zooming in every time a field is tapped. */
+      input[type="text"], input[type="number"], input[type="tel"], input[type="email"], textarea, select { font-size: 16px; }
+      .modal-content textarea { font-size: 16px; }
+      .design-tools .pill-btn { padding: 10px 14px; }
+      .checklist-title-row .btn-link { padding: 8px 4px; }
+
+      /* Bigger photo thumbnails and finger-sized controls. */
+      .upload-zone { padding: 22px 14px; border-style: solid; border-color: var(--accent); }
+      .upload-phone strong { font-size: 17px; color: var(--accent); }
+      .upload-phone small { font-size: 12px; }
+      .photo-thumbs { gap: 12px; }
+      .thumb-wrap, .thumb { width: 104px; height: 78px; }
+      .thumb-remove { width: 28px; height: 28px; font-size: 15px; top: -9px; right: -9px; }
+      /* arrows and pencil in one row along the bottom so they don't overlap */
+      .thumb-edit { width: 28px; height: 28px; bottom: 4px; right: auto; left: 38px; }
+      .thumb-move { width: 28px; height: 28px; top: auto; bottom: 4px; font-size: 18px; opacity: 0.9; }
+      .thumb-move.left { left: 4px; }
+      .thumb-move.right { right: 4px; }
+      .agent-photo-upload { width: 30px; height: 30px; }
+      .listing-bar .btn { padding: 11px 14px; font-size: 13px; }
+      .btn-link { padding: 8px 0; }
+
+      /* Realtor info folds away once it's filled in (it's saved on the phone). */
+      .realtor-toggle {
+        width: 100%; margin-bottom: 12px; padding: 12px 14px; border-radius: 10px; text-align: left;
+        background: var(--bg-card); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer;
+      }
+      .realtor-toggle span { color: var(--accent); float: right; font-weight: 600; }
+      #realtorSection.collapsed > :not(.section-title):not(.realtor-toggle) { display: none; }
+
+      /* Floating button to jump between the form and the flyer. */
+      .preview-jump {
+        position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+        padding: 13px 18px; border-radius: 999px; border: 0; background: var(--accent); color: #fff;
+        font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer;
+      }
     }
+    /* While an export is drawing on a phone, the flyer briefly takes its
+       full desktop width (hidden behind the busy overlay) so the file comes
+       out exactly like one made on a computer. */
+    .export-size #flyer { transition: none !important; }
+    .export-size .preview-container { overflow: hidden !important; }
     @media (min-width: 641px) { .mobile-only { display: none !important; } }
   </style>
 </head>
@@ -586,7 +656,7 @@
     <div class="header-left">
       <div class="header-accent-bar"></div>
       <img id="headerPhoto" class="header-photo-square"
-           src="https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg"
+           src="john-photo.jpg"
            onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2750%27 height=%2750%27 viewBox=%270 0 50 50%27%3E%3Crect width=%2750%27 height=%2750%27 fill=%27%23161b22%27/%3E%3Ctext x=%2725%27 y=%2730%27 text-anchor=%27middle%27 fill=%27%23b8863f%27 font-size=%2715%27 font-weight=%27bold%27 font-family=%27sans-serif%27%3EJB%3C/text%3E%3C/svg%3E'"
            alt="John Bischof" />
       <div class="header-text">
@@ -613,7 +683,8 @@
   <div class="main">
     <aside class="left-panel">
       <!-- Desktop Shortcut -->
-      <button id="btn-save-desktop" class="btn btn-secondary" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Save App Shortcut to Desktop</button>
+      <button id="btn-save-desktop" class="btn btn-secondary mobile-hide" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Save App Shortcut to Desktop</button>
+      <button type="button" id="btnHomeScreen" class="btn btn-secondary mobile-only" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Add FlyerGen to Your Home Screen</button>
 
       <!-- Current listing + library -->
       <div class="listing-bar">
@@ -646,7 +717,7 @@
       </div>
 
       <!-- Status -->
-      <div class="section">
+      <div class="section" id="statusSection">
         <div class="section-title">Campaign Status</div>
         <div class="form-group">
           <label>Listing Status Banner</label>
@@ -667,7 +738,7 @@
       </div>
 
       <!-- Property Details -->
-      <div class="section">
+      <div class="section" id="detailsSection">
         <div class="section-title">Property Metrics</div>
         <div class="form-group">
           <label>Address / Title Header</label>
@@ -689,7 +760,8 @@
         </div>
         <div class="form-group">
           <label>Main Summary Description</label>
-          <textarea id="shortDesc" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
+          <textarea id="shortDesc" maxlength="350" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
+          <div class="char-count" id="descCount" aria-live="polite"></div>
         </div>
         <div class="form-group">
           <label>Listing Link for the QR Code (optional)</label>
@@ -699,21 +771,24 @@
       </div>
 
       <!-- Photos -->
-      <div class="section">
+      <div class="section" id="photosSection">
         <div class="section-title">Property Photos</div>
         <div class="upload-zone" id="photoZone">
-          <p>Drag property photos here or click<br><small>Upload property showcase images</small></p>
+          <p class="mobile-hide">Drag property photos here or click<br><small>Upload property showcase images</small></p>
+          <p class="mobile-only upload-phone"><strong>+ Add Photos</strong><br><small>Pick several at once from your camera roll, or take new ones</small></p>
           <input type="file" id="photoInput" accept="image/*" hidden multiple />
         </div>
         <div class="photo-thumbs" id="photoThumbs"></div>
         <div class="section-hint" style="margin-top:10px;margin-bottom:0">
-          Click a thumbnail to make it the hero photo. Drag thumbnails (or use the arrows) to change the order &mdash; the numbers show which spot each photo fills on multi-photo designs. Click the pencil icon &mdash; or click the photo directly in the preview &mdash; to reposition and zoom it.
+          <span class="mobile-hide">Click a thumbnail to make it the hero photo. Drag thumbnails (or use the arrows) to change the order &mdash; the numbers show which spot each photo fills on multi-photo designs. Click the pencil icon &mdash; or click the photo directly in the preview &mdash; to reposition and zoom it.</span>
+          <span class="mobile-only">Tap a photo to make it the main photo. Use the arrows to change the order, and the pencil to reposition or zoom.</span>
         </div>
       </div>
 
       <!-- Realtor Portal Mode -->
-      <div class="section">
+      <div class="section" id="realtorSection">
         <div class="section-title">Realtor Partner Portal (Auto-Stored)</div>
+        <button type="button" id="realtorToggle" class="realtor-toggle mobile-only" aria-expanded="true"></button>
         <div class="portal-banner">
           <strong>Private Realtor Session</strong>
           Your info and portrait auto-save securely on your browser. No drop-downs or other realtors visible.
@@ -787,18 +862,12 @@
         </div>
       </div>
 
-      <!-- Export Suite -->
-      <div class="section">
+      <!-- Export Suite (phones use the export bar above the preview instead) -->
+      <div class="section mobile-hide" id="exportSection">
         <div class="section-title">Export Suite</div>
         <button class="btn btn-primary" id="btnPdf">Download PDF Flyer</button>
-        <button class="btn btn-secondary mobile-hide" id="btnPng">Download High-Res PNG</button>
         <button class="btn btn-secondary share-btn" id="btnShare" style="display:none" title="Send the flyer image straight to Messages, email, AirDrop and more">Share Flyer Image&hellip;</button>
-        <div class="export-group-label">Social media &mdash; full flyer, high quality</div>
-        <button class="btn btn-secondary" id="btnIgPost">Save for Instagram Post</button>
-        <button class="btn btn-secondary" id="btnIgStory">Save for Instagram Story</button>
-        <button class="btn btn-secondary" id="btnFacebook">Save for Facebook</button>
-        <button class="btn btn-secondary mobile-hide" id="btnExportAll">Export All Layouts (One PDF)</button>
-        <button class="btn btn-text" id="btnCopy">Copy Listing Text Feed</button>
+        <button class="btn btn-secondary" id="btnSocial" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Download for Facebook &amp; Instagram</button>
       </div>
 
       <!-- Animate for Facebook Post -->
@@ -848,8 +917,12 @@
           </select>
         </div>
         <div class="form-group">
-          <label style="display:flex;justify-content:space-between">Effect Scale <span id="animScaleVal">1.0&times;</span></label>
-          <input type="range" id="animationScale" min="0.5" max="2" step="0.1" value="1" />
+          <label style="display:flex;justify-content:space-between">Size <span id="animScaleVal">1.0&times;</span></label>
+          <input type="range" id="animationScale" min="0.5" max="2.5" step="0.1" value="1" />
+        </div>
+        <div class="form-group">
+          <label style="display:flex;justify-content:space-between">Amount <span id="animAmountVal">1.0&times;</span></label>
+          <input type="range" id="animationAmount" min="0.5" max="3" step="0.1" value="1" />
         </div>
         <button class="btn btn-secondary" id="btnDownloadAnimatedFb" disabled>Download Animated Facebook Post (GIF)</button>
       </div>
@@ -904,21 +977,14 @@
       <div class="preview-export-bar">
         <span class="live-label">Export:</span>
         <button type="button" id="btnPdf2" class="pill-btn">Download PDF</button>
-        <button type="button" id="btnPng2" class="pill-btn mobile-hide">Download PNG</button>
         <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app">Share&hellip;</button>
-        <span class="export-divider mobile-hide"></span>
-        <button type="button" id="btnIgPost2" class="pill-btn" title="Full flyer, high quality — ready to post">Instagram Post</button>
-        <button type="button" id="btnIgStory2" class="pill-btn" title="Full flyer, high quality — ready to post">Instagram Story</button>
-        <button type="button" id="btnFacebook2" class="pill-btn" title="Full flyer, high quality — ready to post">Facebook</button>
-        <span class="export-divider"></span>
-        <button type="button" id="btnExportAll2" class="pill-btn mobile-hide">All Layouts PDF</button>
-        <button type="button" id="btnCopy2" class="pill-btn">Copy Listing Text</button>
+        <button type="button" id="btnSocial2" class="pill-btn" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Facebook &amp; Instagram</button>
         <span class="export-divider mobile-hide"></span>
         <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
       </div>
 
       <div class="preview-container">
-        <div class="hint-toast" id="hintToast">Tip: click any photo or headshot in the preview to reposition and zoom it.</div>
+        <div class="hint-toast" id="hintToast">Tip: click (or tap) any photo or headshot in the preview to reposition and zoom it.</div>
         <div id="flyer-stage" style="position:relative;display:inline-block">
           <div id="flyer"></div>
           <canvas id="animPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none"></canvas>
@@ -926,6 +992,8 @@
       </div>
     </section>
   </div>
+
+  <button type="button" id="previewJump" class="preview-jump mobile-only">See Flyer &darr;</button>
 
   <!-- ====== PAN / ZOOM EDITOR MODAL ====== -->
   <div id="pan-modal" class="modal-overlay">
@@ -1047,8 +1115,10 @@
         phone: '(423) 505-9811',
         email: 'john@hmsloan.com',
         website: 'https://hmsloan.com/',
+        // Where the flyer's QR code goes when the realtor leaves the listing link blank.
+        qrUrl: 'https://homemortgagesolutionsllc1.godaddysites.com/',
         photoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg',
-        logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/logoemail1.png',
+        logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/email-logo.png',
         tagline: 'Three decades of mortgage lending expertise, proudly serving Cleveland, Tennessee and the surrounding communities.',
         // Fair-lending legend printed beside the NMLS line (with the house
         // icon) on every layout and every social export. "Equal Housing
@@ -1358,8 +1428,8 @@
             <div><strong style="color:${nameColor}">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; ${L.phone}</div>
             <div style="margin-top:2px">${ehoMark(dark ? '#d6d4d2' : '#4a453e', 8.5, 6.5)}</div>
           </div>
-          <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="Company logo" style="max-height:20px;max-width:44px;object-fit:contain;flex-shrink:0;border-radius:0" />
-          <div id="qrcode" data-pdf-link="${qrTargetUrl()}" style="flex-shrink:0;transform:scale(0.8);transform-origin:right center"></div>
+          <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="Company logo" style="max-height:30px;max-width:66px;object-fit:contain;flex-shrink:0;border-radius:0" />
+          <div id="qrcode" data-pdf-link="${qrTargetUrl()}" style="flex-shrink:0"></div>
         </div>`;
     }
 
@@ -2524,16 +2594,27 @@
       const u = val('listingUrl', '').trim();
       return u ? normalizeUrl(u) : '';
     }
-    function qrTargetUrl() { return qrOverrideUrl() || CONFIG.lender.website; }
+    function qrTargetUrl() { return qrOverrideUrl() || CONFIG.lender.qrUrl || CONFIG.lender.website; }
 
     // Draws the footer QR code into el (the live flyer's #qrcode, or a copy of
     // it in a gallery thumbnail). No-op if the QR library isn't loaded.
     // Returns 'custom' | 'lender' | 'fallback' (custom link too long to encode).
+    // The QR code is only for printed flyers: about 0.7" across on a letter
+    // page, big enough for a phone to read a long link from paper. Social
+    // images, Share, the GIF and the Square format leave it off (.no-qr).
+    const QR_SIZE = 52;
     function renderQRCode(el) {
       if (!el || typeof QRCode === 'undefined') return null;
+      // Drawn at 8x resolution and shown at 42px: exports and PDFs upscale the
+      // flyer 2-3x, and a 42px code came out too blurry to scan (a long link
+      // didn't scan at all). The white padding is the quiet zone scanners need,
+      // which dark footers otherwise don't give it.
       const draw = (text, level) => {
         el.innerHTML = '';
-        new QRCode(el, { text, width: 42, height: 42, colorDark: '#1c1a17', colorLight: '#ffffff', correctLevel: level });
+        new QRCode(el, { text, width: 336, height: 336, colorDark: '#1c1a17', colorLight: '#ffffff', correctLevel: level });
+        el.querySelectorAll('canvas, img').forEach(n => { n.style.width = QR_SIZE + 'px'; n.style.height = QR_SIZE + 'px'; });
+        el.style.background = '#ffffff';
+        el.style.padding = '3px';
       };
       const custom = qrOverrideUrl();
       if (custom) {
@@ -2546,8 +2627,9 @@
         } catch (e) { console.warn('Listing link could not be encoded as a QR code; using the lender site', e); }
       }
       try {
-        draw(CONFIG.lender.website, QRCode.CorrectLevel.M);
-        el.setAttribute('data-pdf-link', CONFIG.lender.website);
+        const lenderUrl = CONFIG.lender.qrUrl || CONFIG.lender.website;
+        draw(lenderUrl, QRCode.CorrectLevel.M);
+        el.setAttribute('data-pdf-link', lenderUrl);
       } catch (e) { console.warn('QR code library unavailable', e); }
       return custom ? 'fallback' : 'lender';
     }
@@ -2558,11 +2640,31 @@
       hint.style.color = warn ? '#f0883e' : '';
       hint.textContent = warn
         ? 'That link is too long to fit in a QR code, so the QR code still points at the lender’s website. Try a shorter link (e.g. your MLS or Zillow short link).'
-        : 'Paste your listing page or virtual tour link and the flyer’s QR code will open it. Leave blank to point the QR code at the lender’s website.';
+        : 'Paste your listing page or virtual tour link and the printed flyer’s QR code will open it. Leave blank to point the QR code at the lender’s website. (Social media images leave the QR code off.)';
     }
 
     let lastFlyerHTML = null;
+    // Long descriptions make every design taller (and print smaller), so the
+    // description is capped at DESC_MAX characters with a live counter.
+    const DESC_MAX = 350;
+    let descPasteCut = false;
+    function updateDescCount() {
+      const el = $('#descCount'), n = ($('#shortDesc').value || '').length;
+      if (!el) return;
+      el.classList.toggle('over', n > DESC_MAX);
+      el.classList.toggle('full', n === DESC_MAX);
+      el.textContent = n > DESC_MAX ? `${n} / ${DESC_MAX} characters — please shorten so it fits the flyer`
+        : descPasteCut && n === DESC_MAX ? `${n} / ${DESC_MAX} — your pasted text was cut to fit; trim it to finish the last sentence`
+        : `${n} / ${DESC_MAX} characters`;
+    }
+    $('#shortDesc').addEventListener('paste', e => {
+      const t = e.target, pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      descPasteCut = t.value.length - (t.selectionEnd - t.selectionStart) + pasted.length > DESC_MAX;
+    });
+    $('#shortDesc').addEventListener('input', e => { if (e.inputType !== 'insertFromPaste') descPasteCut = false; updateDescCount(); });
+
     function updatePreview() {
+      updateDescCount();
       const flyer = $('#flyer');
       flyer.className = '';
       if (state.aspect === 'square') flyer.classList.add('square');
@@ -3346,7 +3448,7 @@
     async function handleFiles(files) {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith('image/')) continue;
-        const compressed = await compressImage(file, 1200, 0.78);
+        const compressed = await compressImage(file, 2000, 0.8); // the hero photo fills ~1,800 px in the social image
         state.photos.push({ id: nextPhotoId(), src: compressed });
         if (state.photos.length === 1) state.heroIndex = 0;
       }
@@ -3843,12 +3945,14 @@
       if (isSold) text += `JUST SOLD!\n`;
       if (price) text += isSold ? `Sold at ${price}\n` : `${price}\n`;
       if (address) text += `${address}\n`;
-      text += `${beds} Beds - ${baths} Baths - ${sqft} Sq Ft\n\n`;
+      // only the facts that were filled in (no "Beds -  Baths" when blank)
+      const facts = [beds && `${beds} Beds`, baths && `${baths} Baths`, sqft && `${sqft} Sq Ft`].filter(Boolean);
+      text += (facts.length ? facts.join(' - ') + '\n' : '') + '\n';
       if (isSold) text += `Congratulations to the new homeowners! Thinking about making a move? Let's talk about what your home could sell for in today's market.\n\n`;
       else if (shortDesc) text += `${shortDesc}\n\n`;
       const coName = val('coAgentName', '').trim();
       const coPhone = val('coAgentPhone', '').trim();
-      text += `${isSold ? 'Sold by' : 'Listed by'} ${agentName}${coName ? ' & ' + coName : ''}\n`;
+      if (agentName || coName) text += `${isSold ? 'Sold by' : 'Listed by'} ${[agentName, coName].filter(Boolean).join(' & ')}\n`;
       if (agentPhone) text += `${agentPhone}\n`;
       if (agentEmail) text += `${agentEmail}\n`;
       if (coPhone) text += `${coName || 'Co-listing agent'}: ${coPhone}\n`;
@@ -3886,14 +3990,33 @@
     async function runExclusive(fn) {
       if (exportBusy) return;
       exportBusy = true;
-      try { await fn(); }
+      // On a phone the preview is shrunk to fit the screen, and exports are
+      // drawn from the live preview — so without this a phone made smaller,
+      // differently shaped files than a computer. Give the flyer its full
+      // desktop width while the export draws, then shrink it back.
+      const resize = window.matchMedia('(max-width: 640px)').matches;
+      try {
+        if (resize) await useExportSize(true);
+        await fn();
+      }
       catch (err) {
         console.error('Export failed', err);
         alert('Sorry, the export failed: ' + (err && err.message ? err.message : err));
       } finally {
+        if (resize) await useExportSize(false);
         hideBusy();
         exportBusy = false;
       }
+    }
+    async function useExportSize(on) {
+      const flyerEl = $('#flyer');
+      if (on) showBusy('Preparing your flyer…');
+      flyerEl.style.transition = 'none';
+      document.documentElement.classList.toggle('export-size', on);
+      renderPreviewImages();
+      await waitForImages(flyerEl);
+      await nextFrame();
+      if (!on) flyerEl.style.transition = '';
     }
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -3932,16 +4055,6 @@
         textArea.value = generateCaptionText();
         modal.classList.add('show');
       }
-    }
-
-    async function downloadPNG() {
-      if (!exportLibsReady(false)) return;
-      await runExclusive(async () => {
-        const canvas = await html2canvas($('#flyer'), { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        triggerDownload(canvas.toDataURL('image/png'), `${fileBase()}-${Date.now()}.png`);
-        markExported();
-        showCaptionModal();
-      });
     }
 
     // Rasterizes the live #flyer onto a US Letter page of `pdf` (0.5" margins,
@@ -3996,41 +4109,6 @@
       });
     }
 
-    // One multi-page PDF: one page per design, in the same order as the
-    // Design pills, using the current Print/Square format.
-    async function exportAllLayouts() {
-      if (!exportLibsReady(true)) return;
-      await runExclusive(async () => {
-        const flyerEl = $('#flyer');
-        const layouts = Array.from($$('.layout-option-btn')).map(b => ({ id: b.dataset.layout, label: b.dataset.label || b.textContent.trim() }));
-        const originalLayout = state.layout;
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-        suppressSave++;
-        flyerEl.style.transition = 'none'; // no width animation between pages
-        try {
-          for (let i = 0; i < layouts.length; i++) {
-            showBusy(`Rendering ${layouts[i].label} (${i + 1} of ${layouts.length})…`);
-            state.layout = layouts[i].id;
-            updatePreview();
-            await waitForImages(flyerEl);
-            renderPreviewImages(flyerEl);
-            await nextFrame();
-            if (i > 0) pdf.addPage('letter', 'portrait');
-            await addFlyerPageToPdf(pdf, flyerEl);
-          }
-          showBusy('Saving PDF…');
-          pdf.save(`${fileBase()}-all-layouts-${Date.now()}.pdf`);
-        } finally {
-          state.layout = originalLayout;
-          updatePreview();
-          flyerEl.style.transition = '';
-          suppressSave--;
-        }
-        markExported();
-      });
-    }
-
     /* ---------- Social media exports ----------
        These export the realtor's ACTUAL selected flyer design — not a
        separate simplified card — at its own natural aspect ratio, at high
@@ -4045,9 +4123,7 @@
        fix is to just export the real flyer, uncropped, unpadded, at good
        quality — exactly what's on screen. */
     const SOCIAL_FORMATS = {
-      igPost:   { label: 'Instagram Post' },
-      igStory:  { label: 'Instagram Story' },
-      facebook: { label: 'Facebook' }
+      social:   { label: 'Facebook & Instagram image' }
     };
     // Longest edge to cap the export at, in pixels — plenty for a sharp,
     // full-quality post without producing an unnecessarily huge file.
@@ -4058,7 +4134,10 @@
     // exceeds SOCIAL_MAX_LONG_EDGE on its longest side.
     async function renderFlyerNatural(flyerEl, maxLongEdge) {
       maxLongEdge = maxLongEdge || SOCIAL_MAX_LONG_EDGE;
-      const raw = await html2canvas(flyerEl, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      flyerEl.classList.add('no-qr'); // used for the Facebook GIF; QR codes are for printed flyers only
+      let raw;
+      try { raw = await html2canvas(flyerEl, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false }); }
+      finally { flyerEl.classList.remove('no-qr'); }
       const longEdge = Math.max(raw.width, raw.height);
       if (longEdge <= maxLongEdge) return raw;
       const s = maxLongEdge / longEdge;
@@ -4072,12 +4151,77 @@
       return out;
     }
 
+    /* ---------- 4:5 social image ----------
+       Instagram crops feed posts taller than 4:5, and most designs are taller
+       than that, so the address/price or the lender NMLS footer could be cut
+       off. The social image is always 1920x2400 (4:5): the whole flyer, drawn
+       sharp at the right size, centered on a background with a soft shadow.
+       4:5 also posts uncropped on Facebook, and Stories add space around it. */
+    const SOCIAL_W = 1920, SOCIAL_H = 2400;
+    // Background behind the flyer: 'photo' (soft blur of the main property
+    // photo, darkened) or 'accent' (deep tone of the flyer's accent color).
+    const SOCIAL_BACKGROUND = 'photo';
+    function loadImage(src) {
+      return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    }
+    async function paintSocialBackground(ctx, style) {
+      const W = SOCIAL_W, H = SOCIAL_H;
+      const hero = state.photos.length ? state.photos[state.heroIndex % state.photos.length] : null;
+      if (style === 'photo' && hero) {
+        try {
+          const img = await loadImage(hero.src);
+          // Blur by drawing the photo tiny, then stretching it back up — works
+          // on every browser (canvas blur filters aren't on older iPhones).
+          const tiny = document.createElement('canvas');
+          tiny.width = 48; tiny.height = Math.round(48 * H / W);
+          const tctx = tiny.getContext('2d');
+          const cover = Math.max(tiny.width / img.width, tiny.height / img.height);
+          tctx.drawImage(img, (tiny.width - img.width * cover) / 2, (tiny.height - img.height * cover) / 2, img.width * cover, img.height * cover);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(tiny, 0, 0, W, H);
+          ctx.fillStyle = 'rgba(0,0,0,0.38)';
+          ctx.fillRect(0, 0, W, H);
+          return;
+        } catch (e) { /* fall through to the accent background */ }
+      }
+      const { r, g, b } = hexToRgb(state.accent);
+      const tone = k => `rgb(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)})`;
+      const grad = ctx.createRadialGradient(W / 2, H * 0.45, W * 0.1, W / 2, H / 2, H * 0.75);
+      grad.addColorStop(0, tone(0.55));
+      grad.addColorStop(1, tone(0.22));
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+    async function renderSocialImage(flyerEl, style) {
+      const rect = flyerEl.getBoundingClientRect();
+      // Fit inside 86% of the width and 90% of the height, drawn at exactly
+      // that size so text and photos stay sharp.
+      const fit = Math.min(SOCIAL_W * 0.86 / rect.width, SOCIAL_H * 0.9 / rect.height);
+      flyerEl.classList.add('no-qr'); // QR codes are for printed flyers only
+      let flyer;
+      try { flyer = await html2canvas(flyerEl, { scale: fit, useCORS: true, backgroundColor: '#ffffff', logging: false }); }
+      finally { flyerEl.classList.remove('no-qr'); }
+      const out = document.createElement('canvas');
+      out.width = SOCIAL_W; out.height = SOCIAL_H;
+      const ctx = out.getContext('2d');
+      await paintSocialBackground(ctx, style || SOCIAL_BACKGROUND);
+      const x = Math.round((SOCIAL_W - flyer.width) / 2), y = Math.round((SOCIAL_H - flyer.height) / 2);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 24;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, flyer.width, flyer.height);
+      ctx.restore();
+      ctx.drawImage(flyer, x, y);
+      return out;
+    }
+
     async function downloadSocial(key) {
       const fmt = SOCIAL_FORMATS[key];
       if (!fmt || !exportLibsReady(false)) return;
       await runExclusive(async () => {
         showBusy(`Rendering ${fmt.label}…`);
-        const out = await renderFlyerNatural($('#flyer'));
+        const out = await renderSocialImage($('#flyer'));
         triggerDownload(out.toDataURL('image/jpeg', 0.98), `${fileBase()}-${key}-${out.width}x${out.height}.jpg`);
         markExported();
         hideBusy();
@@ -4155,9 +4299,20 @@
       ctx.restore();
     }
 
-    function makeAnimState(type, w, h, scale) {
-      const s = { type, particles: [], t: 0 };
-      const count = base => Math.max(4, Math.round(base * scale));
+    // Effects are 30% bigger and 60% fuller than the original tuning.
+    const ANIM_SIZE_BOOST = 1.3, ANIM_AMOUNT_BOOST = 1.6;
+    // The counts below were tuned for the 640x811 print preview, but the old
+    // GIF export drew 3x as many (its counts scaled with resolution), so the
+    // preview looked much sparser than the posted GIF. Counts now follow the
+    // flyer's on-screen size (pixels / res^2), so preview and GIF match, at
+    // the old GIF's fullness plus the boost.
+    const ANIM_REF_AREA = 640 * 811, ANIM_OLD_GIF_DENSITY = 3;
+    function makeAnimState(type, w, h, scale, amount, res) {
+      res = res || 1;
+      const s = { type, particles: [], t: 0, amount: (amount || 1) * ANIM_AMOUNT_BOOST * ANIM_OLD_GIF_DENSITY };
+      scale *= ANIM_SIZE_BOOST;
+      const flyerArea = (w * h) / (res * res) / ANIM_REF_AREA;
+      const count = base => Math.max(4, Math.round(base * s.amount * flyerArea));
       const mk = (n, factory) => { for (let i = 0; i < n; i++) s.particles.push(factory()); };
       const colors5 = ['#e5484d', '#3b82f6', '#f5c518', '#22c55e', '#a855f7'];
 
@@ -4204,6 +4359,7 @@
 
     function updateAndDrawAnim(ctx, s, w, h, dt, scale, accent) {
       const type = s.type;
+      scale *= ANIM_SIZE_BOOST;
       s.t += dt;
       ctx.clearRect(0, 0, w, h);
 
@@ -4232,7 +4388,7 @@
         s.nextBurst -= dt;
         if (s.nextBurst <= 0) {
           s.bursts.push({ x: rand(w * 0.2, w * 0.8), y: rand(h * 0.15, h * 0.55), t: 0, color: ['#ff6b6b', '#ffd166', '#4dd4ac', '#7aa2f7', '#e0aaff'][Math.floor(rand(0, 5))], rays: Math.round(rand(14, 22)) });
-          s.nextBurst = rand(0.6, 1.3);
+          s.nextBurst = rand(0.6, 1.3) / (s.amount / ANIM_OLD_GIF_DENSITY); // more Amount = more frequent bursts
         }
         s.bursts.forEach(b => { b.t += dt; });
         s.bursts = s.bursts.filter(b => b.t < 1.1);
@@ -4430,7 +4586,8 @@
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const scale = parseFloat($('#animationScale').value) || 1;
-      livePreviewState = makeAnimState(type, rect.width, rect.height, scale);
+      const amount = parseFloat($('#animationAmount').value) || 1;
+      livePreviewState = makeAnimState(type, rect.width, rect.height, scale, amount);
       livePreviewLastT = performance.now();
       const loop = (now) => {
         const dt = Math.min(0.05, (now - livePreviewLastT) / 1000);
@@ -4507,7 +4664,7 @@
         const exportLongEdge = Math.max(fmt.w, fmt.h);
         const resCompensation = exportLongEdge / previewLongEdge;
         const scale = scaleInput * resCompensation;
-        const animState = makeAnimState(type, fmt.w, fmt.h, scale);
+        const animState = makeAnimState(type, fmt.w, fmt.h, scale, parseFloat($('#animationAmount').value) || 1, resCompensation);
         const durationSec = (type === 'sunrise' || type === 'sunset') ? 7 : 6;
 
         // A real animated GIF instead of a video: it autoplays and loops
@@ -4596,6 +4753,7 @@
       try {
         if (navigator.canShare && !navigator.canShare(data)) throw Object.assign(new Error('This file type can’t be shared here.'), { name: 'TypeError' });
         await navigator.share(data);
+        showCaptionModal(); // same ready-to-paste caption a download shows
         markExported();
       } catch (e) {
         if (e && e.name === 'AbortError') return;        // user closed the share sheet
@@ -4617,10 +4775,12 @@
       let file = null;
       await runExclusive(async () => {
         showBusy('Preparing your flyer to share…');
-        const canvas = await html2canvas($('#flyer'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        // Same 4:5 image as the Facebook & Instagram download, since sharing
+        // is how phones post to Instagram and Facebook.
+        const canvas = await renderSocialImage($('#flyer'));
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
         if (!blob) throw new Error('Could not create the flyer image.');
-        file = new File([blob], `${fileBase()}.png`, { type: 'image/png' });
+        file = new File([blob], `${fileBase()}.jpg`, { type: 'image/jpeg' });
       });
       if (!file) return;
       await sendShare(file);
@@ -4636,33 +4796,14 @@
     $('#shareCloseBtn').addEventListener('click', () => { pendingShareFile = null; $('#share-modal').classList.remove('show'); });
     if (canShareFiles()) $$('.share-btn').forEach(b => { b.style.display = ''; });
 
-    function copyListingText(sourceBtn) {
-      navigator.clipboard.writeText(generateCaptionText()).then(() => {
-        const btn = sourceBtn || $('#btnCopy');
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = orig, 1500);
-      });
-    }
-
-    $('#btnPng').addEventListener('click', downloadPNG);
     $('#btnPdf').addEventListener('click', downloadPDF);
-    $('#btnCopy').addEventListener('click', () => copyListingText($('#btnCopy')));
 
     // Duplicate export controls next to the live preview, on the right — same
     // underlying functions, just closer at hand while you're looking at the design.
-    $('#btnPng2').addEventListener('click', downloadPNG);
     $('#btnPdf2').addEventListener('click', downloadPDF);
-    $('#btnCopy2').addEventListener('click', () => copyListingText($('#btnCopy2')));
 
-    $('#btnExportAll').addEventListener('click', exportAllLayouts);
-    $('#btnExportAll2').addEventListener('click', exportAllLayouts);
-    $('#btnIgPost').addEventListener('click', () => downloadSocial('igPost'));
-    $('#btnIgPost2').addEventListener('click', () => downloadSocial('igPost'));
-    $('#btnIgStory').addEventListener('click', () => downloadSocial('igStory'));
-    $('#btnIgStory2').addEventListener('click', () => downloadSocial('igStory'));
-    $('#btnFacebook').addEventListener('click', () => downloadSocial('facebook'));
-    $('#btnFacebook2').addEventListener('click', () => downloadSocial('facebook'));
+    $('#btnSocial').addEventListener('click', () => downloadSocial('social'));
+    $('#btnSocial2').addEventListener('click', () => downloadSocial('social'));
 
     $('#btnDownloadAnimatedFb').addEventListener('click', downloadAnimatedFacebook);
     function updateAnimateButtonState() {
@@ -4673,6 +4814,10 @@
     $('#animationBadge').addEventListener('change', updateAnimateButtonState);
     $('#animationScale').addEventListener('input', () => {
       $('#animScaleVal').textContent = parseFloat($('#animationScale').value).toFixed(1) + '×';
+      startLivePreview();
+    });
+    $('#animationAmount').addEventListener('input', () => {
+      $('#animAmountVal').textContent = parseFloat($('#animationAmount').value).toFixed(1) + '×';
       startLivePreview();
     });
     $('#btnGoToAnimate').addEventListener('click', () => {
@@ -4738,7 +4883,9 @@
       {
         target: '#photoZone',
         title: 'Upload your first property photo here',
-        text: 'Drag photos onto this box or click it to choose them. The highlighted thumbnail is your hero shot, and you can drag thumbnails to change the order.'
+        text: 'Drag photos onto this box or click it to choose them. The highlighted thumbnail is your hero shot, and you can drag thumbnails to change the order.',
+        phoneTitle: 'Add your property photos here',
+        phoneText: 'Tap this box to pick photos from your camera roll (several at once is fine) or take new ones. The first photo is your main photo; use the arrows on each photo to change the order.'
       },
       {
         target: '.design-tools',
@@ -4748,7 +4895,8 @@
       {
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
-        text: 'Get a print-ready PDF, or exact-size images for Instagram and Facebook. Everything saves automatically in this browser as you go.'
+        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.',
+        phoneText: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Share sends it straight to Facebook, Instagram, Messages or your photos. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
@@ -4804,8 +4952,9 @@
       tourIndex = i;
       const step = TOUR_STEPS[i];
       $('#tourStepCount').textContent = `Step ${i + 1} of ${TOUR_STEPS.length}`;
-      $('#tourTitle').textContent = step.title;
-      $('#tourText').textContent = step.text;
+      const phone = window.matchMedia('(max-width: 640px)').matches;
+      $('#tourTitle').textContent = (phone && step.phoneTitle) || step.title;
+      $('#tourText').textContent = (phone && step.phoneText) || step.text;
       $('#tourBackBtn').style.display = i === 0 ? 'none' : '';
       $('#tourNextBtn').textContent = i === TOUR_STEPS.length - 1 ? 'Got it' : 'Next';
       const el = tourTargetEl(step);
@@ -4816,9 +4965,10 @@
       setTimeout(positionTour, 120);
       $('#tourNextBtn').focus({ preventScroll: true });
     }
-    // Centers el inside its nearest scrollable panel (e.g. the sidebar). Unlike
-    // scrollIntoView, this never scrolls the page itself, which is
-    // overflow:hidden and would otherwise be left stuck part-way down.
+    // Centers el inside its nearest scrollable panel (e.g. the sidebar). On
+    // desktop the page itself is overflow:hidden and is never scrolled (it
+    // would be left stuck part-way down); on phones the whole page scrolls,
+    // so the page is what gets scrolled there.
     function scrollIntoPanel(el) {
       let sc = el.parentElement;
       while (sc && sc !== document.body) {
@@ -4826,7 +4976,13 @@
         if ((oy === 'auto' || oy === 'scroll') && sc.scrollHeight > sc.clientHeight) break;
         sc = sc.parentElement;
       }
-      if (!sc || sc === document.body) return;
+      if (!sc || sc === document.body) {
+        if (getComputedStyle(document.body).overflowY !== 'hidden') {
+          const er = el.getBoundingClientRect();
+          window.scrollBy(0, er.top - (window.innerHeight - er.height) / 2);
+        }
+        return;
+      }
       const er = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
       sc.scrollTop += (er.top - sr.top) - (sc.clientHeight - er.height) / 2;
     }
@@ -4855,6 +5011,7 @@
       else if (e.key === 'ArrowLeft') { e.preventDefault(); tourBack(); }
     });
     window.addEventListener('resize', positionTour);
+    window.addEventListener('scroll', positionTour, { passive: true }); // phones: the page scrolls under the tour
     if (window.visualViewport) window.visualViewport.addEventListener('resize', positionTour);
     document.addEventListener('scroll', () => positionTour(), true);
 
@@ -4924,8 +5081,8 @@
         const bar = $('.preview-export-bar');
         flashHighlight(bar);
         const btn = $('#btnPdf');
-        scrollIntoPanel(btn);
-        flashHighlight(btn.closest('.section'));
+        if (btn.offsetParent) { scrollIntoPanel(btn); flashHighlight(btn.closest('.section')); }
+        else scrollIntoPanel(bar); // phones: the export section is hidden, so go to the export bar
       }
     };
     $$('.checklist-item').forEach(item => item.addEventListener('click', () => {
@@ -4933,6 +5090,45 @@
       if (fn) fn();
     }));
     $('#checklistHideBtn').addEventListener('click', () => setChecklistHidden(true));
+
+    /* ---------- Phone helpers ---------- */
+    // Floating button that jumps to the flyer preview and back to the form.
+    const previewJump = $('#previewJump');
+    let previewInView = false;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(entries => {
+        previewInView = entries[0].isIntersecting;
+        previewJump.innerHTML = previewInView ? 'Back to Editing &uarr;' : 'See Flyer &darr;';
+      }, { threshold: 0.25 }).observe($('#flyer'));
+    }
+    previewJump.addEventListener('click', () => {
+      if (previewInView) $('.left-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else $('.right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // The realtor's own info is saved on the phone, so once it's filled in it
+    // folds down to one line instead of being scrolled past on every listing.
+    const realtorSection = $('#realtorSection'), realtorToggle = $('#realtorToggle');
+    function setRealtorCollapsed(collapsed) {
+      realtorSection.classList.toggle('collapsed', collapsed);
+      realtorToggle.setAttribute('aria-expanded', String(!collapsed));
+      const name = ($('#agentName').value || '').trim(), company = ($('#agentCompany').value || '').trim();
+      const label = document.createElement('span');
+      label.textContent = collapsed ? (name ? name + (company ? ' · ' + company : '') : 'Your info') : 'Your realtor info';
+      label.style.cssText = 'float:none;color:inherit;font-weight:inherit';
+      const action = document.createElement('span');
+      action.textContent = collapsed ? 'Edit' : 'Done';
+      realtorToggle.replaceChildren(label, action);
+    }
+    realtorToggle.addEventListener('click', () => setRealtorCollapsed(!realtorSection.classList.contains('collapsed')));
+
+    // Phones can't use a desktop shortcut file; explain Add to Home Screen instead.
+    $('#btnHomeScreen').addEventListener('click', () => {
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      alert(iOS
+        ? 'To add FlyerGen to your home screen:\n\n1. Tap the Share button (the square with an arrow) at the bottom of Safari.\n2. Scroll down and tap "Add to Home Screen".\n3. Tap "Add".'
+        : 'To add FlyerGen to your home screen:\n\n1. Tap the menu (three dots) at the top right of Chrome.\n2. Tap "Add to Home screen".\n3. Tap "Add".');
+    });
 
     let hadProfileAtLoad = false;
     try { hadProfileAtLoad = !!localStorage.getItem(PROFILE_KEY) || !!readLegacy(); } catch (e) { /* ignore */ }
@@ -4950,6 +5146,7 @@
 
     initPanEditorEvents();
     loadFromLocal();      // realtor profile (sync, localStorage)
+    setRealtorCollapsed(window.matchMedia('(max-width: 640px)').matches && !!($('#agentName').value || '').trim());
     updatePreview();      // first paint; saving stays off until listings load
     enforceMobileAspect();
     initListings().then(enforceMobileAspect).then(maybeStartTour); // re-check once a saved listing (possibly Square) loads
