@@ -323,6 +323,7 @@
       font-family: var(--font-flyer); transition: width 0.25s ease; flex-shrink: 0; word-break: break-word;
     }
     #flyer.square { width: 420px; }
+    #flyer.no-qr #qrcode, #flyer.square #qrcode { display: none !important; }
     /* Standard Print, in Print format: widened so the proportions match a
        full letter page (8.5x11) instead of a narrow phone-card shape that
        leaves big empty margins on the sides when placed on a printed page. */
@@ -1428,7 +1429,7 @@
             <div style="margin-top:2px">${ehoMark(dark ? '#d6d4d2' : '#4a453e', 8.5, 6.5)}</div>
           </div>
           <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="Company logo" style="max-height:30px;max-width:66px;object-fit:contain;flex-shrink:0;border-radius:0" />
-          <div id="qrcode" data-pdf-link="${qrTargetUrl()}" style="flex-shrink:0;transform:scale(0.8);transform-origin:right center"></div>
+          <div id="qrcode" data-pdf-link="${qrTargetUrl()}" style="flex-shrink:0"></div>
         </div>`;
     }
 
@@ -2598,6 +2599,10 @@
     // Draws the footer QR code into el (the live flyer's #qrcode, or a copy of
     // it in a gallery thumbnail). No-op if the QR library isn't loaded.
     // Returns 'custom' | 'lender' | 'fallback' (custom link too long to encode).
+    // The QR code is only for printed flyers: about 0.7" across on a letter
+    // page, big enough for a phone to read a long link from paper. Social
+    // images, Share, the GIF and the Square format leave it off (.no-qr).
+    const QR_SIZE = 52;
     function renderQRCode(el) {
       if (!el || typeof QRCode === 'undefined') return null;
       // Drawn at 8x resolution and shown at 42px: exports and PDFs upscale the
@@ -2607,7 +2612,7 @@
       const draw = (text, level) => {
         el.innerHTML = '';
         new QRCode(el, { text, width: 336, height: 336, colorDark: '#1c1a17', colorLight: '#ffffff', correctLevel: level });
-        el.querySelectorAll('canvas, img').forEach(n => { n.style.width = '42px'; n.style.height = '42px'; });
+        el.querySelectorAll('canvas, img').forEach(n => { n.style.width = QR_SIZE + 'px'; n.style.height = QR_SIZE + 'px'; });
         el.style.background = '#ffffff';
         el.style.padding = '3px';
       };
@@ -2635,7 +2640,7 @@
       hint.style.color = warn ? '#f0883e' : '';
       hint.textContent = warn
         ? 'That link is too long to fit in a QR code, so the QR code still points at the lender’s website. Try a shorter link (e.g. your MLS or Zillow short link).'
-        : 'Paste your listing page or virtual tour link and the flyer’s QR code will open it. Leave blank to point the QR code at the lender’s website.';
+        : 'Paste your listing page or virtual tour link and the printed flyer’s QR code will open it. Leave blank to point the QR code at the lender’s website. (Social media images leave the QR code off.)';
     }
 
     let lastFlyerHTML = null;
@@ -4129,7 +4134,10 @@
     // exceeds SOCIAL_MAX_LONG_EDGE on its longest side.
     async function renderFlyerNatural(flyerEl, maxLongEdge) {
       maxLongEdge = maxLongEdge || SOCIAL_MAX_LONG_EDGE;
-      const raw = await html2canvas(flyerEl, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      flyerEl.classList.add('no-qr'); // used for the Facebook GIF; QR codes are for printed flyers only
+      let raw;
+      try { raw = await html2canvas(flyerEl, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false }); }
+      finally { flyerEl.classList.remove('no-qr'); }
       const longEdge = Math.max(raw.width, raw.height);
       if (longEdge <= maxLongEdge) return raw;
       const s = maxLongEdge / longEdge;
@@ -4190,7 +4198,10 @@
       // Fit inside 86% of the width and 90% of the height, drawn at exactly
       // that size so text and photos stay sharp.
       const fit = Math.min(SOCIAL_W * 0.86 / rect.width, SOCIAL_H * 0.9 / rect.height);
-      const flyer = await html2canvas(flyerEl, { scale: fit, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      flyerEl.classList.add('no-qr'); // QR codes are for printed flyers only
+      let flyer;
+      try { flyer = await html2canvas(flyerEl, { scale: fit, useCORS: true, backgroundColor: '#ffffff', logging: false }); }
+      finally { flyerEl.classList.remove('no-qr'); }
       const out = document.createElement('canvas');
       out.width = SOCIAL_W; out.height = SOCIAL_H;
       const ctx = out.getContext('2d');
