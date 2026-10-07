@@ -520,6 +520,7 @@
     /* FIRST-RUN WALKTHROUGH (spotlight ring + small card) */
     .tour-layer { position: fixed; inset: 0; z-index: 10020; display: none; }
     .tour-layer.show { display: block; }
+    body:has(.tour-layer.show) .preview-jump { display: none; }
     .tour-spot {
       position: fixed; border: 2px solid var(--accent); border-radius: 12px; pointer-events: none;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 0 18px var(--accent-glow);
@@ -4797,7 +4798,9 @@
       {
         target: '#photoZone',
         title: 'Upload your first property photo here',
-        text: 'Drag photos onto this box or click it to choose them. The highlighted thumbnail is your hero shot, and you can drag thumbnails to change the order.'
+        text: 'Drag photos onto this box or click it to choose them. The highlighted thumbnail is your hero shot, and you can drag thumbnails to change the order.',
+        phoneTitle: 'Add your property photos here',
+        phoneText: 'Tap this box to pick photos from your camera roll (several at once is fine) or take new ones. The first photo is your main photo; use the arrows on each photo to change the order.'
       },
       {
         target: '.design-tools',
@@ -4807,7 +4810,8 @@
       {
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
-        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.'
+        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.',
+        phoneText: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Share sends it straight to Facebook, Instagram, Messages or your photos. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
@@ -4863,8 +4867,9 @@
       tourIndex = i;
       const step = TOUR_STEPS[i];
       $('#tourStepCount').textContent = `Step ${i + 1} of ${TOUR_STEPS.length}`;
-      $('#tourTitle').textContent = step.title;
-      $('#tourText').textContent = step.text;
+      const phone = window.matchMedia('(max-width: 640px)').matches;
+      $('#tourTitle').textContent = (phone && step.phoneTitle) || step.title;
+      $('#tourText').textContent = (phone && step.phoneText) || step.text;
       $('#tourBackBtn').style.display = i === 0 ? 'none' : '';
       $('#tourNextBtn').textContent = i === TOUR_STEPS.length - 1 ? 'Got it' : 'Next';
       const el = tourTargetEl(step);
@@ -4875,9 +4880,10 @@
       setTimeout(positionTour, 120);
       $('#tourNextBtn').focus({ preventScroll: true });
     }
-    // Centers el inside its nearest scrollable panel (e.g. the sidebar). Unlike
-    // scrollIntoView, this never scrolls the page itself, which is
-    // overflow:hidden and would otherwise be left stuck part-way down.
+    // Centers el inside its nearest scrollable panel (e.g. the sidebar). On
+    // desktop the page itself is overflow:hidden and is never scrolled (it
+    // would be left stuck part-way down); on phones the whole page scrolls,
+    // so the page is what gets scrolled there.
     function scrollIntoPanel(el) {
       let sc = el.parentElement;
       while (sc && sc !== document.body) {
@@ -4885,7 +4891,13 @@
         if ((oy === 'auto' || oy === 'scroll') && sc.scrollHeight > sc.clientHeight) break;
         sc = sc.parentElement;
       }
-      if (!sc || sc === document.body) return;
+      if (!sc || sc === document.body) {
+        if (getComputedStyle(document.body).overflowY !== 'hidden') {
+          const er = el.getBoundingClientRect();
+          window.scrollBy(0, er.top - (window.innerHeight - er.height) / 2);
+        }
+        return;
+      }
       const er = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
       sc.scrollTop += (er.top - sr.top) - (sc.clientHeight - er.height) / 2;
     }
@@ -4914,6 +4926,7 @@
       else if (e.key === 'ArrowLeft') { e.preventDefault(); tourBack(); }
     });
     window.addEventListener('resize', positionTour);
+    window.addEventListener('scroll', positionTour, { passive: true }); // phones: the page scrolls under the tour
     if (window.visualViewport) window.visualViewport.addEventListener('resize', positionTour);
     document.addEventListener('scroll', () => positionTour(), true);
 
@@ -4983,8 +4996,8 @@
         const bar = $('.preview-export-bar');
         flashHighlight(bar);
         const btn = $('#btnPdf');
-        scrollIntoPanel(btn);
-        flashHighlight(btn.closest('.section'));
+        if (btn.offsetParent) { scrollIntoPanel(btn); flashHighlight(btn.closest('.section')); }
+        else scrollIntoPanel(bar); // phones: the export section is hidden, so go to the export bar
       }
     };
     $$('.checklist-item').forEach(item => item.addEventListener('click', () => {
