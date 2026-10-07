@@ -1114,6 +1114,8 @@
         phone: '(423) 505-9811',
         email: 'john@hmsloan.com',
         website: 'https://hmsloan.com/',
+        // Where the flyer's QR code goes when the realtor leaves the listing link blank.
+        qrUrl: 'https://homemortgagesolutionsllc1.godaddysites.com/',
         photoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg',
         logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/email-logo.png',
         tagline: 'Three decades of mortgage lending expertise, proudly serving Cleveland, Tennessee and the surrounding communities.',
@@ -2591,16 +2593,23 @@
       const u = val('listingUrl', '').trim();
       return u ? normalizeUrl(u) : '';
     }
-    function qrTargetUrl() { return qrOverrideUrl() || CONFIG.lender.website; }
+    function qrTargetUrl() { return qrOverrideUrl() || CONFIG.lender.qrUrl || CONFIG.lender.website; }
 
     // Draws the footer QR code into el (the live flyer's #qrcode, or a copy of
     // it in a gallery thumbnail). No-op if the QR library isn't loaded.
     // Returns 'custom' | 'lender' | 'fallback' (custom link too long to encode).
     function renderQRCode(el) {
       if (!el || typeof QRCode === 'undefined') return null;
+      // Drawn at 8x resolution and shown at 42px: exports and PDFs upscale the
+      // flyer 2-3x, and a 42px code came out too blurry to scan (a long link
+      // didn't scan at all). The white padding is the quiet zone scanners need,
+      // which dark footers otherwise don't give it.
       const draw = (text, level) => {
         el.innerHTML = '';
-        new QRCode(el, { text, width: 42, height: 42, colorDark: '#1c1a17', colorLight: '#ffffff', correctLevel: level });
+        new QRCode(el, { text, width: 336, height: 336, colorDark: '#1c1a17', colorLight: '#ffffff', correctLevel: level });
+        el.querySelectorAll('canvas, img').forEach(n => { n.style.width = '42px'; n.style.height = '42px'; });
+        el.style.background = '#ffffff';
+        el.style.padding = '3px';
       };
       const custom = qrOverrideUrl();
       if (custom) {
@@ -2613,8 +2622,9 @@
         } catch (e) { console.warn('Listing link could not be encoded as a QR code; using the lender site', e); }
       }
       try {
-        draw(CONFIG.lender.website, QRCode.CorrectLevel.M);
-        el.setAttribute('data-pdf-link', CONFIG.lender.website);
+        const lenderUrl = CONFIG.lender.qrUrl || CONFIG.lender.website;
+        draw(lenderUrl, QRCode.CorrectLevel.M);
+        el.setAttribute('data-pdf-link', lenderUrl);
       } catch (e) { console.warn('QR code library unavailable', e); }
       return custom ? 'fallback' : 'lender';
     }
