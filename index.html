@@ -646,6 +646,10 @@
        full desktop width (hidden behind the busy overlay) so the file comes
        out exactly like one made on a computer. */
     .export-size #flyer { transition: none !important; }
+    @media (max-width: 640px) {
+      .can-share #btnSocial2 { display: none !important; }
+      #btnShare2 .mobile-only { display: inline; }
+    }
     .export-size .preview-container { overflow: hidden !important; }
     @media (min-width: 641px) { .mobile-only { display: none !important; } }
   </style>
@@ -971,19 +975,14 @@
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
-          <div class="live-label mobile-hide">Format:</div>
-          <div class="aspect-toggles mobile-hide">
-            <button class="aspect-btn active" data-aspect="print">Print</button>
-            <button class="aspect-btn" data-aspect="square">Square</button>
-          </div>
-          <div class="live-label" style="margin-left: 8px;"><div class="live-dot"></div></div>
+          <div class="live-label"><div class="live-dot"></div></div>
         </div>
       </div>
 
       <div class="preview-export-bar">
         <span class="live-label">Export:</span>
         <button type="button" id="btnPdf2" class="pill-btn">Download PDF</button>
-        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app">Share&hellip;</button>
+        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app"><span class="mobile-hide">Share&hellip;</span><span class="mobile-only">Save or Share Image</span></button>
         <button type="button" id="btnSocial2" class="pill-btn" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Facebook &amp; Instagram</button>
         <span class="export-divider mobile-hide"></span>
         <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
@@ -1093,8 +1092,8 @@
   <!-- ====== POP-UP MODAL FOR SOCIAL CAPTION ====== -->
   <div id="caption-modal" class="modal-overlay">
     <div class="modal-content">
-        <h3>High-Res Image Downloaded!</h3>
-        <p>Your property graphic has been downloaded. Here is your ready-to-paste caption for social media:</p>
+        <h3>Your Flyer Is Ready!</h3>
+        <p>Here&rsquo;s a ready-to-paste caption to go with your post:</p>
         <textarea id="modal-caption-text" rows="8" readonly></textarea>
         <div class="modal-btn-row">
             <button id="modal-btn-copy" class="btn btn-primary" style="margin: 0; flex: 1;">Copy Caption</button>
@@ -1567,6 +1566,7 @@
             <div style="padding:18px 20px 0">
               ${statusRibbon(statusText, true)}
               <div style="text-align:center;margin:12px 0 4px;font-family:var(--font-serif);font-size:26px;font-weight:800;color:${accentOnDark()}">${price}</div>
+              ${address ? `<div style="text-align:center;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.85)">${address}</div>` : ''}
               <div style="margin:14px 0">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:16px;line-height:1.6">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
@@ -2607,7 +2607,7 @@
     // Returns 'custom' | 'lender' | 'fallback' (custom link too long to encode).
     // The QR code is only for printed flyers: about 0.7" across on a letter
     // page, big enough for a phone to read a long link from paper. Social
-    // images, Share, the GIF and the Square format leave it off (.no-qr).
+    // images, Share and the GIF leave it off (.no-qr).
     const QR_SIZE = 52;
     function renderQRCode(el) {
       if (!el || typeof QRCode === 'undefined') return null;
@@ -3082,7 +3082,9 @@
         LISTING_FIELDS.forEach(id => { const el = $(`#${id}`); if (el) el.value = l[id] !== undefined ? l[id] : ''; });
         if (!$('#status').value && l.status === undefined) $('#status').value = 'Just Listed';
         state.layout = $(`.layout-option-btn[data-layout="${l.layout}"]`) ? l.layout : 'classic';
-        state.aspect = l.aspect === 'square' ? 'square' : 'print';
+        // The Print/Square format toggle was removed (exports frame the flyer
+        // for social media themselves); listings saved as Square open as Print.
+        state.aspect = 'print';
         state.photos = normalizePhotos(l.photos);
         state.heroIndex = Math.min(Math.max(0, l.heroIndex || 0), Math.max(0, state.photos.length - 1));
         state.imageOffsets = normalizeOffsets(l.imageOffsets);
@@ -3096,7 +3098,6 @@
         state.designPicked = !!ck.designPicked;
         state.exported = !!ck.exported;
         $$('.layout-option-btn').forEach(o => o.classList.toggle('active', o.dataset.layout === state.layout));
-        $$('.aspect-btn').forEach(b => b.classList.toggle('active', b.dataset.aspect === state.aspect));
         renderThumbs();
         updatePreview();
         lastSavedSig = listingSig(collectListing());
@@ -3839,15 +3840,6 @@
     });
     window.addEventListener('resize', () => { if ($('#gallery-modal').classList.contains('show')) fitAllGalleryThumbs(); });
 
-    $$('.aspect-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        $$('.aspect-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.aspect = btn.dataset.aspect;
-        updatePreview();
-      });
-    });
-
     // Sets the flyer's brand accent and syncs the swatch row + custom picker.
     // (Caller re-renders.) Only the flyer uses it — never the builder's chrome.
     function setAccent(color) {
@@ -4003,6 +3995,9 @@
       const resize = window.matchMedia('(max-width: 640px)').matches;
       try {
         if (resize) await useExportSize(true);
+        // Wait for every image in the flyer — photos, logo and a QR code that
+        // may have just been redrawn — so none is missing from the file.
+        await waitForImages($('#flyer'));
         await fn();
       }
       catch (err) {
@@ -4054,6 +4049,34 @@
       link.click();
       link.remove();
     }
+    // Desktop Chrome/Edge: ask where to save (a normal Save As window) so the
+    // realtor knows where the file went. It must be asked right at the click,
+    // before rendering, or the browser refuses. Returns a file handle, null
+    // where the browser can't ask (Safari, Firefox, phones: normal download),
+    // or false if the realtor cancelled.
+    async function askWhereToSave(filename, mime, label) {
+      const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(max-width: 640px)').matches;
+      if (phone || typeof window.showSaveFilePicker !== 'function') return null;
+      const ext = '.' + filename.split('.').pop();
+      try {
+        return await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: label, accept: { [mime]: [ext] } }] });
+      } catch (e) {
+        return e && e.name === 'AbortError' ? false : null;
+      }
+    }
+    async function saveFile(handle, blob, filename) {
+      if (handle) {
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, filename);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    const canvasToBlob = (canvas, type, quality) => new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Could not create the image.')), type, quality));
+
     function showCaptionModal() {
       const modal = $('#caption-modal');
       const textArea = $('#modal-caption-text');
@@ -4103,14 +4126,17 @@
     }
 
     async function downloadPDF() {
-      if (!exportLibsReady(true)) return;
+      if (exportBusy || !exportLibsReady(true)) return;
+      const filename = `${fileBase()}-${Date.now()}.pdf`;
+      const handle = await askWhereToSave(filename, 'application/pdf', 'PDF flyer');
+      if (handle === false) return;
       await runExclusive(async () => {
         const { jsPDF } = window.jspdf;
         // Standard US Letter page with real 0.5" margins, flyer scaled to fit and
         // centered — printer-standard, instead of a page cropped tight to the canvas.
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
         await addFlyerPageToPdf(pdf, $('#flyer'));
-        pdf.save(`${fileBase()}-${Date.now()}.pdf`);
+        await saveFile(handle, pdf.output('blob'), filename);
         markExported();
       });
     }
@@ -4232,11 +4258,14 @@
 
     async function downloadSocial(key) {
       const fmt = SOCIAL_FORMATS[key];
-      if (!fmt || !exportLibsReady(false)) return;
+      if (!fmt || exportBusy || !exportLibsReady(false)) return;
+      const filename = `${fileBase()}-${key}-${SOCIAL_W}x${SOCIAL_H}.jpg`;
+      const handle = await askWhereToSave(filename, 'image/jpeg', 'JPEG image');
+      if (handle === false) return;
       await runExclusive(async () => {
         showBusy(`Rendering ${fmt.label}…`);
         const out = await renderSocialImage($('#flyer'));
-        triggerDownload(out.toDataURL('image/jpeg', 0.98), `${fileBase()}-${key}-${out.width}x${out.height}.jpg`);
+        await saveFile(handle, await canvasToBlob(out, 'image/jpeg', 0.98), filename);
         markExported();
         hideBusy();
         showCaptionModal();
@@ -4638,6 +4667,10 @@
         return;
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
+      if (exportBusy) return;
+      const gifName = `${fileBase()}-facebook-animated-${[type, badge].filter(Boolean).join('-') || 'badge'}.gif`;
+      const gifHandle = await askWhereToSave(gifName, 'image/gif', 'Animated GIF');
+      if (gifHandle === false) return;
       await runExclusive(async () => {
         showBusy('Rendering animated Facebook post… this can take 20-30 seconds.');
         // Background is the realtor's actual selected flyer design, at its
@@ -4742,11 +4775,8 @@
         });
         URL.revokeObjectURL(workerScriptURL);
 
-        const url = URL.createObjectURL(blob);
-        const nameParts = [type, badge].filter(Boolean);
-        triggerDownload(url, `${fileBase()}-facebook-animated-${nameParts.join('-') || 'badge'}.gif`);
+        await saveFile(gifHandle, blob, gifName);
         markExported();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
         hideBusy();
       });
     }
@@ -4809,7 +4839,12 @@
       if (f) sendShare(f);
     });
     $('#shareCloseBtn').addEventListener('click', () => { pendingShareFile = null; $('#share-modal').classList.remove('show'); });
-    if (canShareFiles()) $$('.share-btn').forEach(b => { b.style.display = ''; });
+    if (canShareFiles()) {
+      $$('.share-btn').forEach(b => { b.style.display = ''; });
+      // Phones: the share menu is how an image gets into Photos (or straight
+      // to Facebook/Instagram), so it replaces the plain download button there.
+      document.documentElement.classList.add('can-share');
+    }
 
     $('#btnPdf').addEventListener('click', downloadPDF);
 
@@ -4839,6 +4874,10 @@
       const effectSize = parseFloat($('#animationScale').value) || 1;
       const amount = parseFloat($('#animationAmount').value) || 1;
       const badgeSize = parseFloat($('#animationBadgeScale').value) || 1;
+      if (exportBusy) return;
+      const stillName = `${fileBase()}-still-${[type, badge].filter(Boolean).join('-')}-${SOCIAL_W}x${SOCIAL_H}.jpg`;
+      const stillHandle = await askWhereToSave(stillName, 'image/jpeg', 'JPEG image');
+      if (stillHandle === false) return;
       await runExclusive(async () => {
         showBusy('Rendering still image…');
         const out = await renderSocialImage($('#flyer'), undefined, (ctx, w, h, res) => {
@@ -4856,8 +4895,7 @@
           }
           drawBadge(ctx, badge, w, h, t, badgeSize * res, accent);
         });
-        const name = [type, badge].filter(Boolean).join('-');
-        triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-still-${name}-${out.width}x${out.height}.jpg`);
+        await saveFile(stillHandle, await canvasToBlob(out, 'image/jpeg', 0.95), stillName);
         markExported();
         hideBusy();
         showCaptionModal();
@@ -4945,20 +4983,6 @@
       if (e.propertyName === 'width') renderPreviewImages();
     });
 
-    // The Format toggle (Print/Square) is hidden on phone-width screens
-    // (see the .mobile-hide rule) since only Print makes sense for a PDF a
-    // realtor downloads from their phone. With no toggle visible to change
-    // it, lock the underlying state to 'print' too, so a phone user can
-    // never get stuck on a Square layout they have no way to switch out of.
-    const MOBILE_BREAKPOINT = 640;
-    function enforceMobileAspect() {
-      if (window.innerWidth > MOBILE_BREAKPOINT) return;
-      if (state.aspect === 'print') return;
-      state.aspect = 'print';
-      $$('.aspect-btn').forEach(b => b.classList.toggle('active', b.dataset.aspect === 'print'));
-      updatePreview();
-    }
-    window.addEventListener('resize', enforceMobileAspect);
 
     /* ---------- First-run walkthrough ----------
        Shown automatically once, to brand-new users only. The flag is
@@ -4984,7 +5008,7 @@
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
         text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.',
-        phoneText: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Share sends it straight to Facebook, Instagram, Messages or your photos. Everything saves automatically on this phone as you go.'
+        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to put the flyer in your photos or send it straight to Facebook, Instagram or Messages. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
@@ -5236,8 +5260,7 @@
     loadFromLocal();      // realtor profile (sync, localStorage)
     setRealtorCollapsed(window.matchMedia('(max-width: 640px)').matches && !!($('#agentName').value || '').trim());
     updatePreview();      // first paint; saving stays off until listings load
-    enforceMobileAspect();
-    initListings().then(enforceMobileAspect).then(maybeStartTour); // re-check once a saved listing (possibly Square) loads
+    initListings().then(maybeStartTour);
   </script>
 </body>
 </html>
