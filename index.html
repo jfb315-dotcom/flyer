@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-title" content="FlyerGen" />
   <title>FlyerGen Nexus – Provided by John Bischof | Home Mortgage Solutions LLC</title>
   <!--
     OFFLINE SUPPORT: these try a local copy first (works with no signal at a
@@ -575,8 +576,72 @@
          its own real fixed pixel dimensions, completely independent of
          this on-screen size. */
       .preview-container { padding: 20px 14px; }
-      #flyer, #flyer.full-page, #flyer.square { width: min(440px, calc(100vw - 28px)) !important; }
+      html:not(.export-size) #flyer, html:not(.export-size) #flyer.full-page, html:not(.export-size) #flyer.square { width: min(440px, calc(100vw - 28px)) !important; }
+
+      /* One normal scrolling page instead of two small scrolling panes. */
+      body { height: auto; overflow: visible; display: block; }
+      .main, .left-panel, .right-panel, .preview-container { height: auto; overflow: visible; }
+      .main { display: block; }
+      .left-panel { width: 100%; padding: 16px; border-right: 0; display: flex; flex-direction: column; }
+      /* Phone order: photos first, then the details, then the realtor's own info. */
+      #photosSection { order: 1; }
+      #detailsSection { order: 2; }
+      #statusSection { order: 3; }
+      #realtorSection { order: 4; }
+      .right-panel { border-top: 1px solid var(--border); }
+
+      /* Header: stack the title and put the brand colors on their own row. */
+      .header { height: auto; flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+      .header-accent-bar, .header h1 span { display: none; }
+      .header-photo-square { width: 44px; height: 44px; }
+      .header-text h1 { font-size: 21px; }
+      .accent-picker { width: 100%; justify-content: space-between; }
+      .color-swatches { gap: 10px; }
+      .swatch { width: 32px; height: 32px; }
+      input[type="color"] { width: 30px; height: 30px; }
+
+      /* 16px text stops iPhones from zooming in every time a field is tapped. */
+      input[type="text"], input[type="number"], input[type="tel"], input[type="email"], textarea, select { font-size: 16px; }
+      .modal-content textarea { font-size: 16px; }
+      .design-tools .pill-btn { padding: 10px 14px; }
+      .checklist-title-row .btn-link { padding: 8px 4px; }
+
+      /* Bigger photo thumbnails and finger-sized controls. */
+      .upload-zone { padding: 22px 14px; border-style: solid; border-color: var(--accent); }
+      .upload-phone strong { font-size: 17px; color: var(--accent); }
+      .upload-phone small { font-size: 12px; }
+      .photo-thumbs { gap: 12px; }
+      .thumb-wrap, .thumb { width: 104px; height: 78px; }
+      .thumb-remove { width: 28px; height: 28px; font-size: 15px; top: -9px; right: -9px; }
+      /* arrows and pencil in one row along the bottom so they don't overlap */
+      .thumb-edit { width: 28px; height: 28px; bottom: 4px; right: auto; left: 38px; }
+      .thumb-move { width: 28px; height: 28px; top: auto; bottom: 4px; font-size: 18px; opacity: 0.9; }
+      .thumb-move.left { left: 4px; }
+      .thumb-move.right { right: 4px; }
+      .agent-photo-upload { width: 30px; height: 30px; }
+      .listing-bar .btn { padding: 11px 14px; font-size: 13px; }
+      .btn-link { padding: 8px 0; }
+
+      /* Realtor info folds away once it's filled in (it's saved on the phone). */
+      .realtor-toggle {
+        width: 100%; margin-bottom: 12px; padding: 12px 14px; border-radius: 10px; text-align: left;
+        background: var(--bg-card); border: 1px solid var(--border); color: var(--text); font-size: 14px; cursor: pointer;
+      }
+      .realtor-toggle span { color: var(--accent); float: right; font-weight: 600; }
+      #realtorSection.collapsed > :not(.section-title):not(.realtor-toggle) { display: none; }
+
+      /* Floating button to jump between the form and the flyer. */
+      .preview-jump {
+        position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+        padding: 13px 18px; border-radius: 999px; border: 0; background: var(--accent); color: #fff;
+        font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer;
+      }
     }
+    /* While an export is drawing on a phone, the flyer briefly takes its
+       full desktop width (hidden behind the busy overlay) so the file comes
+       out exactly like one made on a computer. */
+    .export-size #flyer { transition: none !important; }
+    .export-size .preview-container { overflow: hidden !important; }
     @media (min-width: 641px) { .mobile-only { display: none !important; } }
   </style>
 </head>
@@ -586,7 +651,7 @@
     <div class="header-left">
       <div class="header-accent-bar"></div>
       <img id="headerPhoto" class="header-photo-square"
-           src="https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg"
+           src="john-photo.jpg"
            onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2750%27 height=%2750%27 viewBox=%270 0 50 50%27%3E%3Crect width=%2750%27 height=%2750%27 fill=%27%23161b22%27/%3E%3Ctext x=%2725%27 y=%2730%27 text-anchor=%27middle%27 fill=%27%23b8863f%27 font-size=%2715%27 font-weight=%27bold%27 font-family=%27sans-serif%27%3EJB%3C/text%3E%3C/svg%3E'"
            alt="John Bischof" />
       <div class="header-text">
@@ -613,7 +678,8 @@
   <div class="main">
     <aside class="left-panel">
       <!-- Desktop Shortcut -->
-      <button id="btn-save-desktop" class="btn btn-secondary" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Save App Shortcut to Desktop</button>
+      <button id="btn-save-desktop" class="btn btn-secondary mobile-hide" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Save App Shortcut to Desktop</button>
+      <button type="button" id="btnHomeScreen" class="btn btn-secondary mobile-only" style="border-color: var(--accent); color: var(--accent); margin-bottom: 12px;">Add FlyerGen to Your Home Screen</button>
 
       <!-- Current listing + library -->
       <div class="listing-bar">
@@ -646,7 +712,7 @@
       </div>
 
       <!-- Status -->
-      <div class="section">
+      <div class="section" id="statusSection">
         <div class="section-title">Campaign Status</div>
         <div class="form-group">
           <label>Listing Status Banner</label>
@@ -667,7 +733,7 @@
       </div>
 
       <!-- Property Details -->
-      <div class="section">
+      <div class="section" id="detailsSection">
         <div class="section-title">Property Metrics</div>
         <div class="form-group">
           <label>Address / Title Header</label>
@@ -699,21 +765,24 @@
       </div>
 
       <!-- Photos -->
-      <div class="section">
+      <div class="section" id="photosSection">
         <div class="section-title">Property Photos</div>
         <div class="upload-zone" id="photoZone">
-          <p>Drag property photos here or click<br><small>Upload property showcase images</small></p>
+          <p class="mobile-hide">Drag property photos here or click<br><small>Upload property showcase images</small></p>
+          <p class="mobile-only upload-phone"><strong>+ Add Photos</strong><br><small>Pick several at once from your camera roll, or take new ones</small></p>
           <input type="file" id="photoInput" accept="image/*" hidden multiple />
         </div>
         <div class="photo-thumbs" id="photoThumbs"></div>
         <div class="section-hint" style="margin-top:10px;margin-bottom:0">
-          Click a thumbnail to make it the hero photo. Drag thumbnails (or use the arrows) to change the order &mdash; the numbers show which spot each photo fills on multi-photo designs. Click the pencil icon &mdash; or click the photo directly in the preview &mdash; to reposition and zoom it.
+          <span class="mobile-hide">Click a thumbnail to make it the hero photo. Drag thumbnails (or use the arrows) to change the order &mdash; the numbers show which spot each photo fills on multi-photo designs. Click the pencil icon &mdash; or click the photo directly in the preview &mdash; to reposition and zoom it.</span>
+          <span class="mobile-only">Tap a photo to make it the main photo. Use the arrows to change the order, and the pencil to reposition or zoom.</span>
         </div>
       </div>
 
       <!-- Realtor Portal Mode -->
-      <div class="section">
+      <div class="section" id="realtorSection">
         <div class="section-title">Realtor Partner Portal (Auto-Stored)</div>
+        <button type="button" id="realtorToggle" class="realtor-toggle mobile-only" aria-expanded="true"></button>
         <div class="portal-banner">
           <strong>Private Realtor Session</strong>
           Your info and portrait auto-save securely on your browser. No drop-downs or other realtors visible.
@@ -787,8 +856,8 @@
         </div>
       </div>
 
-      <!-- Export Suite -->
-      <div class="section">
+      <!-- Export Suite (phones use the export bar above the preview instead) -->
+      <div class="section mobile-hide" id="exportSection">
         <div class="section-title">Export Suite</div>
         <button class="btn btn-primary" id="btnPdf">Download PDF Flyer</button>
         <button class="btn btn-secondary mobile-hide" id="btnPng">Download High-Res PNG</button>
@@ -918,7 +987,7 @@
       </div>
 
       <div class="preview-container">
-        <div class="hint-toast" id="hintToast">Tip: click any photo or headshot in the preview to reposition and zoom it.</div>
+        <div class="hint-toast" id="hintToast">Tip: click (or tap) any photo or headshot in the preview to reposition and zoom it.</div>
         <div id="flyer-stage" style="position:relative;display:inline-block">
           <div id="flyer"></div>
           <canvas id="animPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none"></canvas>
@@ -926,6 +995,8 @@
       </div>
     </section>
   </div>
+
+  <button type="button" id="previewJump" class="preview-jump mobile-only">See Flyer &darr;</button>
 
   <!-- ====== PAN / ZOOM EDITOR MODAL ====== -->
   <div id="pan-modal" class="modal-overlay">
@@ -3886,14 +3957,33 @@
     async function runExclusive(fn) {
       if (exportBusy) return;
       exportBusy = true;
-      try { await fn(); }
+      // On a phone the preview is shrunk to fit the screen, and exports are
+      // drawn from the live preview — so without this a phone made smaller,
+      // differently shaped files than a computer. Give the flyer its full
+      // desktop width while the export draws, then shrink it back.
+      const resize = window.matchMedia('(max-width: 640px)').matches;
+      try {
+        if (resize) await useExportSize(true);
+        await fn();
+      }
       catch (err) {
         console.error('Export failed', err);
         alert('Sorry, the export failed: ' + (err && err.message ? err.message : err));
       } finally {
+        if (resize) await useExportSize(false);
         hideBusy();
         exportBusy = false;
       }
+    }
+    async function useExportSize(on) {
+      const flyerEl = $('#flyer');
+      if (on) showBusy('Preparing your flyer…');
+      flyerEl.style.transition = 'none';
+      document.documentElement.classList.toggle('export-size', on);
+      renderPreviewImages();
+      await waitForImages(flyerEl);
+      await nextFrame();
+      if (!on) flyerEl.style.transition = '';
     }
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -4934,6 +5024,45 @@
     }));
     $('#checklistHideBtn').addEventListener('click', () => setChecklistHidden(true));
 
+    /* ---------- Phone helpers ---------- */
+    // Floating button that jumps to the flyer preview and back to the form.
+    const previewJump = $('#previewJump');
+    let previewInView = false;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(entries => {
+        previewInView = entries[0].isIntersecting;
+        previewJump.innerHTML = previewInView ? 'Back to Editing &uarr;' : 'See Flyer &darr;';
+      }, { threshold: 0.25 }).observe($('#flyer'));
+    }
+    previewJump.addEventListener('click', () => {
+      if (previewInView) $('.left-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else $('.right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // The realtor's own info is saved on the phone, so once it's filled in it
+    // folds down to one line instead of being scrolled past on every listing.
+    const realtorSection = $('#realtorSection'), realtorToggle = $('#realtorToggle');
+    function setRealtorCollapsed(collapsed) {
+      realtorSection.classList.toggle('collapsed', collapsed);
+      realtorToggle.setAttribute('aria-expanded', String(!collapsed));
+      const name = ($('#agentName').value || '').trim(), company = ($('#agentCompany').value || '').trim();
+      const label = document.createElement('span');
+      label.textContent = collapsed ? (name ? name + (company ? ' · ' + company : '') : 'Your info') : 'Your realtor info';
+      label.style.cssText = 'float:none;color:inherit;font-weight:inherit';
+      const action = document.createElement('span');
+      action.textContent = collapsed ? 'Edit' : 'Done';
+      realtorToggle.replaceChildren(label, action);
+    }
+    realtorToggle.addEventListener('click', () => setRealtorCollapsed(!realtorSection.classList.contains('collapsed')));
+
+    // Phones can't use a desktop shortcut file; explain Add to Home Screen instead.
+    $('#btnHomeScreen').addEventListener('click', () => {
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      alert(iOS
+        ? 'To add FlyerGen to your home screen:\n\n1. Tap the Share button (the square with an arrow) at the bottom of Safari.\n2. Scroll down and tap "Add to Home Screen".\n3. Tap "Add".'
+        : 'To add FlyerGen to your home screen:\n\n1. Tap the menu (three dots) at the top right of Chrome.\n2. Tap "Add to Home screen".\n3. Tap "Add".');
+    });
+
     let hadProfileAtLoad = false;
     try { hadProfileAtLoad = !!localStorage.getItem(PROFILE_KEY) || !!readLegacy(); } catch (e) { /* ignore */ }
     function maybeStartTour() {
@@ -4950,6 +5079,7 @@
 
     initPanEditorEvents();
     loadFromLocal();      // realtor profile (sync, localStorage)
+    setRealtorCollapsed(window.matchMedia('(max-width: 640px)').matches && !!($('#agentName').value || '').trim());
     updatePreview();      // first paint; saving stays off until listings load
     enforceMobileAspect();
     initListings().then(enforceMobileAspect).then(maybeStartTour); // re-check once a saved listing (possibly Square) loads
