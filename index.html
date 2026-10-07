@@ -3991,6 +3991,9 @@
       const resize = window.matchMedia('(max-width: 640px)').matches;
       try {
         if (resize) await useExportSize(true);
+        // Wait for every image in the flyer — photos, logo and a QR code that
+        // may have just been redrawn — so none is missing from the file.
+        await waitForImages($('#flyer'));
         await fn();
       }
       catch (err) {
@@ -4042,6 +4045,34 @@
       link.click();
       link.remove();
     }
+    // Desktop Chrome/Edge: ask where to save (a normal Save As window) so the
+    // realtor knows where the file went. It must be asked right at the click,
+    // before rendering, or the browser refuses. Returns a file handle, null
+    // where the browser can't ask (Safari, Firefox, phones: normal download),
+    // or false if the realtor cancelled.
+    async function askWhereToSave(filename, mime, label) {
+      const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(max-width: 640px)').matches;
+      if (phone || typeof window.showSaveFilePicker !== 'function') return null;
+      const ext = '.' + filename.split('.').pop();
+      try {
+        return await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: label, accept: { [mime]: [ext] } }] });
+      } catch (e) {
+        return e && e.name === 'AbortError' ? false : null;
+      }
+    }
+    async function saveFile(handle, blob, filename) {
+      if (handle) {
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, filename);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    const canvasToBlob = (canvas, type, quality) => new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Could not create the image.')), type, quality));
+
     function showCaptionModal() {
       const modal = $('#caption-modal');
       const textArea = $('#modal-caption-text');
@@ -4091,14 +4122,17 @@
     }
 
     async function downloadPDF() {
-      if (!exportLibsReady(true)) return;
+      if (exportBusy || !exportLibsReady(true)) return;
+      const filename = `${fileBase()}-${Date.now()}.pdf`;
+      const handle = await askWhereToSave(filename, 'application/pdf', 'PDF flyer');
+      if (handle === false) return;
       await runExclusive(async () => {
         const { jsPDF } = window.jspdf;
         // Standard US Letter page with real 0.5" margins, flyer scaled to fit and
         // centered — printer-standard, instead of a page cropped tight to the canvas.
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
         await addFlyerPageToPdf(pdf, $('#flyer'));
-        pdf.save(`${fileBase()}-${Date.now()}.pdf`);
+        await saveFile(handle, pdf.output('blob'), filename);
         markExported();
       });
     }
@@ -4220,11 +4254,14 @@
 
     async function downloadSocial(key) {
       const fmt = SOCIAL_FORMATS[key];
-      if (!fmt || !exportLibsReady(false)) return;
+      if (!fmt || exportBusy || !exportLibsReady(false)) return;
+      const filename = `${fileBase()}-${key}-${SOCIAL_W}x${SOCIAL_H}.jpg`;
+      const handle = await askWhereToSave(filename, 'image/jpeg', 'JPEG image');
+      if (handle === false) return;
       await runExclusive(async () => {
         showBusy(`Rendering ${fmt.label}…`);
         const out = await renderSocialImage($('#flyer'));
-        triggerDownload(out.toDataURL('image/jpeg', 0.98), `${fileBase()}-${key}-${out.width}x${out.height}.jpg`);
+        await saveFile(handle, await canvasToBlob(out, 'image/jpeg', 0.98), filename);
         markExported();
         hideBusy();
         showCaptionModal();
@@ -4626,6 +4663,10 @@
         return;
       }
       const scaleInput = parseFloat($('#animationScale').value) || 1;
+      if (exportBusy) return;
+      const gifName = `${fileBase()}-facebook-animated-${[type, badge].filter(Boolean).join('-') || 'badge'}.gif`;
+      const gifHandle = await askWhereToSave(gifName, 'image/gif', 'Animated GIF');
+      if (gifHandle === false) return;
       await runExclusive(async () => {
         showBusy('Rendering animated Facebook post… this can take 20-30 seconds.');
         // Background is the realtor's actual selected flyer design, at its
@@ -4730,11 +4771,8 @@
         });
         URL.revokeObjectURL(workerScriptURL);
 
-        const url = URL.createObjectURL(blob);
-        const nameParts = [type, badge].filter(Boolean);
-        triggerDownload(url, `${fileBase()}-facebook-animated-${nameParts.join('-') || 'badge'}.gif`);
+        await saveFile(gifHandle, blob, gifName);
         markExported();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
         hideBusy();
       });
     }
@@ -4827,6 +4865,10 @@
       const effectSize = parseFloat($('#animationScale').value) || 1;
       const amount = parseFloat($('#animationAmount').value) || 1;
       const badgeSize = parseFloat($('#animationBadgeScale').value) || 1;
+      if (exportBusy) return;
+      const stillName = `${fileBase()}-still-${[type, badge].filter(Boolean).join('-')}-${SOCIAL_W}x${SOCIAL_H}.jpg`;
+      const stillHandle = await askWhereToSave(stillName, 'image/jpeg', 'JPEG image');
+      if (stillHandle === false) return;
       await runExclusive(async () => {
         showBusy('Rendering still image…');
         const out = await renderSocialImage($('#flyer'), undefined, (ctx, w, h, res) => {
@@ -4844,8 +4886,7 @@
           }
           drawBadge(ctx, badge, w, h, t, badgeSize * res, accent);
         });
-        const name = [type, badge].filter(Boolean).join('-');
-        triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-still-${name}-${out.width}x${out.height}.jpg`);
+        await saveFile(stillHandle, await canvasToBlob(out, 'image/jpeg', 0.95), stillName);
         markExported();
         hideBusy();
         showCaptionModal();
