@@ -4133,12 +4133,74 @@
       return out;
     }
 
+    /* ---------- 4:5 social image ----------
+       Instagram crops feed posts taller than 4:5, and most designs are taller
+       than that, so the address/price or the lender NMLS footer could be cut
+       off. The social image is always 1920x2400 (4:5): the whole flyer, drawn
+       sharp at the right size, centered on a background with a soft shadow.
+       4:5 also posts uncropped on Facebook, and Stories add space around it. */
+    const SOCIAL_W = 1920, SOCIAL_H = 2400;
+    // Background behind the flyer: 'photo' (soft blur of the main property
+    // photo, darkened) or 'accent' (deep tone of the flyer's accent color).
+    const SOCIAL_BACKGROUND = 'photo';
+    function loadImage(src) {
+      return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    }
+    async function paintSocialBackground(ctx, style) {
+      const W = SOCIAL_W, H = SOCIAL_H;
+      const hero = state.photos.length ? state.photos[state.heroIndex % state.photos.length] : null;
+      if (style === 'photo' && hero) {
+        try {
+          const img = await loadImage(hero.src);
+          // Blur by drawing the photo tiny, then stretching it back up — works
+          // on every browser (canvas blur filters aren't on older iPhones).
+          const tiny = document.createElement('canvas');
+          tiny.width = 48; tiny.height = Math.round(48 * H / W);
+          const tctx = tiny.getContext('2d');
+          const cover = Math.max(tiny.width / img.width, tiny.height / img.height);
+          tctx.drawImage(img, (tiny.width - img.width * cover) / 2, (tiny.height - img.height * cover) / 2, img.width * cover, img.height * cover);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(tiny, 0, 0, W, H);
+          ctx.fillStyle = 'rgba(0,0,0,0.38)';
+          ctx.fillRect(0, 0, W, H);
+          return;
+        } catch (e) { /* fall through to the accent background */ }
+      }
+      const { r, g, b } = hexToRgb(state.accent);
+      const tone = k => `rgb(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)})`;
+      const grad = ctx.createRadialGradient(W / 2, H * 0.45, W * 0.1, W / 2, H / 2, H * 0.75);
+      grad.addColorStop(0, tone(0.55));
+      grad.addColorStop(1, tone(0.22));
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+    async function renderSocialImage(flyerEl, style) {
+      const rect = flyerEl.getBoundingClientRect();
+      // Fit inside 86% of the width and 90% of the height, drawn at exactly
+      // that size so text and photos stay sharp.
+      const fit = Math.min(SOCIAL_W * 0.86 / rect.width, SOCIAL_H * 0.9 / rect.height);
+      const flyer = await html2canvas(flyerEl, { scale: fit, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const out = document.createElement('canvas');
+      out.width = SOCIAL_W; out.height = SOCIAL_H;
+      const ctx = out.getContext('2d');
+      await paintSocialBackground(ctx, style || SOCIAL_BACKGROUND);
+      const x = Math.round((SOCIAL_W - flyer.width) / 2), y = Math.round((SOCIAL_H - flyer.height) / 2);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 24;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, flyer.width, flyer.height);
+      ctx.restore();
+      ctx.drawImage(flyer, x, y);
+      return out;
+    }
+
     async function downloadSocial(key) {
       const fmt = SOCIAL_FORMATS[key];
       if (!fmt || !exportLibsReady(false)) return;
       await runExclusive(async () => {
         showBusy(`Rendering ${fmt.label}…`);
-        const out = await renderFlyerNatural($('#flyer'));
+        const out = await renderSocialImage($('#flyer'));
         triggerDownload(out.toDataURL('image/jpeg', 0.98), `${fileBase()}-${key}-${out.width}x${out.height}.jpg`);
         markExported();
         hideBusy();
@@ -4692,10 +4754,12 @@
       let file = null;
       await runExclusive(async () => {
         showBusy('Preparing your flyer to share…');
-        const canvas = await html2canvas($('#flyer'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        // Same 4:5 image as the Facebook & Instagram download, since sharing
+        // is how phones post to Instagram and Facebook.
+        const canvas = await renderSocialImage($('#flyer'));
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
         if (!blob) throw new Error('Could not create the flyer image.');
-        file = new File([blob], `${fileBase()}.png`, { type: 'image/png' });
+        file = new File([blob], `${fileBase()}.jpg`, { type: 'image/jpeg' });
       });
       if (!file) return;
       await sendShare(file);
