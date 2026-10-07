@@ -791,7 +791,7 @@
         <button type="button" id="realtorToggle" class="realtor-toggle mobile-only" aria-expanded="true"></button>
         <div class="portal-banner">
           <strong>Private Realtor Session</strong>
-          Your info and portrait auto-save securely on your browser. No drop-downs or other realtors visible.
+          Your info and headshot are saved on this device only, so they&rsquo;re ready for your next flyer. Nothing is uploaded or shared.
         </div>
         <div class="agent-row">
           <div class="agent-photo-wrap">
@@ -917,14 +917,19 @@
           </select>
         </div>
         <div class="form-group">
-          <label style="display:flex;justify-content:space-between">Size <span id="animScaleVal">1.0&times;</span></label>
+          <label style="display:flex;justify-content:space-between">Effect Size <span id="animScaleVal">1.0&times;</span></label>
           <input type="range" id="animationScale" min="0.5" max="2.5" step="0.1" value="1" />
         </div>
         <div class="form-group">
-          <label style="display:flex;justify-content:space-between">Amount <span id="animAmountVal">1.0&times;</span></label>
+          <label style="display:flex;justify-content:space-between">Effect Amount <span id="animAmountVal">1.0&times;</span></label>
           <input type="range" id="animationAmount" min="0.5" max="3" step="0.1" value="1" />
         </div>
+        <div class="form-group">
+          <label style="display:flex;justify-content:space-between">Badge Size <span id="animBadgeScaleVal">1.0&times;</span></label>
+          <input type="range" id="animationBadgeScale" min="0.5" max="2.5" step="0.1" value="1" />
+        </div>
         <button class="btn btn-secondary" id="btnDownloadAnimatedFb" disabled>Download Animated Facebook Post (GIF)</button>
+        <button class="btn btn-secondary" id="btnDownloadAnimStill" disabled title="One frozen frame of the effect and badge, as a Facebook &amp; Instagram image">Download Still Image (Facebook &amp; Instagram)</button>
       </div>
     </aside>
 
@@ -4193,7 +4198,7 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
     }
-    async function renderSocialImage(flyerEl, style) {
+    async function renderSocialImage(flyerEl, style, decorate) {
       const rect = flyerEl.getBoundingClientRect();
       // Fit inside 86% of the width and 90% of the height, drawn at exactly
       // that size so text and photos stay sharp.
@@ -4202,6 +4207,14 @@
       let flyer;
       try { flyer = await html2canvas(flyerEl, { scale: fit, useCORS: true, backgroundColor: '#ffffff', logging: false }); }
       finally { flyerEl.classList.remove('no-qr'); }
+      if (decorate) {
+        // html2canvas leaves its own scale on the context; draw in plain pixels
+        const fctx = flyer.getContext('2d');
+        fctx.save();
+        fctx.setTransform(1, 0, 0, 1, 0, 0);
+        decorate(fctx, flyer.width, flyer.height, fit);
+        fctx.restore();
+      }
       const out = document.createElement('canvas');
       out.width = SOCIAL_W; out.height = SOCIAL_H;
       const ctx = out.getContext('2d');
@@ -4587,13 +4600,14 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const scale = parseFloat($('#animationScale').value) || 1;
       const amount = parseFloat($('#animationAmount').value) || 1;
+      const badgeScale = parseFloat($('#animationBadgeScale').value) || 1;
       livePreviewState = makeAnimState(type, rect.width, rect.height, scale, amount);
       livePreviewLastT = performance.now();
       const loop = (now) => {
         const dt = Math.min(0.05, (now - livePreviewLastT) / 1000);
         livePreviewLastT = now;
         updateAndDrawAnim(ctx, livePreviewState, rect.width, rect.height, dt, scale, accentOnDark());
-        drawBadge(ctx, badge, rect.width, rect.height, livePreviewState.t, scale, accentOnDark());
+        drawBadge(ctx, badge, rect.width, rect.height, livePreviewState.t, badgeScale, accentOnDark());
         livePreviewRaf = requestAnimationFrame(loop);
       };
       livePreviewRaf = requestAnimationFrame(loop);
@@ -4709,7 +4723,7 @@
           updateAndDrawAnim(octx, animState, fmt.w, fmt.h, dt, scale, accentOnDark());
           ctx.drawImage(bgImg, 0, 0, fmt.w, fmt.h);
           ctx.drawImage(overlay, 0, 0, fmt.w, fmt.h);
-          drawBadge(ctx, badge, fmt.w, fmt.h, animState.t, scale, accentOnDark());
+          drawBadge(ctx, badge, fmt.w, fmt.h, animState.t, (parseFloat($('#animationBadgeScale').value) || 1) * resCompensation, accentOnDark());
           gif.addFrame(ctx, { copy: true, delay: Math.round(1000 / fps) });
         }
 
@@ -4807,9 +4821,72 @@
 
     $('#btnDownloadAnimatedFb').addEventListener('click', downloadAnimatedFacebook);
     function updateAnimateButtonState() {
-      $('#btnDownloadAnimatedFb').disabled = !($('#animationType').value || $('#animationBadge').value);
+      const none = !($('#animationType').value || $('#animationBadge').value);
+      $('#btnDownloadAnimatedFb').disabled = none;
+      $('#btnDownloadAnimStill').disabled = none;
       startLivePreview();
     }
+
+    // A still frame of the animation: the effect about 3 seconds in and the
+    // badge fully popped in, frozen on the flyer, framed as the same 4:5
+    // Facebook & Instagram image as the regular download.
+    async function downloadAnimationStill() {
+      const type = $('#animationType').value;
+      const badge = $('#animationBadge').value;
+      if (!type && !badge) return;
+      if (!exportLibsReady(false)) return;
+      const effectSize = parseFloat($('#animationScale').value) || 1;
+      const amount = parseFloat($('#animationAmount').value) || 1;
+      const badgeSize = parseFloat($('#animationBadgeScale').value) || 1;
+      await runExclusive(async () => {
+        showBusy('Rendering still image…');
+        const out = await renderSocialImage($('#flyer'), undefined, (ctx, w, h, res) => {
+          const accent = accentOnDark();
+          let t = 3;
+          if (type) {
+            const scale = effectSize * res;
+            const anim = makeAnimState(type, w, h, scale, amount, res);
+            const overlay = document.createElement('canvas');
+            overlay.width = w; overlay.height = h;
+            const octx = overlay.getContext('2d');
+            for (let i = 0; i < 30; i++) updateAndDrawAnim(octx, anim, w, h, 0.1, scale, accent);
+            ctx.drawImage(overlay, 0, 0);
+            t = anim.t;
+          }
+          drawBadge(ctx, badge, w, h, t, badgeSize * res, accent);
+        });
+        const name = [type, badge].filter(Boolean).join('-');
+        triggerDownload(out.toDataURL('image/jpeg', 0.95), `${fileBase()}-still-${name}-${out.width}x${out.height}.jpg`);
+        markExported();
+        hideBusy();
+        showCaptionModal();
+      });
+    }
+    $('#btnDownloadAnimStill').addEventListener('click', downloadAnimationStill);
+
+    // A badge replaces the Listing Status Banner, so picking one sets the
+    // banner to None; clearing the badge puts the previous status back.
+    let statusBeforeBadge = null;
+    function setStatusValue(v) {
+      const sel = $('#status');
+      if (sel.value === v) return;
+      sel.value = v;
+      sel.dispatchEvent(new Event('input', { bubbles: true }));
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    $('#animationBadge').addEventListener('change', () => {
+      if ($('#animationBadge').value) {
+        if (statusBeforeBadge === null) statusBeforeBadge = $('#status').value;
+        setStatusValue('');
+      } else if (statusBeforeBadge !== null) {
+        if (!$('#status').value) setStatusValue(statusBeforeBadge);
+        statusBeforeBadge = null;
+      }
+    });
+    $('#animationBadgeScale').addEventListener('input', () => {
+      $('#animBadgeScaleVal').textContent = parseFloat($('#animationBadgeScale').value).toFixed(1) + '×';
+      startLivePreview();
+    });
     $('#animationType').addEventListener('change', updateAnimateButtonState);
     $('#animationBadge').addEventListener('change', updateAnimateButtonState);
     $('#animationScale').addEventListener('input', () => {
