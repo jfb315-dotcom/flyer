@@ -646,6 +646,10 @@
        full desktop width (hidden behind the busy overlay) so the file comes
        out exactly like one made on a computer. */
     .export-size #flyer { transition: none !important; }
+    @media (max-width: 640px) {
+      .can-share #btnSocial2 { display: none !important; }
+      #btnShare2 .mobile-only { display: inline; }
+    }
     .export-size .preview-container { overflow: hidden !important; }
     @media (min-width: 641px) { .mobile-only { display: none !important; } }
   </style>
@@ -978,7 +982,7 @@
       <div class="preview-export-bar">
         <span class="live-label">Export:</span>
         <button type="button" id="btnPdf2" class="pill-btn">Download PDF</button>
-        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app">Share&hellip;</button>
+        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app"><span class="mobile-hide">Share&hellip;</span><span class="mobile-only">Save or Share Image</span></button>
         <button type="button" id="btnSocial2" class="pill-btn" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Facebook &amp; Instagram</button>
         <span class="export-divider mobile-hide"></span>
         <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
@@ -4835,7 +4839,12 @@
       if (f) sendShare(f);
     });
     $('#shareCloseBtn').addEventListener('click', () => { pendingShareFile = null; $('#share-modal').classList.remove('show'); });
-    if (canShareFiles()) $$('.share-btn').forEach(b => { b.style.display = ''; });
+    if (canShareFiles()) {
+      $$('.share-btn').forEach(b => { b.style.display = ''; });
+      // Phones: the share menu is how an image gets into Photos (or straight
+      // to Facebook/Instagram), so it replaces the plain download button there.
+      document.documentElement.classList.add('can-share');
+    }
 
     $('#btnPdf').addEventListener('click', downloadPDF);
 
@@ -4999,7 +5008,7 @@
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
         text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.',
-        phoneText: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Share sends it straight to Facebook, Instagram, Messages or your photos. Everything saves automatically on this phone as you go.'
+        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to put the flyer in your photos or send it straight to Facebook, Instagram or Messages. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
