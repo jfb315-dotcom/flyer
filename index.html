@@ -767,11 +767,6 @@
           <textarea id="shortDesc" maxlength="350" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
           <div class="char-count" id="descCount" aria-live="polite"></div>
         </div>
-        <div class="form-group">
-          <label>Listing Link for the QR Code (optional)</label>
-          <input type="text" id="listingUrl" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://your-listing-page-or-virtual-tour" />
-          <div class="section-hint" id="qrHint" style="margin:6px 0 0">Paste your listing page or virtual tour link and the flyer&rsquo;s QR code will open it. Leave blank to point the QR code at the lender&rsquo;s website.</div>
-        </div>
       </div>
 
       <!-- Photos -->
@@ -1132,7 +1127,7 @@
         ehoLabel: 'Equal Housing Lender'
       },
       // Fixed financing highlight text shown on every flyer (no per-flyer picker).
-      financingText: 'Conventional, FHA, VA 100%, Down payment assistance programs also available. Apply online below to see if you qualify and for other potential financing options available!',
+      financingText: 'Conventional, FHA, VA 100%, Down payment assistance programs also available.',
       // Where the Financing Highlight box links to in exported PDFs (and the
       // copyable social caption). Point this at a dedicated "Apply Now" or
       // financing landing page instead of the homepage if you have one.
@@ -1673,11 +1668,10 @@
         // Ticket-style layout: a torn/perforated stub down the right side
         // with the price as the "fare" and a barcode graphic, playful and
         // unlike anything typically seen on a listing flyer.
-        const co = CONFIG.lender.company;
         return `
           <div style="background:#faf8f4;color:#1c1a17;overflow:hidden;font-family:var(--font-flyer)">
             <div style="background:${state.accent};color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">${co}</span>
+              <span style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">Now Boarding</span>
               <span style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">Boarding Pass</span>
             </div>
             ${panImageHTML(0, 190)}
@@ -1728,7 +1722,7 @@
         return `
           <div style="background:${state.accent};color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:22px 20px 0">
-              <div style="text-align:center;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin-bottom:10px;opacity:0.85">${CONFIG.lender.company}</div>
+              <div style="text-align:center;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin-bottom:10px;opacity:0.85">Welcome Home</div>
               <div style="background:#fff;padding:10px;position:relative">
                 <div style="border:5px dashed ${state.accent};padding:6px">
                   ${panImageHTML(0, 210)}
@@ -2596,10 +2590,9 @@
     // Where the footer QR code points: the realtor's own listing / virtual
     // tour link if they entered one for this listing, else the lender site.
     // (Only the QR target changes — the lender footer itself never does.)
-    function qrOverrideUrl() {
-      const u = val('listingUrl', '').trim();
-      return u ? normalizeUrl(u) : '';
-    }
+    // The per-listing QR link field was removed: the QR code always opens the
+    // lender site (CONFIG.lender.qrUrl), even for listings saved with a link.
+    function qrOverrideUrl() { return ''; }
     function qrTargetUrl() { return qrOverrideUrl() || CONFIG.lender.qrUrl || CONFIG.lender.website; }
 
     // Draws the footer QR code into el (the live flyer's #qrcode, or a copy of
@@ -2742,7 +2735,7 @@
     const DB_NAME = 'flyergen_nexus_db';
     const DB_VERSION = 1;
     const LISTING_STORE = 'listings';
-    const LISTING_FIELDS = ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse', 'status', 'listingUrl', 'coAgentName', 'coAgentPhone'];
+    const LISTING_FIELDS = ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse', 'status', 'coAgentName', 'coAgentPhone'];
     const PROFILE_FIELDS = ['agentName', 'agentPhone', 'agentEmail', 'agentCompany', 'agentWebsite'];
 
     let appReady = false;          // no saving until the saved listing has been loaded
@@ -2891,7 +2884,7 @@
     // merely opening a listing or clicking around doesn't bump its "edited" time.
     function listingSig(l) { return JSON.stringify(Object.assign({}, l, { updatedAt: 0 })); }
     function isListingEmpty(l) {
-      return !l.photos.length && !['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse', 'listingUrl'].some(k => (l[k] || '').trim());
+      return !l.photos.length && !['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse'].some(k => (l[k] || '').trim());
     }
 
     // Small cover-cropped thumbnail for the My Listings library (cached per image).
@@ -3465,7 +3458,7 @@
     }
 
     ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc',
-      'openHouse', 'status', 'listingUrl', 'coAgentName', 'coAgentPhone',
+      'openHouse', 'status', 'coAgentName', 'coAgentPhone',
       'agentName', 'agentPhone', 'agentEmail', 'agentCompany', 'agentWebsite'].forEach(id => {
       const el = $(`#${id}`);
       if (el) { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); }
