@@ -915,6 +915,7 @@
             <option value="multipleoffers">MULTIPLE OFFERS!</option>
             <option value="backonmarket">BACK ON MARKET!</option>
           </select>
+          <div class="section-hint" style="margin:6px 0 0">A badge takes the place of the Listing Status Banner, so only one shows at a time.</div>
         </div>
         <div class="form-group">
           <label style="display:flex;justify-content:space-between">Effect Size <span id="animScaleVal">1.0&times;</span></label>
@@ -4866,14 +4867,24 @@
 
     // A badge replaces the Listing Status Banner, so picking one sets the
     // banner to None; clearing the badge puts the previous status back.
-    let statusBeforeBadge = null;
+    let statusBeforeBadge = null, syncingStatus = false;
     function setStatusValue(v) {
       const sel = $('#status');
       if (sel.value === v) return;
       sel.value = v;
+      syncingStatus = true;
       sel.dispatchEvent(new Event('input', { bubbles: true }));
       sel.dispatchEvent(new Event('change', { bubbles: true }));
+      syncingStatus = false;
     }
+    // And the other way: choosing a status banner while a badge is set
+    // removes the badge, so the flyer never shows both.
+    $('#status').addEventListener('change', () => {
+      if (syncingStatus || !$('#status').value || !$('#animationBadge').value) return;
+      $('#animationBadge').value = '';
+      statusBeforeBadge = null;
+      updateAnimateButtonState();
+    });
     $('#animationBadge').addEventListener('change', () => {
       if ($('#animationBadge').value) {
         if (statusBeforeBadge === null) statusBeforeBadge = $('#status').value;
