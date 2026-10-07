@@ -917,8 +917,12 @@
           </select>
         </div>
         <div class="form-group">
-          <label style="display:flex;justify-content:space-between">Effect Scale <span id="animScaleVal">1.0&times;</span></label>
-          <input type="range" id="animationScale" min="0.5" max="2" step="0.1" value="1" />
+          <label style="display:flex;justify-content:space-between">Size <span id="animScaleVal">1.0&times;</span></label>
+          <input type="range" id="animationScale" min="0.5" max="2.5" step="0.1" value="1" />
+        </div>
+        <div class="form-group">
+          <label style="display:flex;justify-content:space-between">Amount <span id="animAmountVal">1.0&times;</span></label>
+          <input type="range" id="animationAmount" min="0.5" max="3" step="0.1" value="1" />
         </div>
         <button class="btn btn-secondary" id="btnDownloadAnimatedFb" disabled>Download Animated Facebook Post (GIF)</button>
       </div>
@@ -4245,9 +4249,20 @@
       ctx.restore();
     }
 
-    function makeAnimState(type, w, h, scale) {
-      const s = { type, particles: [], t: 0 };
-      const count = base => Math.max(4, Math.round(base * scale));
+    // Effects are 30% bigger and 60% fuller than the original tuning.
+    const ANIM_SIZE_BOOST = 1.3, ANIM_AMOUNT_BOOST = 1.6;
+    // The counts below were tuned for the 640x811 print preview, but the old
+    // GIF export drew 3x as many (its counts scaled with resolution), so the
+    // preview looked much sparser than the posted GIF. Counts now follow the
+    // flyer's on-screen size (pixels / res^2), so preview and GIF match, at
+    // the old GIF's fullness plus the boost.
+    const ANIM_REF_AREA = 640 * 811, ANIM_OLD_GIF_DENSITY = 3;
+    function makeAnimState(type, w, h, scale, amount, res) {
+      res = res || 1;
+      const s = { type, particles: [], t: 0, amount: (amount || 1) * ANIM_AMOUNT_BOOST * ANIM_OLD_GIF_DENSITY };
+      scale *= ANIM_SIZE_BOOST;
+      const flyerArea = (w * h) / (res * res) / ANIM_REF_AREA;
+      const count = base => Math.max(4, Math.round(base * s.amount * flyerArea));
       const mk = (n, factory) => { for (let i = 0; i < n; i++) s.particles.push(factory()); };
       const colors5 = ['#e5484d', '#3b82f6', '#f5c518', '#22c55e', '#a855f7'];
 
@@ -4294,6 +4309,7 @@
 
     function updateAndDrawAnim(ctx, s, w, h, dt, scale, accent) {
       const type = s.type;
+      scale *= ANIM_SIZE_BOOST;
       s.t += dt;
       ctx.clearRect(0, 0, w, h);
 
@@ -4322,7 +4338,7 @@
         s.nextBurst -= dt;
         if (s.nextBurst <= 0) {
           s.bursts.push({ x: rand(w * 0.2, w * 0.8), y: rand(h * 0.15, h * 0.55), t: 0, color: ['#ff6b6b', '#ffd166', '#4dd4ac', '#7aa2f7', '#e0aaff'][Math.floor(rand(0, 5))], rays: Math.round(rand(14, 22)) });
-          s.nextBurst = rand(0.6, 1.3);
+          s.nextBurst = rand(0.6, 1.3) / (s.amount / ANIM_OLD_GIF_DENSITY); // more Amount = more frequent bursts
         }
         s.bursts.forEach(b => { b.t += dt; });
         s.bursts = s.bursts.filter(b => b.t < 1.1);
@@ -4520,7 +4536,8 @@
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const scale = parseFloat($('#animationScale').value) || 1;
-      livePreviewState = makeAnimState(type, rect.width, rect.height, scale);
+      const amount = parseFloat($('#animationAmount').value) || 1;
+      livePreviewState = makeAnimState(type, rect.width, rect.height, scale, amount);
       livePreviewLastT = performance.now();
       const loop = (now) => {
         const dt = Math.min(0.05, (now - livePreviewLastT) / 1000);
@@ -4597,7 +4614,7 @@
         const exportLongEdge = Math.max(fmt.w, fmt.h);
         const resCompensation = exportLongEdge / previewLongEdge;
         const scale = scaleInput * resCompensation;
-        const animState = makeAnimState(type, fmt.w, fmt.h, scale);
+        const animState = makeAnimState(type, fmt.w, fmt.h, scale, parseFloat($('#animationAmount').value) || 1, resCompensation);
         const durationSec = (type === 'sunrise' || type === 'sunset') ? 7 : 6;
 
         // A real animated GIF instead of a video: it autoplays and loops
@@ -4763,6 +4780,10 @@
     $('#animationBadge').addEventListener('change', updateAnimateButtonState);
     $('#animationScale').addEventListener('input', () => {
       $('#animScaleVal').textContent = parseFloat($('#animationScale').value).toFixed(1) + '×';
+      startLivePreview();
+    });
+    $('#animationAmount').addEventListener('input', () => {
+      $('#animAmountVal').textContent = parseFloat($('#animationAmount').value).toFixed(1) + '×';
       startLivePreview();
     });
     $('#btnGoToAnimate').addEventListener('click', () => {
