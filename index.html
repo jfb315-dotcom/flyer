@@ -78,10 +78,7 @@
       width: 4px; height: 50px; background: var(--accent); border-radius: 2px;
       box-shadow: 0 0 12px var(--accent-glow);
     }
-    .header-photo-square {
-      width: 50px; height: 50px; border-radius: 0; object-fit: cover; object-position: 50% 15%;
-      border: 1px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); background: #161b22;
-    }
+    .header-photo-square { width: 54px; height: 54px; border-radius: 50%; }
     .header-text h1 {
       font-size: 24px; font-weight: 800; color: var(--accent);
       line-height: 1.1; letter-spacing: -0.5px; text-shadow: 0 0 15px var(--accent-glow);
@@ -433,9 +430,15 @@
     #socialPreview .cutout-layer:hover, #socialPreview .cutout-layer.dragging { outline-color: rgba(255,255,255,0.7); }
     #socialPreview .cutout-layer.dragging { cursor: grabbing; }
     .photo-accent { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .beach-grass { position: absolute; right: 0; bottom: 0; height: 52%; aspect-ratio: 0.7; z-index: 5; pointer-events: none; }
+    .beach-grass svg { display: block; width: 100%; height: 100%; }
+    /* Text on the post looks paints above the beach grass (z 5); the panel
+       colors behind the text stay below it, like the grass is in the scene. */
+    .ig-text > * { position: relative; z-index: 6; }
     .photo-accent > * { position: absolute; }
     .photo-accent svg { display: block; width: 100%; height: 100%; }
     .fin-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .price-slider { width: 100%; margin-top: 10px; accent-color: var(--accent); height: 28px; }
     .fin-chip {
       display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px; cursor: pointer;
       background: var(--bg-card); border: 1px solid var(--border); font-size: 12.5px; color: var(--text);
@@ -739,7 +742,7 @@
     <div class="header-left">
       <div class="header-accent-bar"></div>
       <img id="headerPhoto" class="header-photo-square"
-           src="john-photo.jpg"
+           src="john-headshot.png"
            onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2750%27 height=%2750%27 viewBox=%270 0 50 50%27%3E%3Crect width=%2750%27 height=%2750%27 fill=%27%23161b22%27/%3E%3Ctext x=%2725%27 y=%2730%27 text-anchor=%27middle%27 fill=%27%23b8863f%27 font-size=%2715%27 font-weight=%27bold%27 font-family=%27sans-serif%27%3EJB%3C/text%3E%3C/svg%3E'"
            alt="John Bischof" />
       <div class="header-text">
@@ -800,7 +803,9 @@
             <option value="Price Reduced">Price Reduced</option>
             <option value="Under Contract">Under Contract</option>
             <option value="Sold">Sold</option>
+            <option value="__custom">Add your own&hellip;</option>
           </select>
+          <input type="text" id="statusCustom" maxlength="32" placeholder="Type your own, e.g. Back on Market" style="display:none;margin-top:8px" />
         </div>
         <div class="form-group">
           <label>Event Schedule (optional)</label>
@@ -813,11 +818,12 @@
         <div class="section-title">Property Metrics</div>
         <div class="form-group">
           <label>Address / Title Header</label>
-          <input type="text" id="address" placeholder="137 DRAKE DR NW" />
+          <input type="text" id="address" placeholder="123 ABC Street" />
         </div>
         <div class="form-group">
           <label>Price</label>
-          <input type="text" id="price" placeholder="$450,000" />
+          <input type="text" id="price" placeholder="$450,000" inputmode="numeric" />
+          <input type="range" id="priceSlider" class="price-slider" min="25000" max="2500000" step="5000" value="450000" aria-label="Price slider" />
         </div>
         <div class="form-row">
           <div class="form-group"><label>Beds</label><input type="number" id="beds" placeholder="3" min="0" step="1" /></div>
@@ -1109,6 +1115,7 @@
         <div class="slb-row">
           <span class="live-label">Photo accent:</span>
           <button type="button" class="pill-btn slb-opt" data-photo-accent="">None</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="beachgrass">Beach Grass</button>
           <button type="button" class="pill-btn slb-opt" data-photo-accent="grass">Tall Grass</button>
           <button type="button" class="pill-btn slb-opt" data-photo-accent="flowers">Spring Flowers</button>
           <button type="button" class="pill-btn slb-opt" data-photo-accent="sun">Sunshine</button>
@@ -1277,7 +1284,10 @@
         website: 'https://hmsloan.com/',
         // Where the flyer's QR code goes when the realtor leaves the listing link blank.
         qrUrl: 'https://homemortgagesolutionsllc1.godaddysites.com/',
-        photoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-photo.jpg',
+        // Square PNG, round with its own gold ring and a see-through outside.
+        // Must stay square: the image export can't crop (object-fit), so a
+        // tall photo in a square box came out squashed.
+        photoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/john-headshot.png',
         logoUrl: 'https://raw.githubusercontent.com/jfb315-dotcom/flyer/main/email-logo.png',
         tagline: 'Three decades of mortgage lending expertise, proudly serving Cleveland, Tennessee and the surrounding communities.',
         // Fair-lending legend printed beside the NMLS line (with the house
@@ -1312,6 +1322,18 @@
       const picked = FINANCING_PROGRAMS.filter(p => (state.financing || []).includes(p.key)).map(p => p.label);
       if (!picked.length) return '';
       return picked.join(', ') + '. Subject to qualification.';
+    }
+
+    function escapeHTML(t) {
+      return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // The listing status as shown on the designs: a preset, or the realtor's
+    // own wording when they picked "Add your own".
+    function statusValue() {
+      const sel = document.getElementById('status');
+      if (!sel) return '';
+      if (sel.value !== '__custom') return sel.value;
+      return escapeHTML((document.getElementById('statusCustom').value || '').trim());
     }
 
     function normalizeUrl(u) {
@@ -1693,7 +1715,7 @@
           </div>`;
         const logo = state.agentLogo ? `<img src="${state.agentLogo}" style="max-height:36px;max-width:64px;object-fit:contain;flex-shrink:0" alt="Logo" />` : '';
         return `
-        <div style="background:${bg};border:1px solid ${border};padding:10px 12px;border-radius:4px">
+        <div data-protect="1" style="background:${bg};border:1px solid ${border};padding:10px 12px;border-radius:4px">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px">
             <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:${labelColor}">Presented By &middot; <span style="color:${subColor};letter-spacing:0.5px;text-transform:none;font-size:10px">${company}</span></div>
             <div style="color:${linkAccent};font-weight:600;white-space:nowrap;font-size:9.5px;flex-shrink:0" data-pdf-link="${normalizeUrl(website)}">${website}</div>
@@ -1707,7 +1729,7 @@
         </div>`;
       }
       return `
-        <div style="display:flex;align-items:center;gap:12px;background:${bg};border:1px solid ${border};padding:12px 14px;border-radius:4px">
+        <div data-protect="1" style="display:flex;align-items:center;gap:12px;background:${bg};border:1px solid ${border};padding:12px 14px;border-radius:4px">
           ${agentPhotoTag(46, 56, dark)}
           <div style="flex:1;min-width:0">
             <div style="font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:${labelColor};margin-bottom:2px">Presented By</div>
@@ -1746,7 +1768,7 @@
       return `
         <div data-lender-footer="1" style="background:${bg};border-top:1px solid ${state.accent};padding:9px 14px;display:flex;align-items:center;gap:8px">
           <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="${L.name}"
-               style="width:26px;height:26px;border-radius:0;object-fit:cover;object-position:50% 15%;flex-shrink:0;border:1px solid ${state.accent}" />
+               style="width:30px;height:30px;flex-shrink:0" />
           <div style="flex:1;min-width:0;font-size:8px;color:${subColor};line-height:1.4">
             <div style="font-size:7.5px;letter-spacing:1px;text-transform:uppercase;color:${labelAccent};font-weight:700;margin-bottom:1px">${L.company}</div>
             <div><strong style="color:${nameColor}">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; ${L.phone}</div>
@@ -1797,7 +1819,7 @@
         <div data-pdf-link="${CONFIG.financingUrl}" style="position:relative;z-index:7;display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}">
           <div style="font-size:9.5px;line-height:1.45;color:${text}">${finLine}</div>
           <div style="display:flex;align-items:center;gap:8px;justify-content:${left ? 'flex-start' : 'center'}">
-            <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="" style="width:28px;height:28px;object-fit:cover;object-position:50% 15%;border:1px solid ${acc};flex-shrink:0" />
+            <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="" style="width:32px;height:32px;flex-shrink:0" />
             <div style="font-size:9px;line-height:1.4;color:${text};text-align:left">
               <div><strong style="color:${strong}">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; <span style="white-space:nowrap">${L.phone}</span></div>
               <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${L.company} ${ehoIcon(text, 9)}</div>
@@ -1827,7 +1849,7 @@
       const border = dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,26,23,0.12)';
       const color = dark ? 'rgba(255,255,255,0.75)' : '#4a453e';
       const noteAccent = dark ? accentOnDark() : state.accent;
-      return `<div data-pdf-link="${CONFIG.financingUrl}" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
+      return `<div data-protect="1" data-pdf-link="${CONFIG.financingUrl}" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
         <strong style="color:${noteAccent}">Available Financing:</strong> ${text}
         <div style="margin-top:5px;font-weight:700;color:${noteAccent}">Apply for financing: ${CONFIG.financingUrl}</div>
       </div>`;
@@ -1882,9 +1904,9 @@
 
     /* ---------- Layouts (Luxury Minimal) ---------- */
     function buildFlyerHTML() {
-      const address = val('address', '137 DRAKE DR NW');
+      const address = val('address', '123 ABC Street');
       const price = val('price', '$450,000');
-      const status = val('status', '');
+      const status = statusValue();
       const openHouse = val('openHouse', '');
       const beds = val('beds', '3');
       const baths = val('baths', '2.5');
@@ -2677,7 +2699,7 @@
     // Sold layout always reads "Just Sold", whatever the status dropdown says.
     function effectiveStatusText() {
       if (state.layout === 'sold') return 'Just Sold';
-      const status = val('status', '');
+      const status = statusValue();
       const openHouse = val('openHouse', '');
       return status ? (status + (status === 'Open House' && openHouse ? ' &middot; ' + openHouse : '')) : '';
     }
@@ -3188,7 +3210,7 @@
     const DB_NAME = 'flyergen_nexus_db';
     const DB_VERSION = 1;
     const LISTING_STORE = 'listings';
-    const LISTING_FIELDS = ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse', 'status', 'coAgentName', 'coAgentPhone'];
+    const LISTING_FIELDS = ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc', 'openHouse', 'status', 'statusCustom', 'coAgentName', 'coAgentPhone'];
     const PROFILE_FIELDS = ['agentName', 'agentPhone', 'agentEmail', 'agentCompany', 'agentWebsite'];
 
     let appReady = false;          // no saving until the saved listing has been loaded
@@ -3533,6 +3555,8 @@
         currentListingCreatedAt = l.createdAt || Date.now();
         LISTING_FIELDS.forEach(id => { const el = $(`#${id}`); if (el) el.value = l[id] !== undefined ? l[id] : ''; });
         if (!$('#status').value && l.status === undefined) $('#status').value = 'Just Listed';
+        syncStatusCustom();
+        syncPriceSlider();
         state.layout = $(`.layout-option-btn[data-layout="${l.layout}"]`) ? l.layout : 'classic';
         // The Print/Square format toggle was removed (exports frame the flyer
         // for social media themselves); listings saved as Square open as Print.
@@ -3678,7 +3702,7 @@
         addr.textContent = (l.address || '').trim() || 'Untitled listing';
         const sub = document.createElement('div');
         sub.className = 'listing-sub';
-        const status = l.layout === 'sold' ? 'Just Sold' : (l.status || '');
+        const status = l.layout === 'sold' ? 'Just Sold' : (l.status === '__custom' ? (l.statusCustom || '') : (l.status || ''));
         if (status) {
           const st = document.createElement('span');
           st.className = 'listing-status';
@@ -3937,11 +3961,51 @@
     }
 
     ['address', 'price', 'beds', 'baths', 'sqft', 'yearBuilt', 'lotSize', 'hoa', 'shortDesc',
-      'openHouse', 'status', 'coAgentName', 'coAgentPhone',
+      'openHouse', 'status', 'statusCustom', 'coAgentName', 'coAgentPhone',
       'agentName', 'agentPhone', 'agentEmail', 'agentCompany', 'agentWebsite'].forEach(id => {
       const el = $(`#${id}`);
       if (el) { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); }
     });
+
+    // "Add your own" status: shows a box for the realtor's own wording.
+    function syncStatusCustom() {
+      const custom = $('#status').value === '__custom';
+      $('#statusCustom').style.display = custom ? '' : 'none';
+      return custom;
+    }
+    $('#status').addEventListener('change', () => {
+      if (syncStatusCustom()) setTimeout(() => $('#statusCustom').focus(), 0);
+    });
+
+    // Price slider: drags in $5,000 steps and writes a formatted price into
+    // the box; typing a price moves the slider to match.
+    function priceNumber(t) { const n = parseInt(String(t || '').replace(/[^0-9]/g, ''), 10); return isNaN(n) ? null : n; }
+    function syncPriceSlider() {
+      const n = priceNumber($('#price').value);
+      if (n !== null) $('#priceSlider').value = n;
+    }
+    $('#priceSlider').addEventListener('input', e => {
+      $('#price').value = '$' + Number(e.target.value).toLocaleString('en-US');
+      updatePreview();
+    });
+    $('#price').addEventListener('input', syncPriceSlider);
+
+    // Sample text: tapping a box never leaves text to delete first. An empty
+    // box only shows grey sample text (it disappears as you type); a box that
+    // still holds the sample is cleared; and a filled box selects its text so
+    // typing replaces it. (The description keeps its text, so a tap to fix
+    // one word doesn't wipe the paragraph.)
+    function clearOnTap(el) {
+      el.addEventListener('focus', () => {
+        if (el.value && el.placeholder && el.value.trim().toLowerCase() === el.placeholder.trim().toLowerCase()) {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+        if (el.value && el.tagName === 'INPUT') setTimeout(() => { try { el.select(); } catch (e) { /* number inputs on some browsers */ } }, 0);
+      });
+    }
+    $$('.left-panel input[type="text"], .left-panel input[type="tel"], .left-panel input[type="email"], .left-panel input[type="number"], .left-panel textarea').forEach(clearOnTap);
 
     // Available financing chips (per listing).
     function syncFinancingUI() {
@@ -4862,9 +4926,9 @@
     };
 
     function socialListingFields() {
-      const address = val('address', '137 Drake Dr NW');
+      const address = val('address', '123 ABC Street');
       const price = val('price', '$450,000');
-      const status = val('status', '');
+      const status = statusValue();
       const openHouse = val('openHouse', '');
       const beds = val('beds', '3');
       const baths = val('baths', '2.5');
@@ -4895,7 +4959,45 @@
     }
 
     function igShell(W, H, bg, inner, extra) {
-      return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}${cutoutLayerHTML()}</div>`;
+      const grass = state.photoAccent === 'beachgrass' ? `<div class="beach-grass">${beachGrassSVG()}</div>` : '';
+      return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}${grass}${cutoutLayerHTML()}</div>`;
+    }
+    /* Beach grass: soft, sunlit pampas plumes rising from the post's
+       bottom-right corner (the look John picked from a realtor's post). It
+       sits on the whole post, not just the photo, so it is offered on every
+       look. John's credit line and footer always stay on top of it. */
+    let beachGrassCache = '';
+    function beachGrassSVG() {
+      if (beachGrassCache) return beachGrassCache;
+      const rnd = seededRand(4242);
+      const W = 420, H = 600;
+      let blades = '', stems = '', plumes = '';
+      // long thin leaves fanning up from the corner
+      for (let i = 0; i < 46; i++) {
+        const bx = W - rnd() * 230, h = 160 + rnd() * 300, lean = -(40 + rnd() * 170), w = 2.5 + rnd() * 4;
+        const c = ['#a99a6c', '#8e8a62', '#c2b28a', '#b8a479', '#d6c7a0'][Math.floor(rnd() * 5)];
+        blades += `<path d="M${f1(bx - w)} ${H} Q${f1(bx + lean * 0.35)} ${f1(H - h * 0.6)} ${f1(bx + lean)} ${f1(H - h)} Q${f1(bx + lean * 0.3 + w)} ${f1(H - h * 0.55)} ${f1(bx + w)} ${H}Z" fill="${c}" opacity="${(0.55 + rnd() * 0.35).toFixed(2)}"/>`;
+      }
+      // feathery plumes on slender stems
+      for (let i = 0; i < 15; i++) {
+        const bx = W - 20 - rnd() * 260, topY = 40 + rnd() * 260, lean = -(20 + rnd() * 120);
+        const tx = bx + lean, ty = topY;
+        stems += `<path d="M${f1(bx)} ${H} Q${f1(bx + lean * 0.5)} ${f1((H + ty) / 2)} ${f1(tx)} ${f1(ty)}" stroke="#a3926a" stroke-width="1.6" fill="none" opacity="0.8"/>`;
+        const len = 90 + rnd() * 90, ang = Math.atan2(ty - H, tx - (bx + lean * 0.5));
+        const tone = ['rgba(240,224,186,', 'rgba(226,203,158,', 'rgba(250,238,212,', 'rgba(214,190,146,'];
+        for (let k = 0; k < 34; k++) {
+          const t = k / 34, px = tx - Math.cos(ang) * len * t * 0.95, py = ty - Math.sin(ang) * len * t * 0.95;
+          const spread = (1 - Math.abs(t - 0.35) * 1.2) * (16 + rnd() * 10);
+          for (const side of [-1, 1]) {
+            const a2 = ang + side * (0.9 + rnd() * 0.5);
+            const ex = px + Math.cos(a2) * spread, ey = py + Math.sin(a2) * spread;
+            plumes += `<path d="M${f1(px)} ${f1(py)} Q${f1((px + ex) / 2 + (rnd() - 0.5) * 6)} ${f1((py + ey) / 2 - 3)} ${f1(ex)} ${f1(ey)}" stroke="${tone[Math.floor(rnd() * tone.length)]}${(0.45 + rnd() * 0.4).toFixed(2)})" stroke-width="${f1(1.2 + rnd() * 1.8)}" fill="none" stroke-linecap="round"/>`;
+          }
+        }
+        plumes += `<ellipse cx="${f1(tx - Math.cos(ang) * len * 0.35)}" cy="${f1(ty - Math.sin(ang) * len * 0.35)}" rx="${f1(len * 0.42)}" ry="${f1(12 + rnd() * 6)}" transform="rotate(${Math.round(ang * 180 / Math.PI)} ${f1(tx - Math.cos(ang) * len * 0.35)} ${f1(ty - Math.sin(ang) * len * 0.35)})" fill="rgba(250,236,200,0.18)"/>`;
+      }
+      beachGrassCache = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMaxYMax meet">${blades}${stems}${plumes}</svg>`;
+      return beachGrassCache;
     }
     // The realtor's background-removed photo, placed where they dragged it.
     function cutoutShowing() { return !!(state.agentCutout && state.cutout && state.cutout.show); }
@@ -4940,7 +5042,7 @@
         return igShell(W, H, '#000', `
           ${photo}
           <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0) 66%)"></div>
-          <div style="position:absolute;top:0;bottom:0;left:0;width:56%;padding:18px 24px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px">
+          <div class="ig-text" style="position:absolute;top:0;bottom:0;left:0;width:56%;padding:18px 24px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px">
             <div style="font-family:var(--font-serif);font-style:italic;font-size:30px;font-weight:800;color:#fff;line-height:1.05">${headline}</div>
             ${pill}
             <div style="font-size:11px;letter-spacing:0.8px;color:rgba(255,255,255,0.85)">${f.address}</div>
@@ -4951,11 +5053,11 @@
       }
       return igShell(W, H, '#000', `
         ${photo}
-        <div style="position:absolute;top:0;left:0;right:0;padding:26px 24px 44px;background:linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
+        <div class="ig-text" style="position:absolute;top:0;left:0;right:0;padding:26px 24px 44px;background:linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
           <div style="font-family:var(--font-serif);font-style:italic;font-size:${H > 600 ? 38 : 34}px;font-weight:800;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,0.5)">${headline}</div>
           <div style="margin-top:8px">${pill}</div>
         </div>
-        <div style="position:absolute;left:0;right:0;bottom:0;padding:40px 22px 16px;background:linear-gradient(0deg, rgba(0,0,0,0.9) 55%, rgba(0,0,0,0.6) 80%, transparent 100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+        <div class="ig-text" style="position:absolute;left:0;right:0;bottom:0;padding:40px 22px 16px;background:linear-gradient(0deg, rgba(0,0,0,0.9) 55%, rgba(0,0,0,0.6) 80%, transparent 100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
           <div style="font-size:11.5px;letter-spacing:1px;color:rgba(255,255,255,0.85)">${f.address}</div>
           ${socialStatRow(f.beds, f.baths, f.sqft)}
           ${igAgent(f, H > 600 ? 46 : 40, 'center')}
@@ -4979,11 +5081,11 @@
       if (wide) {
         return igShell(W, H, state.accent, `
           <div style="position:relative;width:56%;flex-shrink:0">${panImageFill(0)}${chip}</div>
-          <div style="flex:1;min-width:0;color:#fff;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>`, 'display:flex');
+          <div class="ig-text" style="flex:1;min-width:0;color:#fff;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>`, 'display:flex');
       }
       return igShell(W, H, state.accent, `
         <div style="position:relative;flex:1;min-height:0">${panImageFill(0)}${chip}</div>
-        <div style="flex-shrink:0;color:#fff;padding:18px 24px;display:flex;flex-direction:column;gap:10px">${info}</div>`, 'display:flex;flex-direction:column');
+        <div class="ig-text" style="flex-shrink:0;color:#fff;padding:18px 24px;display:flex;flex-direction:column;gap:10px">${info}</div>`, 'display:flex;flex-direction:column');
     }
 
     // Framed Border: photo matted on cream, everything centered.
@@ -4999,11 +5101,11 @@
       const frame = `<div style="position:relative;border:1px solid rgba(28,26,23,0.25);${wide ? 'width:52%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${badge}</div>`;
       if (wide) {
         return igShell(W, H, '#faf8f4', `${frame}
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;text-align:center">${text}</div>`,
+          <div class="ig-text" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;text-align:center">${text}</div>`,
           'display:flex;gap:18px;padding:18px;color:#1c1a17');
       }
       return igShell(W, H, '#faf8f4', `${frame}
-        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:16px 10px 0">${text}</div>`,
+        <div class="ig-text" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:16px 10px 0">${text}</div>`,
         'display:flex;flex-direction:column;padding:26px 26px 20px;color:#1c1a17');
     }
 
@@ -5013,7 +5115,7 @@
       return igShell(W, H, '#000', `
         <div style="position:absolute;inset:0">${panImageFill(0)}</div>
         ${pill}
-        <div style="position:absolute;left:16px;bottom:16px;width:${wide ? 350 : W - 32}px;background:rgba(10,10,10,0.66);border-radius:10px;padding:${wide ? '12px 16px' : '16px 18px'};box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:${wide ? 7 : 9}px;color:#fff">
+        <div class="ig-text" style="position:absolute;left:16px;bottom:16px;width:${wide ? 350 : W - 32}px;background:rgba(10,10,10,0.66);border-radius:10px;padding:${wide ? '12px 16px' : '16px 18px'};box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:${wide ? 7 : 9}px;color:#fff">
           <div>
             <div style="font-family:var(--font-serif);font-size:${wide ? 24 : 30}px;font-weight:800;line-height:1.1">${f.price}</div>
             <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;word-break:break-word">${f.address}</div>
@@ -5028,7 +5130,7 @@
     // Diagonal Ribbon: corner ribbon on the photo, accent panel, dark strip.
     function buildIgRibbon(f, W, H, wide) {
       const headline = f.status || 'Just Listed';
-      const ribbon = `<div style="position:absolute;top:34px;left:-64px;width:260px;transform:rotate(-45deg);background:${state.accent};color:#fff;text-align:center;padding:7px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.4)">${headline}</div>`;
+      const ribbon = `<div style="position:absolute;z-index:6;top:34px;left:-64px;width:260px;transform:rotate(-45deg);background:${state.accent};color:#fff;text-align:center;padding:7px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.4)">${headline}</div>`;
       const info = `
         <div>
           <div style="font-family:var(--font-serif);font-size:28px;font-weight:800;line-height:1.1">${f.price}</div>
@@ -5036,17 +5138,17 @@
         </div>
         ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
         ${igAgent(f, wide ? 32 : 38, 'left')}`;
-      const strip = `<div style="flex-shrink:0;background:#14141a;padding:10px ${wide ? 16 : 22}px">${socialBrand(true, 'left')}</div>`;
+      const strip = `<div class="ig-text" style="flex-shrink:0;background:#14141a;padding:10px ${wide ? 16 : 22}px">${socialBrand(true, 'left')}</div>`;
       const photo = `<div style="position:relative;overflow:hidden;${wide ? 'width:56%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${ribbon}</div>`;
       if (wide) {
         return igShell(W, H, state.accent, `${photo}
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;color:#fff">
-            <div style="flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>
+            <div class="ig-text" style="flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>
             ${strip}
           </div>`, 'display:flex');
       }
       return igShell(W, H, '#14141a', `${photo}
-        <div style="flex-shrink:0;background:${state.accent};color:#fff;padding:16px 22px;display:flex;flex-direction:column;gap:9px">${info}</div>
+        <div class="ig-text" style="flex-shrink:0;background:${state.accent};color:#fff;padding:16px 22px;display:flex;flex-direction:column;gap:9px">${info}</div>
         ${strip}`, 'display:flex;flex-direction:column');
     }
 
@@ -5132,21 +5234,35 @@
         const fit = Math.min(SOCIAL_W * 0.86 / sr.width, SOCIAL_H * 0.9 / sr.height);
         const ox = (SOCIAL_W - sr.width * fit) / 2, oy = (SOCIAL_H - sr.height * fit) / 2;
         const fr = footEl ? footEl.getBoundingClientRect() : null;
+        const protectRects = Array.from(stage.querySelectorAll('[data-lender-footer], [data-protect]')).map(b => b.getBoundingClientRect());
         const out = await renderSocialImage(stage);
+        const ctx = out.getContext('2d');
+        const drawClear = (img, x, y, w, h, rects) => {
+          ctx.save();
+          rects = rects || (fr ? [fr] : []);
+          if (rects.length) {
+            ctx.beginPath();
+            ctx.rect(0, 0, SOCIAL_W, SOCIAL_H);
+            rects.forEach(r => ctx.rect(ox + (r.left - sr.left) * fit, oy + (r.top - sr.top) * fit, r.width * fit, r.height * fit));
+            ctx.clip('evenodd');
+          }
+          ctx.drawImage(img, x, y, w, h);
+          ctx.restore();
+        };
+        if (state.photoAccent === 'beachgrass') {
+          try {
+            // same box as the .beach-grass layer: 52% of the height, 0.7 wide, bottom-right
+            const gh = SOCIAL_H * 0.52, gw = gh * 0.7;
+            const svg = beachGrassSVG().replace('<svg ', `<svg width="${Math.round(gw)}" height="${Math.round(gh)}" `);
+            const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+            drawClear(img, SOCIAL_W - gw, SOCIAL_H - gh, gw, gh, protectRects);
+          } catch (e) { console.warn('Beach grass could not be drawn', e); }
+        }
         if (cutoutShowing()) {
           try {
             const img = await loadImage(state.agentCutout);
             const c = state.cutout, w = c.w * SOCIAL_W, h = w * img.naturalHeight / img.naturalWidth;
-            const ctx = out.getContext('2d');
-            ctx.save();
-            if (fr) {
-              ctx.beginPath();
-              ctx.rect(0, 0, SOCIAL_W, SOCIAL_H);
-              ctx.rect(ox + (fr.left - sr.left) * fit, oy + (fr.top - sr.top) * fit, fr.width * fit, fr.height * fit);
-              ctx.clip('evenodd');
-            }
-            ctx.drawImage(img, c.x * SOCIAL_W, c.y * SOCIAL_H, w, h);
-            ctx.restore();
+            drawClear(img, c.x * SOCIAL_W, c.y * SOCIAL_H, w, h);
           } catch (e) { console.warn('Cutout photo could not be drawn', e); }
         }
         return out;
@@ -5807,14 +5923,19 @@
           card.style.setProperty('--wf-scale', s.toFixed(3));
           // John's NMLS / Equal Housing footer always stays visible: the
           // cutout photo is cut away wherever it would cover it.
-          const foot = card.querySelector('[data-lender-footer]');
-          const layer = inner.querySelector('.cutout-layer');
-          if (foot && layer) {
-            const fr = foot.getBoundingClientRect(), lr = layer.getBoundingClientRect();
+          // The grass also stays behind the realtor box and the financing box.
+          inner.querySelectorAll('.cutout-layer, .beach-grass').forEach(layer => {
+            const boxes = Array.from(card.querySelectorAll(layer.classList.contains('beach-grass') ? '[data-lender-footer], [data-protect]' : '[data-lender-footer]'));
+            if (!boxes.length) return;
+            const lr = layer.getBoundingClientRect();
             const px = v => (v / k).toFixed(1) + 'px';
-            const x0 = px(fr.left - lr.left), y0 = px(fr.top - lr.top), x1 = px(fr.right - lr.left), y1 = px(fr.bottom - lr.top);
-            layer.style.clipPath = `polygon(evenodd, -2000px -2000px, 4000px -2000px, 4000px 4000px, -2000px 4000px, -2000px -2000px, ${x0} ${y0}, ${x1} ${y0}, ${x1} ${y1}, ${x0} ${y1}, ${x0} ${y0})`;
-          }
+            const holes = boxes.map(b => {
+              const r = b.getBoundingClientRect();
+              const x0 = px(r.left - lr.left), y0 = px(r.top - lr.top), x1 = px(r.right - lr.left), y1 = px(r.bottom - lr.top);
+              return `, ${x0} ${y0}, ${x1} ${y0}, ${x1} ${y1}, ${x0} ${y1}, ${x0} ${y0}, -2000px -2000px`;
+            }).join('');
+            layer.style.clipPath = `polygon(evenodd, -2000px -2000px, 4000px -2000px, 4000px 4000px, -2000px 4000px, -2000px -2000px${holes})`;
+          });
           const qr = card.querySelector('#qrcode'); if (qr) qr.remove();
           card.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
         }
