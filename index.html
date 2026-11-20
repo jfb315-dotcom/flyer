@@ -89,8 +89,6 @@
     .header-text .provided { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .header-text .company { font-size: 12px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; }
 
-    .accent-picker { display: flex; align-items: center; gap: 12px; }
-    .accent-picker label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .color-swatches { display: flex; gap: 8px; align-items: center; }
     .swatch {
       width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
@@ -413,7 +411,51 @@
     #socialPreview .pan-container { cursor: pointer; }
     .social-view #flyer-stage { display: none !important; }
     .social-view #socialPreviewWrap { display: block !important; }
+    /* While an export draws from the printed flyer, show it (behind the busy
+       overlay) even if the post preview is up: a hidden flyer draws as a 0x0
+       image, which phones reject ("The object is in an invalid state"). */
+    .exporting #flyer-stage { display: inline-block !important; }
+    .exporting #socialPreviewWrap { display: none !important; }
+    /* Below the preview: John's branding + cutout placement (post view only),
+       then the export buttons. */
+    .post-options-bar {
+      display: none; flex-direction: column; gap: 8px;
+      padding: 10px 24px; border-top: 1px solid var(--border); flex-shrink: 0; background: rgba(7, 9, 14, 0.3);
+    }
+    .social-view .post-options-bar { display: flex; }
+    .preview-export-bar { border-top: 1px solid var(--border); border-bottom: 0; }
+    .accent-row .color-swatches { gap: 10px; }
+    .cutout-size { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+    .cutout-size input { width: 140px; accent-color: var(--accent); }
+    .cutout-layer { position: absolute; z-index: 6; }
+    .cutout-layer img { display: block; width: 100%; height: auto; pointer-events: none; }
+    #socialPreview .cutout-layer { cursor: grab; touch-action: none; outline: 1px dashed rgba(255,255,255,0); transition: outline-color 0.15s; }
+    #socialPreview .cutout-layer:hover, #socialPreview .cutout-layer.dragging { outline-color: rgba(255,255,255,0.7); }
+    #socialPreview .cutout-layer.dragging { cursor: grabbing; }
+    .photo-accent { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .photo-accent > * { position: absolute; }
+    .photo-accent svg { display: block; width: 100%; height: 100%; }
+    .fin-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .fin-chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px; cursor: pointer;
+      background: var(--bg-card); border: 1px solid var(--border); font-size: 12.5px; color: var(--text);
+      text-transform: none; letter-spacing: 0; margin: 0;
+    }
+    .fin-chip input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+    .fin-chip:has(input:checked) { border-color: var(--accent); background: rgba(184, 134, 63, 0.12); }
+    .cutout-preview {
+      height: 52px; width: auto; max-width: 80px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border);
+      background: repeating-conic-gradient(#2a3038 0% 25%, #1b2027 0% 50%) 50% / 12px 12px;
+    }
+    .cutout-help { margin-top: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .cutout-help summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 4px 0; }
+    .cutout-help p { margin: 6px 0 0; }
+    .cutout-help strong { color: var(--text); }
     @media (max-width: 640px) {
+      .post-options-bar { padding: 10px 14px 12px; }
+      .cutout-size { flex: 1 1 100%; font-size: 13px; }
+      .cutout-size input { flex: 1; width: auto; height: 28px; }
+      .scroll-spacer { height: calc(140px + env(safe-area-inset-bottom, 0px)); }
       .social-look-bar { padding: 6px 14px 12px; }
       .slb-row .live-label { flex: 1 1 100%; min-width: 0; }
       .slb-row .pill-btn { padding: 9px 12px; font-size: 12px; }
@@ -634,7 +676,6 @@
       .header-accent-bar, .header h1 span { display: none; }
       .header-photo-square { width: 44px; height: 44px; }
       .header-text h1 { font-size: 21px; }
-      .accent-picker { width: 100%; justify-content: space-between; }
       .color-swatches { gap: 10px; }
       .swatch { width: 32px; height: 32px; }
       input[type="color"] { width: 30px; height: 30px; }
@@ -674,7 +715,11 @@
         position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 60;
         padding: 13px 18px; border-radius: 999px; border: 0; background: var(--accent); color: #fff;
         font-size: 15px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,0.5); cursor: pointer;
+        transition: opacity 0.2s ease, transform 0.2s ease;
       }
+      /* Gone once the preview is on screen, so it never sits on top of the
+         post or the export buttons. */
+      .preview-jump.gone { opacity: 0; transform: translateY(24px); pointer-events: none; }
     }
     /* While an export is drawing on a phone, the flyer briefly takes its
        full desktop width (hidden behind the busy overlay) so the file comes
@@ -701,19 +746,6 @@
         <h1>FlyerGen <span style="font-size:12px;font-weight:400;color:var(--text-muted)">NEXUS</span></h1>
         <div class="provided">Provided by <strong style="color:#f0f6fc">John Bischof</strong> <span class="mobile-hide">&middot; <button type="button" id="btnReplayTour" class="btn-link" title="Replay the quick walkthrough">Show me how this works</button></span></div>
         <div class="company">Home Mortgage Solutions LLC</div>
-      </div>
-    </div>
-    <div class="accent-picker">
-      <label>Brand Accent</label>
-      <div class="color-swatches">
-        <div class="swatch active" data-color="#b8863f" style="background:#b8863f" title="Estate Gold"></div>
-        <div class="swatch" data-color="#0f4c3a" style="background:#0f4c3a" title="Deep Emerald"></div>
-        <div class="swatch" data-color="#1e2a4a" style="background:#1e2a4a" title="Navy"></div>
-        <div class="swatch" data-color="#6b2737" style="background:#6b2737" title="Wine"></div>
-        <div class="swatch" data-color="#3b3b3b" style="background:#3b3b3b" title="Charcoal"></div>
-        <div class="custom-color-wrap" title="Custom Hex Color">
-          <input type="color" id="customColorPicker" value="#b8863f" />
-        </div>
       </div>
     </div>
   </header>
@@ -801,6 +833,17 @@
           <label>Main Summary Description</label>
           <textarea id="shortDesc" maxlength="350" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
           <div class="char-count" id="descCount" aria-live="polite"></div>
+        </div>
+        <div class="form-group">
+          <label>Available Financing <span style="text-transform:none;letter-spacing:0">(subject to qualification)</span></label>
+          <div class="fin-options" id="financingOptions">
+            <label class="fin-chip"><input type="checkbox" value="conventional" /><span>Conventional</span></label>
+            <label class="fin-chip"><input type="checkbox" value="fha" /><span>FHA</span></label>
+            <label class="fin-chip"><input type="checkbox" value="va" /><span>VA</span></label>
+            <label class="fin-chip"><input type="checkbox" value="usda" /><span>USDA</span></label>
+            <label class="fin-chip"><input type="checkbox" value="dpa" /><span>Down Payment Assistance</span></label>
+          </div>
+          <div class="section-hint" style="margin:6px 0 0">Tick the loan types this home could qualify for. They print on the flyer and the full-branding posts. Untick them all to leave the financing line off.</div>
         </div>
       </div>
 
@@ -893,6 +936,24 @@
                     onclick="clearAgentLogo()">Clear</button>
             <input type="file" id="agentLogoInput" accept="image/*" hidden />
           </div>
+        </div>
+
+        <div class="form-group" style="margin-top:6px">
+          <label>Cutout Photo for Posts (background removed, optional)</label>
+          <div class="logo-upload-row">
+            <img id="agentCutoutPreview" class="cutout-preview" style="display:none" alt="Cutout photo" />
+            <button type="button" class="btn btn-secondary" id="btnCutoutUpload" style="width:auto;padding:7px 12px;margin:0;font-size:11px">Upload Cutout</button>
+            <button type="button" class="btn btn-text" id="btnCutoutClear" style="width:auto;padding:4px 8px;margin:0;font-size:11px;display:none">Clear</button>
+            <input type="file" id="agentCutoutInput" accept="image/png,image/webp,image/*" hidden />
+          </div>
+          <div class="section-hint" style="margin:6px 0 0">A photo of you with the background cut away. You can drag it anywhere on a Facebook &amp; Instagram post and set its size.</div>
+          <details class="cutout-help">
+            <summary>How do I get a photo with no background?</summary>
+            <p><strong>iPhone:</strong> open your photo in the Photos app. Touch and hold on yourself until a glowing outline appears, let go, then tap <em>Share</em> &rarr; <em>Save Image</em>. That saves a copy with no background. Upload that copy here.</p>
+            <p><strong>Samsung Galaxy:</strong> open the photo in Gallery, touch and hold on yourself, then tap <em>Save as image</em>.</p>
+            <p><strong>Other phones or a computer:</strong> a free tool such as Adobe Express&rsquo;s <em>Remove background</em> or remove.bg. Download the result as a PNG.</p>
+            <p>It has to be a PNG (or WebP) file. A regular JPEG photo always keeps its background.</p>
+          </details>
         </div>
       </div>
 
@@ -1009,24 +1070,16 @@
         </div>
       </div>
 
-      <div class="preview-export-bar">
-        <span class="live-label">Export:</span>
-        <button type="button" id="btnPdf2" class="pill-btn">Download PDF</button>
-        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app"><span class="mobile-hide">Share&hellip;</span><span class="mobile-only">Save or Share Image</span></button>
-        <button type="button" id="btnSocial2" class="pill-btn" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Facebook &amp; Instagram</button>
-        <span class="export-divider mobile-hide"></span>
-        <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
-      </div>
       <div class="social-look-bar">
         <div class="slb-row">
           <span class="live-label">Preview:</span>
-          <button type="button" class="pill-btn slb-view active" data-view="flyer">Printed Flyer</button>
-          <button type="button" class="pill-btn slb-view" data-view="social">Facebook &amp; Instagram Post</button>
+          <button type="button" class="pill-btn slb-view" data-view="flyer">Printed Flyer</button>
+          <button type="button" class="pill-btn slb-view active" data-view="social">Facebook &amp; Instagram Post</button>
         </div>
         <div class="slb-social">
           <div class="slb-row">
             <span class="live-label">Look:</span>
-            <button type="button" class="pill-btn slb-opt" data-ig-style="bold">Just Listed Banner</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="bold">Headline Banner</button>
             <button type="button" class="pill-btn slb-opt" data-ig-style="split">Color Block</button>
             <button type="button" class="pill-btn slb-opt" data-ig-style="frame">Framed Border</button>
             <button type="button" class="pill-btn slb-opt" data-ig-style="corner">Minimal Corner</button>
@@ -1037,14 +1090,30 @@
             <span class="live-label">Shape:</span>
             <button type="button" class="pill-btn slb-opt" data-ig-format="portrait"><i class="shape-ico" style="width:9px;height:11px"></i>Portrait</button>
             <button type="button" class="pill-btn slb-opt" data-ig-format="square"><i class="shape-ico" style="width:11px;height:11px"></i>Square</button>
-            <button type="button" class="pill-btn slb-opt" data-ig-format="landscape"><i class="shape-ico" style="width:15px;height:8px"></i>Landscape</button>
-          </div>
-          <div class="slb-row">
-            <span class="live-label">Your branding:</span>
-            <button type="button" class="pill-btn slb-opt" data-ig-brand="full">Full</button>
-            <button type="button" class="pill-btn slb-opt" data-ig-brand="minimal">Minimal</button>
             <span class="slb-note" id="slbNote"></span>
           </div>
+        </div>
+        <div class="slb-row accent-row">
+          <span class="live-label">Accent color:</span>
+          <div class="color-swatches">
+            <div class="swatch active" data-color="#b8863f" style="background:#b8863f" title="Estate Gold"></div>
+            <div class="swatch" data-color="#0f4c3a" style="background:#0f4c3a" title="Deep Emerald"></div>
+            <div class="swatch" data-color="#1e2a4a" style="background:#1e2a4a" title="Navy"></div>
+            <div class="swatch" data-color="#6b2737" style="background:#6b2737" title="Wine"></div>
+            <div class="swatch" data-color="#3b3b3b" style="background:#3b3b3b" title="Charcoal"></div>
+            <div class="custom-color-wrap" title="Custom Hex Color">
+              <input type="color" id="customColorPicker" value="#b8863f" />
+            </div>
+          </div>
+        </div>
+        <div class="slb-row">
+          <span class="live-label">Photo accent:</span>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="">None</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="grass">Tall Grass</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="flowers">Spring Flowers</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="sun">Sunshine</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="snow">Snow</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-accent="leaves">Fall Leaves</button>
         </div>
       </div>
 
@@ -1056,6 +1125,31 @@
         </div>
         <div id="socialPreviewWrap" style="display:none"><div id="socialPreview"></div></div>
       </div>
+
+      <div class="post-options-bar">
+        <div class="slb-row">
+          <span class="live-label">John&rsquo;s branding:</span>
+          <button type="button" class="pill-btn slb-opt" data-ig-brand="full">Full</button>
+          <button type="button" class="pill-btn slb-opt" data-ig-brand="minimal">Minimal</button>
+          <span class="slb-note" id="brandNote"></span>
+        </div>
+        <div class="slb-row" id="cutoutRow">
+          <span class="live-label">Your cutout photo:</span>
+          <button type="button" class="pill-btn slb-opt" id="btnCutoutToggle">Show on Post</button>
+          <label class="cutout-size" id="cutoutSizeWrap">Size <input type="range" id="cutoutSize" min="0.15" max="0.85" step="0.01" value="0.32" /></label>
+          <span class="slb-note" id="cutoutNote"></span>
+        </div>
+      </div>
+
+      <div class="preview-export-bar">
+        <span class="live-label">Export:</span>
+        <button type="button" id="btnPdf2" class="pill-btn">Download PDF</button>
+        <button type="button" id="btnShare2" class="pill-btn share-btn" style="display:none" title="Share the flyer image with another app"><span class="mobile-hide">Share&hellip;</span><span class="mobile-only">Save or Share Image</span></button>
+        <button type="button" id="btnSocial2" class="pill-btn" title="One high-quality image that fits Facebook posts and Instagram posts and stories">Facebook &amp; Instagram</button>
+        <span class="export-divider mobile-hide"></span>
+        <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
+      </div>
+      <div class="scroll-spacer mobile-only" aria-hidden="true"></div>
     </section>
   </div>
 
@@ -1065,7 +1159,7 @@
   <div id="pan-modal" class="modal-overlay">
     <div class="modal-content">
       <h3 id="panModalTitle">Adjust Photo</h3>
-      <p>Drag inside the box to reposition. Use the slider to zoom. This applies everywhere the image is used, on every layout.</p>
+      <p id="panModalHelp">Drag inside the box to reposition and use the slider to zoom.</p>
       <div class="pan-stage-wrap">
         <div class="pan-stage" id="panStage">
           <img id="panStageImg" alt="" />
@@ -1192,13 +1286,33 @@
         // 'Equal Housing Opportunity' if your compliance team prefers.
         ehoLabel: 'Equal Housing Lender'
       },
-      // Fixed financing highlight text shown on every flyer (no per-flyer picker).
-      financingText: 'Conventional, FHA, VA 100%, Down payment assistance programs also available.',
       // Where the Financing Highlight box links to in exported PDFs (and the
       // copyable social caption). Point this at a dedicated "Apply Now" or
       // financing landing page instead of the homepage if you have one.
       financingUrl: 'https://hmsloan.com/'
     };
+
+    // Loan programs the realtor can tick per listing (Property Metrics), in
+    // print order. VA and USDA carry their 100% financing selling point.
+    const FINANCING_PROGRAMS = [
+      { key: 'conventional', label: 'Conventional' },
+      { key: 'fha', label: 'FHA' },
+      { key: 'va', label: 'VA 100%' },
+      { key: 'usda', label: 'USDA 100%' },
+      { key: 'dpa', label: 'Down payment assistance' }
+    ];
+    // USDA is off by default: it depends on the home being in an eligible area.
+    const DEFAULT_FINANCING = ['conventional', 'fha', 'va', 'dpa'];
+    // Set while drawing the Whole Flyer post with Minimal branding: the flyer
+    // drops its financing box and swaps the lender footer for one slim line.
+    let brandOverride = null;
+    // '' when nothing is ticked (or Minimal branding), so callers leave the line off.
+    function financingLine() {
+      if (brandOverride === 'minimal') return '';
+      const picked = FINANCING_PROGRAMS.filter(p => (state.financing || []).includes(p.key)).map(p => p.label);
+      if (!picked.length) return '';
+      return picked.join(', ') + '. Subject to qualification.';
+    }
 
     function normalizeUrl(u) {
       if (!u) return '';
@@ -1263,7 +1377,15 @@
       igStyle: 'bold',
       igFormat: 'portrait',
       // 'full' = financing options + full lender info; 'minimal' = one slim credit line
-      igBrand: 'full'
+      igBrand: 'full',
+      // Loan programs ticked under Property Metrics (per listing)
+      financing: DEFAULT_FINANCING.slice(),
+      // Decoration along the main photo's edges: '', grass, flowers, sun, snow, leaves (per listing)
+      photoAccent: '',
+      // Realtor's background-removed photo (profile) and where it sits on the
+      // post, as fractions of the post's width/height (per listing)
+      agentCutout: null,
+      cutout: { show: true, x: 0.66, y: 0.28, w: 0.32 }
     };
 
     let photoIdCounter = 0;
@@ -1371,11 +1493,126 @@
       const photoId = photo ? photo.id : ('placeholder_' + photoIndex);
       const imgSrc = getPhotoSrc(photoIndex);
       const off = getOffsetFor(photoId);
+      // The main photo (slot 0) carries the chosen edge accent on every design.
+      const accent = photoIndex === 0 ? photoAccentHTML(state.photoAccent) : '';
       return `
         <div class="pan-container" data-photoid="${photoId}" data-slotindex="${photoIndex}" style="height:${heightPx}px;width:100%;">
           <img data-natural-pending="1" data-rel-x="${off.relX}" data-rel-y="${off.relY}" data-zoom="${off.zoom}" src="${imgSrc}" />
+          ${accent}
           <div class="pan-edit-hint">${ICONS.edit} Reposition</div>
         </div>`;
+    }
+
+    /* ---------- Photo edge accents (grass, flowers, sun, snow, leaves) ----------
+       Overlays on the main photo's edges, built from plain SVG shapes and CSS
+       gradients. No SVG gradients, ids or filters: the same SVG can appear
+       twice on the page (flyer + post preview, one of them hidden), and
+       html2canvas draws each SVG on its own. A fixed random seed keeps the
+       markup identical between renders, so the preview isn't rebuilt (and
+       clicks aren't lost) when nothing changed. */
+    const photoAccentCache = {};
+    function seededRand(seed) {
+      let t = seed >>> 0;
+      return () => {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const f1 = n => Math.round(n * 10) / 10;
+    // A field of grass blades along the bottom of a 1200x200 box.
+    function grassBlades(rnd, count, minH, maxH, colors, baseY) {
+      let out = '';
+      for (let i = 0; i < count; i++) {
+        const x = rnd() * 1240 - 20, h = minH + rnd() * (maxH - minH), w = 3 + rnd() * 6;
+        const lean = (rnd() - 0.5) * h * 0.55, y = baseY;
+        const c = colors[Math.floor(rnd() * colors.length)];
+        out += `<path d="M${f1(x - w / 2)} ${y} Q${f1(x + lean * 0.35)} ${f1(y - h * 0.55)} ${f1(x + lean)} ${f1(y - h)} Q${f1(x + lean * 0.3 + w * 0.25)} ${f1(y - h * 0.5)} ${f1(x + w / 2)} ${y}Z" fill="${c}"/>`;
+      }
+      return out;
+    }
+    function leafShape(x, y, size, rot, color) {
+      const s = size / 24;
+      return `<g transform="translate(${f1(x)} ${f1(y)}) rotate(${Math.round(rot)}) scale(${s.toFixed(3)})"><path d="M0 -12C7 -9 10 -2 0 12C-10 -2 -7 -9 0 -12Z" fill="${color}"/><path d="M0 -10V11" stroke="rgba(60,25,10,0.45)" stroke-width="1.2" fill="none"/></g>`;
+    }
+    function photoAccentHTML(kind) {
+      if (!kind) return '';
+      if (photoAccentCache[kind]) return photoAccentCache[kind];
+      const rnd = seededRand(kind.length * 7919 + 17);
+      const svg = (vb, par, body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" preserveAspectRatio="${par}">${body}</svg>`;
+      let html = '';
+      if (kind === 'grass' || kind === 'flowers') {
+        const tall = kind === 'grass';
+        let body = '';
+        body += grassBlades(rnd, 170, tall ? 70 : 40, tall ? 140 : 80, ['#2c4f1f', '#355c25', '#3f6a2b'], 200);
+        body += grassBlades(rnd, 170, tall ? 90 : 50, tall ? 175 : 100, ['#4c7a30', '#5a8a37', '#668f3c', '#b3a866'], 200);
+        if (!tall) {
+          const blooms = ['#f7a8c4', '#ffd84d', '#ffffff', '#c9a6f2', '#ff8a7a'];
+          for (let i = 0; i < 46; i++) {
+            const x = rnd() * 1200, h = 45 + rnd() * 75, r = 5 + rnd() * 6, c = blooms[Math.floor(rnd() * blooms.length)];
+            body += `<path d="M${f1(x)} 200 Q${f1(x + (rnd() - 0.5) * 18)} ${f1(200 - h / 2)} ${f1(x)} ${f1(200 - h)}" stroke="#3f6a2b" stroke-width="2" fill="none"/>`;
+            for (let k = 0; k < 5; k++) {
+              const a = k / 5 * Math.PI * 2 + rnd();
+              body += `<circle cx="${f1(x + Math.cos(a) * r * 0.9)}" cy="${f1(200 - h + Math.sin(a) * r * 0.9)}" r="${f1(r * 0.62)}" fill="${c}"/>`;
+            }
+            body += `<circle cx="${f1(x)}" cy="${f1(200 - h)}" r="${f1(r * 0.42)}" fill="#e2a72e"/>`;
+          }
+        }
+        body += grassBlades(rnd, 150, tall ? 110 : 45, tall ? 198 : 95, ['#6f9a3e', '#7ea548', '#93b553', '#c9c27a', '#d8c98a'], 200);
+        if (tall) {
+          for (let i = 0; i < 26; i++) {   // a few seed heads on the tallest stems
+            const x = rnd() * 1200, top = 6 + rnd() * 30;
+            body += `<path d="M${f1(x)} 200 Q${f1(x + 6)} ${f1(100 + top)} ${f1(x + 3)} ${f1(top + 16)}" stroke="#9c9a5c" stroke-width="1.6" fill="none"/><ellipse cx="${f1(x + 3)}" cy="${f1(top + 8)}" rx="3" ry="10" fill="#d9c98f"/>`;
+          }
+        }
+        html = `<div style="left:0;right:0;bottom:-1px;height:${tall ? 34 : 26}%">${svg('0 0 1200 200', 'xMidYMax slice', body)}</div>`;
+      } else if (kind === 'sun') {
+        let rays = '';
+        for (let i = 0; i < 9; i++) {
+          const a = (100 + i * 9 + (rnd() - 0.5) * 5) * Math.PI / 180, spread = (1.2 + rnd() * 1.6) * Math.PI / 180, len = 520 + rnd() * 260;
+          const x0 = 560, y0 = 40;
+          rays += `<path d="M${x0} ${y0}L${f1(x0 + Math.cos(a - spread) * len)} ${f1(y0 + Math.sin(a - spread) * len)}L${f1(x0 + Math.cos(a + spread) * len)} ${f1(y0 + Math.sin(a + spread) * len)}Z" fill="rgba(255,244,214,${(0.10 + rnd() * 0.10).toFixed(2)})"/>`;
+        }
+        const flares = [[420, 160, 26, 0.18], [330, 250, 14, 0.22], [250, 330, 40, 0.10], [190, 390, 9, 0.25]]
+          .map(([x, y, r, o]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(255,236,190,${o})"/>`).join('');
+        html = `<div style="inset:0;background:radial-gradient(ellipse 75% 70% at 92% 4%, rgba(255,251,235,0.92) 0%, rgba(255,232,170,0.55) 10%, rgba(255,205,120,0.24) 28%, rgba(255,195,110,0) 55%), linear-gradient(200deg, rgba(255,186,90,0.16) 0%, rgba(255,186,90,0) 60%)"></div>`
+          + `<div style="top:0;right:0;height:100%;aspect-ratio:1">${svg('0 0 600 600', 'xMaxYMin meet', rays + flares)}</div>`;
+      } else if (kind === 'snow') {
+        let flakes = '';
+        for (let i = 0; i < 110; i++) {
+          flakes += `<circle cx="${f1(rnd() * 600)}" cy="${f1(rnd() * 600)}" r="${f1(1 + rnd() * rnd() * 5)}" fill="rgba(255,255,255,${(0.55 + rnd() * 0.4).toFixed(2)})"/>`;
+        }
+        let drift = '', d = 'M0 100 L0 52';
+        for (let x = 0; x <= 1200; x += 60) d += ` Q${x + 30} ${f1(30 + rnd() * 26)} ${x + 60} ${f1(46 + rnd() * 16)}`;
+        drift += `<path d="${d} L1260 100Z" fill="#eef4fb"/>`;
+        let d2 = 'M0 100 L0 74';
+        for (let x = 0; x <= 1200; x += 90) d2 += ` Q${x + 45} ${f1(58 + rnd() * 14)} ${x + 90} ${f1(70 + rnd() * 10)}`;
+        drift += `<path d="${d2} L1290 100Z" fill="#ffffff"/>`;
+        html = `<div style="left:0;right:0;top:0;height:22%;background:linear-gradient(180deg, rgba(240,248,255,0.38), rgba(240,248,255,0))"></div>`
+          + `<div style="inset:0">${svg('0 0 600 600', 'xMidYMid slice', flakes)}</div>`
+          + `<div style="left:0;right:0;bottom:-1px;height:15%">${svg('0 0 1200 100', 'xMidYMax slice', drift)}</div>`;
+      } else if (kind === 'leaves') {
+        const colors = ['#b5381f', '#d35400', '#e67e22', '#f0b429', '#8e3b1f', '#c0661e'];
+        const cluster = (flip) => {
+          let b = '';
+          for (let i = 0; i < 26; i++) {
+            const t = rnd(), r = 20 + Math.pow(rnd(), 1.4) * 150;
+            const a = t * Math.PI / 2;
+            const x = Math.cos(a) * r, y = Math.sin(a) * r;
+            b += leafShape(flip ? 200 - x : x, y, 22 + rnd() * 22, rnd() * 360, colors[Math.floor(rnd() * colors.length)]);
+          }
+          return b;
+        };
+        let ground = '';
+        for (let i = 0; i < 70; i++) ground += leafShape(rnd() * 1200, 70 + rnd() * 50, 16 + rnd() * 18, rnd() * 360, colors[Math.floor(rnd() * colors.length)]);
+        html = `<div style="left:0;top:0;height:40%;aspect-ratio:1">${svg('0 0 200 200', 'xMinYMin meet', cluster(false))}</div>`
+          + `<div style="right:0;top:0;height:40%;aspect-ratio:1">${svg('0 0 200 200', 'xMaxYMin meet', cluster(true))}</div>`
+          + `<div style="left:0;right:0;bottom:-1px;height:13%">${svg('0 0 1200 120', 'xMidYMax slice', ground)}</div>`;
+      }
+      html = html ? `<div class="photo-accent">${html}</div>` : '';
+      photoAccentCache[kind] = html;
+      return html;
     }
 
     function statusRibbon(text, variant) {
@@ -1498,12 +1735,16 @@
 
     function lenderFooter(dark) {
       const L = CONFIG.lender;
+      if (brandOverride === 'minimal') {
+        // Whole Flyer post, Minimal branding: one slim credit line.
+        return `<div data-lender-footer="1" style="background:${dark ? '#1c1815' : '#faf8f4'};border-top:1px solid ${state.accent};padding:9px 14px">${socialCredit(dark, 'center')}</div>`;
+      }
       const bg = dark ? '#1c1815' : '#faf8f4';
       const nameColor = dark ? '#ffffff' : '#1c1a17';
       const subColor = dark ? 'rgba(255,255,255,0.82)' : '#4a453e';
       const labelAccent = dark ? accentOnDark() : state.accent;
       return `
-        <div style="background:${bg};border-top:1px solid ${state.accent};padding:9px 14px;display:flex;align-items:center;gap:8px">
+        <div data-lender-footer="1" style="background:${bg};border-top:1px solid ${state.accent};padding:9px 14px;display:flex;align-items:center;gap:8px">
           <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="${L.name}"
                style="width:26px;height:26px;border-radius:0;object-fit:cover;object-position:50% 15%;flex-shrink:0;border:1px solid ${state.accent}" />
           <div style="flex:1;min-width:0;font-size:8px;color:${subColor};line-height:1.4">
@@ -1528,7 +1769,7 @@
       const strong = dark ? '#ffffff' : '#1c1a17';
       const justify = align === 'left' ? 'flex-start' : 'center';
       return `
-        <div data-pdf-link="${L.qrUrl || L.website}" style="display:flex;align-items:center;justify-content:${justify};flex-wrap:wrap;gap:4px 6px;font-size:8.5px;letter-spacing:0.4px;color:${color}">
+        <div data-pdf-link="${L.qrUrl || L.website}" style="position:relative;z-index:7;display:flex;align-items:center;justify-content:${justify};flex-wrap:wrap;gap:4px 6px;font-size:8.5px;letter-spacing:0.4px;color:${color}">
           <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="" style="height:11px;width:auto;object-fit:contain;flex-shrink:0;opacity:0.95" />
           <span style="white-space:nowrap">Financing by <strong style="color:${strong}">${L.name}</strong></span>
           <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">NMLS #${L.nmls} ${ehoIcon(color, 9)}</span>
@@ -1548,9 +1789,13 @@
       const strong = dark ? '#ffffff' : '#1c1a17';
       const acc = onAccent ? '#ffffff' : (dark ? accentOnDark() : state.accent);
       const shortUrl = CONFIG.financingUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const fin = financingLine();
+      const finLine = fin
+        ? `<strong style="color:${acc}">Available financing:</strong> ${fin} <strong style="color:${acc};white-space:nowrap">Apply: ${shortUrl}</strong>`
+        : `<strong style="color:${acc};white-space:nowrap">Apply for financing: ${shortUrl}</strong>`;
       return `
-        <div data-pdf-link="${CONFIG.financingUrl}" style="display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}">
-          <div style="font-size:9.5px;line-height:1.45;color:${text}"><strong style="color:${acc}">Financing:</strong> ${CONFIG.financingText} <strong style="color:${acc};white-space:nowrap">Apply: ${shortUrl}</strong></div>
+        <div data-pdf-link="${CONFIG.financingUrl}" style="position:relative;z-index:7;display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}">
+          <div style="font-size:9.5px;line-height:1.45;color:${text}">${finLine}</div>
           <div style="display:flex;align-items:center;gap:8px;justify-content:${left ? 'flex-start' : 'center'}">
             <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="" style="width:28px;height:28px;object-fit:cover;object-position:50% 15%;border:1px solid ${acc};flex-shrink:0" />
             <div style="font-size:9px;line-height:1.4;color:${text};text-align:left">
@@ -1583,7 +1828,7 @@
       const color = dark ? 'rgba(255,255,255,0.75)' : '#4a453e';
       const noteAccent = dark ? accentOnDark() : state.accent;
       return `<div data-pdf-link="${CONFIG.financingUrl}" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
-        <strong style="color:${noteAccent}">Financing Highlight:</strong> ${text}
+        <strong style="color:${noteAccent}">Available Financing:</strong> ${text}
         <div style="margin-top:5px;font-weight:700;color:${noteAccent}">Apply for financing: ${CONFIG.financingUrl}</div>
       </div>`;
     }
@@ -1648,7 +1893,7 @@
       const lotSize = val('lotSize', '0.5 Acres');
       const hoa = val('hoa', '$50/mo');
       const shortDesc = val('shortDesc', 'Stunning open-concept home with modern updates, fully renovated kitchen, and fenced backyard.');
-      const financingText = CONFIG.financingText;
+      const financingText = financingLine();
       const statusText = status ? (status + (status === 'Open House' && openHouse ? ' &middot; ' + openHouse : '')) : '';
 
       if (state.layout === 'classic') {
@@ -1669,7 +1914,7 @@
             </div>
             <div style="font-size:12px;color:#3d3830;line-height:1.65;margin-bottom:16px">${shortDesc}</div>
             <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-            <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+            ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             <div style="margin:0 -22px">${lenderFooter(false)}</div>
           </div>`;
       }
@@ -1687,7 +1932,7 @@
               <div style="margin:14px 0">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11.5px;line-height:1.6;color:rgba(255,255,255,0.68);margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1709,7 +1954,7 @@
               <div style="margin:14px 0">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:16px;line-height:1.6">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1737,7 +1982,7 @@
               <div style="margin-bottom:14px">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11.5px;color:rgba(255,255,255,0.68);margin-bottom:16px;line-height:1.6">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1762,7 +2007,7 @@
               <div style="margin-bottom:14px">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#3d3830;line-height:1.65;margin-bottom:16px">${shortDesc.substring(0, 150)}${shortDesc.length > 150 ? '&hellip;' : ''}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -1802,7 +2047,7 @@
               ${specRow('Year Built', yearBuilt)}
               <div style="font-size:11px;color:rgba(255,255,255,0.65);line-height:1.6;margin:14px 0 16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1853,7 +2098,7 @@
             <div style="padding:0 18px">
               <div style="font-size:11px;color:#3d3830;line-height:1.6;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -1882,7 +2127,7 @@
               <div style="margin:16px 0">${statBar(beds, baths, sqft, true)}</div>
               <div style="background:rgba(255,255,255,0.14);padding:12px 14px;font-size:11px;line-height:1.6;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1910,7 +2155,7 @@
             <div style="padding:20px 26px 0">
               <div style="font-size:11px;color:#4a453e;line-height:1.7;text-align:center;font-style:italic;margin-bottom:18px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -1952,7 +2197,7 @@
               </div>
               <div style="font-size:11px;color:rgba(255,255,255,0.65);line-height:1.6;margin:14px 0 16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -1998,7 +2243,7 @@
               </div>
               <div style="margin:16px 0">${statBar(beds, baths, sqft, false)}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2033,7 +2278,7 @@
                 <div style="font-family:var(--font-serif);font-style:italic;font-size:11.5px;color:#3d3830;line-height:1.65;text-align:center;margin:16px 4px 0">${shortDesc}</div>
               </div>
               <div style="margin-top:18px">${presentedByBar(false)}</div>
-              <div style="margin:18px 0">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin:18px 0">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2068,7 +2313,7 @@
                 ${stop(`<div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Final Stop</div><div style="font-family:var(--font-serif);font-size:13px;font-weight:700">Contact ${val('agentName', 'Your Name')}</div>`)}
               </div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2095,7 +2340,7 @@
               <div style="font-size:10.5px;letter-spacing:0.5px;color:rgba(43,41,36,0.7);margin-bottom:12px">${beds} bed &nbsp;/&nbsp; ${baths} bath &nbsp;/&nbsp; ${sqft} sq ft &nbsp;/&nbsp; built ${yearBuilt}</div>
               <div style="font-size:11px;color:#3d3830;line-height:1.7;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2132,7 +2377,7 @@
                 <div style="font-size:10px;color:rgba(255,255,255,0.7);line-height:1.55;margin-top:12px;text-align:center;font-style:italic">${shortDesc}</div>
               </div>
               <div style="margin:16px 0">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -2170,7 +2415,7 @@
               </div>
               <div style="font-family:var(--font-serif);font-style:italic;font-size:11.5px;color:#3d3830;line-height:1.7;margin:14px 0 18px">${shortDesc}</div>
               <div style="margin-bottom:16px;text-align:left">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px;text-align:left">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px;text-align:left">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2193,7 +2438,7 @@
               <div style="margin-bottom:16px">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#4a3a28;line-height:1.65;margin-bottom:16px;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2217,7 +2462,7 @@
               <div style="margin-bottom:16px">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11px;color:rgba(243,233,221,0.75);line-height:1.6;margin-bottom:16px;text-align:center;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -2244,7 +2489,7 @@
               <div style="margin-bottom:16px">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#33474f;line-height:1.65;margin-bottom:16px;text-align:center">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2267,7 +2512,7 @@
               <div style="margin:18px 0 16px">${statBar(beds, baths, sqft, true)}</div>
               <div style="font-size:11.5px;color:rgba(243,236,226,0.72);line-height:1.65;margin-bottom:16px;text-align:center;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -2292,7 +2537,7 @@
               <div style="margin-bottom:16px;text-align:left">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#4a453e;line-height:1.65;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px;text-align:left">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px;text-align:left">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px;text-align:left">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2324,7 +2569,7 @@
             <div style="padding:4px 22px 0">
               <div style="font-size:11px;color:#3d3830;line-height:1.6;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, false)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, false)}</div>` : ''}
             </div>
             ${lenderFooter(false)}
           </div>`;
@@ -2353,7 +2598,7 @@
               </div>
               <div style="font-size:11px;color:rgba(243,237,224,0.75);line-height:1.6;margin-bottom:16px;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -2388,7 +2633,7 @@
               </div>
               <div style="font-size:11px;color:rgba(255,255,255,0.68);line-height:1.6;margin-bottom:16px;text-align:center;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(true)}</div>
-              <div style="margin-bottom:18px">${financingNote(financingText, true)}</div>
+              ${financingText ? `<div style="margin-bottom:18px">${financingNote(financingText, true)}</div>` : ''}
             </div>
             ${lenderFooter(true)}
           </div>`;
@@ -2466,12 +2711,29 @@
       return photo ? photo.src : placeholder(440, 260);
     }
 
+    // Shape of the photo's box in whatever preview is showing (post or flyer),
+    // used when the editor is opened from a sidebar thumbnail.
+    function visibleBoxAspect(photoId) {
+      const root = socialView ? $('#socialPreview') : $('#flyer');
+      const el = root && Array.from(root.querySelectorAll('.pan-container')).find(c => c.dataset.photoid === photoId);
+      return boxAspect(el);
+    }
     function openPanEditor(target) {
       editorTarget = target;
       const stage = $('#panStage');
-      stage.classList.toggle('portrait', target.type === 'agent' || target.type === 'coagent');
+      const headshot = target.type === 'agent' || target.type === 'coagent';
+      stage.classList.toggle('portrait', headshot);
+      // The editor box takes the exact shape of the box being edited (a tall
+      // post photo, a wide flyer photo, a round headshot), so what you see
+      // while dragging is the crop you get. Width is capped so a tall box
+      // still fits on a phone screen.
+      let aspect = target.aspect || (target.type === 'photo' ? visibleBoxAspect(target.photoId) : 0) || (headshot ? 0.8 : 1.5);
+      aspect = Math.min(3, Math.max(0.5, aspect));
+      stage.style.aspectRatio = String(aspect);
+      stage.style.maxWidth = `min(100%, calc(min(46vh, 400px) * ${aspect.toFixed(3)}))`;
       $('#panModalTitle').textContent = target.type === 'agent' ? 'Adjust Your Headshot'
         : target.type === 'coagent' ? 'Adjust Co-Agent Headshot' : 'Adjust Photo Position';
+      $('#panModalHelp').textContent = 'Drag inside the box to reposition and use the slider to zoom. The box is the same shape as the spot you tapped, so this is exactly how it will look there.';
       $('#panEnhanceBtn').style.display = target.type === 'photo' ? '' : 'none';
       updateEnhanceBtn();
 
@@ -2704,16 +2966,16 @@
     function attachPreviewClickHandlers() {
       const flyer = $('#flyer');
       flyer.querySelectorAll('.pan-container').forEach(container => {
-        container.addEventListener('click', () => openPanEditor({ type: 'photo', photoId: container.dataset.photoid }));
+        container.addEventListener('click', () => openPanEditor({ type: 'photo', photoId: container.dataset.photoid, aspect: boxAspect(container) }));
       });
       flyer.querySelectorAll('.agent-pan-box').forEach(box => {
         box.addEventListener('click', () => {
           if (!state.agentPhoto) { $('#agentPhotoInput').click(); return; }
-          openPanEditor({ type: 'agent' });
+          openPanEditor({ type: 'agent', aspect: boxAspect(box) });
         });
       });
       flyer.querySelectorAll('.co-agent-box').forEach(box => {
-        box.addEventListener('click', () => openPanEditor({ type: 'coagent' }));
+        box.addEventListener('click', () => openPanEditor({ type: 'coagent', aspect: boxAspect(box) }));
       });
     }
 
@@ -3049,6 +3311,7 @@
     /* ---------- Snapshots of the working state ---------- */
     function collectProfile() {
       const p = { accent: state.accent, agentPhoto: state.agentPhoto, agentLogo: state.agentLogo, agentOffset: state.agentOffset, photoIdCounter,
+        agentCutout: state.agentCutout,
         favoriteLayouts: favoriteLayouts.slice() };
       PROFILE_FIELDS.forEach(id => { p[id] = val(id, ''); });
       return p;
@@ -3066,7 +3329,10 @@
         imageOffsets: JSON.parse(JSON.stringify(state.imageOffsets || {})),
         coAgentPhoto: state.coAgentPhoto || null,
         coAgentOffset: Object.assign({}, state.coAgentOffset),
-        checklist: { designPicked: !!state.designPicked, exported: !!state.exported }
+        checklist: { designPicked: !!state.designPicked, exported: !!state.exported },
+        financing: (state.financing || []).slice(),
+        photoAccent: state.photoAccent || '',
+        cutout: Object.assign({}, state.cutout)
       };
       LISTING_FIELDS.forEach(id => { l[id] = id === 'status' ? $('#status').value : val(id, ''); });
       return l;
@@ -3226,6 +3492,8 @@
       state.accent = p.accent || '#b8863f';
       state.agentPhoto = p.agentPhoto || null;
       state.agentLogo = p.agentLogo || null;
+      state.agentCutout = p.agentCutout || null;
+      syncCutoutUI();
       state.agentOffset = isRelOffset(p.agentOffset)
         ? p.agentOffset
         : { relX: 0.5, relY: 0.5, zoom: (p.agentOffset && p.agentOffset.zoom) || 1 };
@@ -3281,6 +3549,18 @@
         const ck = l.checklist || {};
         state.designPicked = !!ck.designPicked;
         state.exported = !!ck.exported;
+        // Listings saved before these options existed get the defaults.
+        state.financing = Array.isArray(l.financing) ? l.financing.filter(k => FINANCING_PROGRAMS.some(p => p.key === k)) : DEFAULT_FINANCING.slice();
+        syncFinancingUI();
+        state.photoAccent = typeof l.photoAccent === 'string' ? l.photoAccent : '';
+        const c = l.cutout || {};
+        state.cutout = {
+          show: c.show !== false,
+          x: typeof c.x === 'number' ? c.x : 0.66,
+          y: typeof c.y === 'number' ? c.y : 0.28,
+          w: typeof c.w === 'number' ? c.w : 0.32
+        };
+        if (typeof syncSocialButtons === 'function') syncSocialButtons();
         $$('.layout-option-btn').forEach(o => o.classList.toggle('active', o.dataset.layout === state.layout));
         renderThumbs();
         updatePreview();
@@ -3661,6 +3941,96 @@
       'agentName', 'agentPhone', 'agentEmail', 'agentCompany', 'agentWebsite'].forEach(id => {
       const el = $(`#${id}`);
       if (el) { el.addEventListener('input', updatePreview); el.addEventListener('change', updatePreview); }
+    });
+
+    // Available financing chips (per listing).
+    function syncFinancingUI() {
+      $$('#financingOptions input').forEach(cb => { cb.checked = (state.financing || []).includes(cb.value); });
+    }
+    $$('#financingOptions input').forEach(cb => cb.addEventListener('change', () => {
+      state.financing = Array.from($$('#financingOptions input')).filter(x => x.checked).map(x => x.value);
+      updatePreview();
+    }));
+    syncFinancingUI();
+
+    /* ---------- Realtor cutout photo (background removed) ----------
+       Kept as PNG so its see-through background survives (the normal photo
+       path converts everything to JPEG, which fills it in white/black). */
+    const CUTOUT_MAX = 700;
+    function readCutout(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read that file.'));
+        reader.onload = e => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('That image couldn\u2019t be opened. Try saving it as a PNG.'));
+          img.onload = () => {
+            const k = Math.min(1, CUTOUT_MAX / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            // Does it have any see-through pixels? Check the outer edge.
+            let clear = 0, total = 0;
+            const edge = (x, y, w, h) => {
+              const d = ctx.getImageData(x, y, w, h).data;
+              for (let i = 3; i < d.length; i += 16) { total++; if (d[i] < 200) clear++; }
+            };
+            edge(0, 0, c.width, 1); edge(0, c.height - 1, c.width, 1); edge(0, 0, 1, c.height); edge(c.width - 1, 0, 1, c.height);
+            // Trim empty space around the person so the size slider and the
+            // drag box match what you see.
+            const all = ctx.getImageData(0, 0, c.width, c.height).data;
+            let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+            for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+              if (all[(y * c.width + x) * 4 + 3] > 12) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+            }
+            let out = c;
+            if (maxX >= minX && (minX > 0 || minY > 0 || maxX < c.width - 1 || maxY < c.height - 1)) {
+              out = document.createElement('canvas');
+              out.width = maxX - minX + 1; out.height = maxY - minY + 1;
+              out.getContext('2d').drawImage(c, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+            }
+            resolve({ src: out.toDataURL('image/png'), transparent: total > 0 && clear / total > 0.3 });
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    function syncCutoutUI() {
+      const prev = $('#agentCutoutPreview');
+      prev.style.display = state.agentCutout ? 'block' : 'none';
+      if (state.agentCutout) prev.src = state.agentCutout;
+      $('#btnCutoutClear').style.display = state.agentCutout ? 'inline' : 'none';
+      $('#btnCutoutUpload').textContent = state.agentCutout ? 'Replace Cutout' : 'Upload Cutout';
+    }
+    $('#btnCutoutUpload').addEventListener('click', () => $('#agentCutoutInput').click());
+    $('#agentCutoutInput').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      let res;
+      try { res = await readCutout(await convertHeicIfNeeded(file)); }
+      catch (err) { alert(err.message || 'That photo could not be added.'); return; }
+      if (!res.transparent && !confirm('This photo still has its background, so it will show as a rectangle on the post. Tap "How do I get a photo with no background?" for help.\n\nUse it anyway?')) return;
+      const before = state.agentCutout;
+      state.agentCutout = res.src;
+      if (!saveProfile()) {
+        state.agentCutout = before;
+        alert('That cutout is too large to save on this device. Try a smaller photo.');
+        return;
+      }
+      state.cutout.show = true;
+      syncCutoutUI();
+      if (typeof syncSocialButtons === 'function') syncSocialButtons();
+      if (!socialView && typeof setSocialView === 'function') setSocialView(true);
+      updatePreview();
+    });
+    $('#btnCutoutClear').addEventListener('click', () => {
+      state.agentCutout = null;
+      syncCutoutUI();
+      if (typeof syncSocialButtons === 'function') syncSocialButtons();
+      updatePreview();
     });
 
     const zone = $('#photoZone');
@@ -4153,6 +4523,8 @@
       if (coPhone) text += `${coName || 'Co-listing agent'}: ${coPhone}\n`;
       text += `\nFinancing Partner: ${L.name} - Loan Originator NMLS #${L.nmls}\n`;
       text += `${L.company} - ${L.phone} - ${L.email} - ${L.ehoLabel}\n`;
+      const fin = financingLine();
+      if (fin) text += `Available financing: ${fin}\n`;
       text += `Apply for financing: ${CONFIG.financingUrl}\n`;
       if (L.qrUrl) text += `Learn more: ${L.qrUrl}`;
 
@@ -4192,6 +4564,12 @@
       // desktop width while the export draws, then shrink it back.
       const resize = window.matchMedia('(max-width: 640px)').matches;
       try {
+        // Exports that draw the printed flyer need it on screen (a hidden
+        // element draws as 0x0); the busy overlay covers the swap.
+        showBusy('Preparing your flyer…');
+        document.documentElement.classList.add('exporting');
+        renderPreviewImages($('#flyer'));
+        await nextFrame();
         if (resize) await useExportSize(true);
         // Wait for every image in the flyer — photos, logo and a QR code that
         // may have just been redrawn — so none is missing from the file.
@@ -4203,6 +4581,7 @@
         alert('Sorry, the export failed: ' + (err && err.message ? err.message : err));
       } finally {
         if (resize) await useExportSize(false);
+        document.documentElement.classList.remove('exporting');
         hideBusy();
         exportBusy = false;
       }
@@ -4460,10 +4839,12 @@
     // smaller in the feed but suits wide exterior shots. Landscape gets its
     // own side-by-side arrangement of each design rather than a squashed
     // version of the tall one.
+    // Landscape (1.91:1) was dropped: it shows smallest in the feed, and
+    // Square already uses the full width with more height. The builders keep
+    // their wide branch in case it comes back.
     const IG_FORMATS = {
       portrait:  { w: 540, h: 675, scale: 2,   label: 'Portrait' },   // 1080x1350
-      square:    { w: 540, h: 540, scale: 2,   label: 'Square' },     // 1080x1080
-      landscape: { w: 720, h: 378, scale: 1.5, label: 'Landscape' }   // 1080x567
+      square:    { w: 540, h: 540, scale: 2,   label: 'Square' }      // 1080x1080
     };
     // Drawn 1920 px wide, the same sharpness as the whole-flyer image.
     const IG_OUT_W = 1920;
@@ -4473,7 +4854,7 @@
       return { w: IG_OUT_W, h: Math.round(f.h * s), scale: s };
     }
     const IG_STYLE_LABELS = {
-      bold:   'Just Listed Banner',
+      bold:   'Headline Banner',
       split:  'Color Block',
       frame:  'Framed Border',
       corner: 'Minimal Corner',
@@ -4514,7 +4895,14 @@
     }
 
     function igShell(W, H, bg, inner, extra) {
-      return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}</div>`;
+      return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}${cutoutLayerHTML()}</div>`;
+    }
+    // The realtor's background-removed photo, placed where they dragged it.
+    function cutoutShowing() { return !!(state.agentCutout && state.cutout && state.cutout.show); }
+    function cutoutLayerHTML() {
+      if (!cutoutShowing()) return '';
+      const c = state.cutout;
+      return `<div class="cutout-layer" style="left:${(c.x * 100).toFixed(2)}%;top:${(c.y * 100).toFixed(2)}%;width:${(c.w * 100).toFixed(2)}%"><img src="${state.agentCutout}" alt="" /></div>`;
     }
     function exclaim(t) { return t + (t.slice(-1) !== '!' ? '!' : ''); }
     // A photo that fills whatever space its box ends up with (the info area
@@ -4523,19 +4911,27 @@
     function panImageFill(i) {
       return panImageHTML(i, 0).replace('height:0px;', 'height:100%;');
     }
-    function igAgent(f, size, align) {
+    // The realtor's block on every post look: headshot (left off when their
+    // cutout photo is on the post, so their face isn't there twice), name,
+    // brokerage, phone and their logo if they uploaded one.
+    function igAgent(f, size, align, dark) {
+      const light = dark === false;
+      const nameColor = light ? '#1c1a17' : '#fff';
+      const subColor = light ? '#4a453e' : 'rgba(255,255,255,0.78)';
+      const logo = state.agentLogo ? `<img src="${state.agentLogo}" alt="" style="max-height:26px;max-width:64px;object-fit:contain;flex-shrink:0" />` : '';
       return `
-        <div style="display:flex;align-items:center;gap:9px;justify-content:${align === 'center' ? 'center' : 'flex-start'}">
-          ${agentCutoutHTML(size, true)}
+        <div style="display:flex;align-items:center;gap:9px;justify-content:${align === 'center' ? 'center' : 'flex-start'};align-self:${align === 'center' ? 'center' : 'stretch'}">
+          ${cutoutShowing() ? '' : agentCutoutHTML(size, !light)}
           <div style="min-width:0;text-align:left">
-            <div style="font-family:var(--font-serif);font-size:13.5px;font-weight:700;color:#fff">${f.agentName}</div>
-            <div style="font-size:9.5px;color:rgba(255,255,255,0.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.agentCompany} &middot; ${f.agentPhone}</div>
+            <div style="font-family:var(--font-serif);font-size:13.5px;font-weight:700;color:${nameColor}">${f.agentName}</div>
+            <div style="font-size:9.5px;color:${subColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.agentCompany} &middot; ${f.agentPhone}</div>
           </div>
+          ${logo}
         </div>`;
     }
     const igRule = (dark) => `<div style="height:1px;background:${dark === false ? 'rgba(28,26,23,0.15)' : 'rgba(255,255,255,0.22)'};align-self:stretch"></div>`;
 
-    // Just Listed Banner: big headline over the photo, info on a dark fade.
+    // Headline Banner: big status headline over the photo, info on a dark fade.
     function buildIgBold(f, W, H, wide) {
       const headline = exclaim(f.status || 'Just Listed');
       const photo = `<div style="position:absolute;inset:0">${panImageFill(0)}</div>`;
@@ -4577,7 +4973,7 @@
           <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
         </div>
         ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
-        <div style="font-size:10.5px;color:rgba(255,255,255,0.95)">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>
+        ${igAgent(f, wide ? 32 : 38, 'left')}
         ${igRule()}
         ${socialBrand(true, 'left', true)}`;
       if (wide) {
@@ -4597,7 +4993,7 @@
         <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;word-break:break-word;line-height:1.2">${f.address}</div>
         <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${state.accent}">${f.price}</div>
         ${socialStatRow(f.beds, f.baths, f.sqft, false, 'center', 16)}
-        <div style="font-size:10.5px;color:#4a453e">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>
+        ${igAgent(f, wide ? 32 : 38, 'center', false)}
         ${igRule(false)}
         ${socialBrand(false, 'center')}`;
       const frame = `<div style="position:relative;border:1px solid rgba(28,26,23,0.25);${wide ? 'width:52%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${badge}</div>`;
@@ -4639,7 +5035,7 @@
           <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
         </div>
         ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
-        <div style="font-size:10.5px;color:rgba(255,255,255,0.95)">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>`;
+        ${igAgent(f, wide ? 32 : 38, 'left')}`;
       const strip = `<div style="flex-shrink:0;background:#14141a;padding:10px ${wide ? 16 : 22}px">${socialBrand(true, 'left')}</div>`;
       const photo = `<div style="position:relative;overflow:hidden;${wide ? 'width:56%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${ribbon}</div>`;
       if (wide) {
@@ -4656,14 +5052,22 @@
 
     // Preview of the "whole flyer on blurred photo" image (the real file is
     // drawn by renderSocialImage; this shows what it will look like).
+    // The printed flyer's HTML with John's branding choice applied (Minimal
+    // drops the financing box and shrinks the lender footer to one line).
+    function wholeFlyerHTML() {
+      brandOverride = state.igBrand === 'minimal' ? 'minimal' : null;
+      try { return buildFlyerHTML(); } finally { brandOverride = null; }
+    }
     function buildWholeFlyerPreviewHTML() {
       const W = 540, H = 675;
       const hero = state.photos.length ? state.photos[state.heroIndex % state.photos.length].src : '';
       const bg = hero
         ? `<img src="${hero}" alt="" style="position:absolute;left:-30px;top:-30px;width:${W + 60}px;height:${H + 60}px;object-fit:cover;filter:blur(18px)" /><div style="position:absolute;inset:0;background:rgba(0,0,0,0.38)"></div>`
         : `<div style="position:absolute;inset:0;background:${state.accent};filter:brightness(0.45)"></div>`;
+      // Same width as the real flyer (Standard Print is wider), so the
+      // preview wraps text exactly like the exported image does.
       return igShell(W, H, '#000', `${bg}
-        <div class="whole-flyer-preview" style="position:absolute;left:50%;top:50%;width:440px;transform:translate(-50%,-50%) scale(var(--wf-scale,1));background:#fff;box-shadow:0 12px 30px rgba(0,0,0,0.45)">${buildFlyerHTML()}</div>`);
+        <div class="whole-flyer-preview" style="position:absolute;left:50%;top:50%;width:${layoutFlyerWidth(state.layout)}px;transform:translate(-50%,-50%) scale(var(--wf-scale,1));background:#fff;color:#111827;word-break:break-word;overflow:hidden;border-radius:4px;box-shadow:0 12px 30px rgba(0,0,0,0.45)">${wholeFlyerHTML()}</div>`);
     }
 
     function buildSocialPostHTML(style, formatKey) {
@@ -4700,8 +5104,56 @@
       return state.igStyle === 'flyer' ? { w: SOCIAL_W, h: SOCIAL_H } : igOutSize(state.igFormat);
     }
     async function renderSocialChoice() {
-      if (state.igStyle === 'flyer') return renderSocialImage($('#flyer'));
+      if (state.igStyle === 'flyer') return renderWholeFlyerCanvas();
       return renderSocialPostCanvas(state.igStyle, state.igFormat);
+    }
+    // Whole Flyer post: a fresh copy of the flyer (with John's branding
+    // choice) drawn in the hidden stage, so it never depends on whether the
+    // live flyer is showing, then the realtor's cutout on top.
+    async function renderWholeFlyerCanvas() {
+      const stage = $('#social-stage');
+      stage.style.width = layoutFlyerWidth(state.layout) + 'px';
+      stage.style.height = 'auto';
+      stage.style.background = '#ffffff';
+      stage.style.color = '#111827';
+      stage.style.wordBreak = 'break-word';
+      stage.style.borderRadius = '4px';
+      stage.style.display = 'block';
+      stage.innerHTML = wholeFlyerHTML();
+      const qr = stage.querySelector('#qrcode'); if (qr) qr.remove();
+      try {
+        await waitForImages(stage, 4000);
+        renderPreviewImages(stage);
+        await nextFrame();
+        // Where the lender footer lands in the finished image (same fit and
+        // centering as renderSocialImage), so the cutout never covers it.
+        const sr = stage.getBoundingClientRect();
+        const footEl = stage.querySelector('[data-lender-footer]');
+        const fit = Math.min(SOCIAL_W * 0.86 / sr.width, SOCIAL_H * 0.9 / sr.height);
+        const ox = (SOCIAL_W - sr.width * fit) / 2, oy = (SOCIAL_H - sr.height * fit) / 2;
+        const fr = footEl ? footEl.getBoundingClientRect() : null;
+        const out = await renderSocialImage(stage);
+        if (cutoutShowing()) {
+          try {
+            const img = await loadImage(state.agentCutout);
+            const c = state.cutout, w = c.w * SOCIAL_W, h = w * img.naturalHeight / img.naturalWidth;
+            const ctx = out.getContext('2d');
+            ctx.save();
+            if (fr) {
+              ctx.beginPath();
+              ctx.rect(0, 0, SOCIAL_W, SOCIAL_H);
+              ctx.rect(ox + (fr.left - sr.left) * fit, oy + (fr.top - sr.top) * fit, fr.width * fit, fr.height * fit);
+              ctx.clip('evenodd');
+            }
+            ctx.drawImage(img, c.x * SOCIAL_W, c.y * SOCIAL_H, w, h);
+            ctx.restore();
+          } catch (e) { console.warn('Cutout photo could not be drawn', e); }
+        }
+        return out;
+      } finally {
+        stage.removeAttribute('style');
+        stage.innerHTML = '';
+      }
     }
 
     async function downloadSocial(key) {
@@ -5286,13 +5738,14 @@
        Facebook & Instagram / Save or Share buttons make. The realtor's picks are
        remembered on this device. */
     const SOCIAL_PREFS_KEY = 'flyergen_social_prefs';
-    var socialView = false;  // var: updatePreview() can run before this line
+    var socialView = true;   // var: updatePreview() can run before this line. Opens on the post preview.
     var lastSocialHTML = '';
     try {
       const saved = JSON.parse(localStorage.getItem(SOCIAL_PREFS_KEY) || 'null');
       if (saved) {
         if (['bold', 'split', 'frame', 'corner', 'ribbon', 'flyer'].includes(saved.style)) state.igStyle = saved.style;
         if (IG_FORMATS[saved.format]) state.igFormat = saved.format;
+        else if (saved.format === 'landscape') state.igFormat = 'square';  // Landscape was retired
         if (saved.brand === 'full' || saved.brand === 'minimal') state.igBrand = saved.brand;
       }
     } catch (e) { /* storage blocked: defaults are fine */ }
@@ -5303,10 +5756,31 @@
       const whole = state.igStyle === 'flyer';
       $$('[data-ig-style]').forEach(b => b.classList.toggle('active', b.dataset.igStyle === state.igStyle));
       $$('[data-ig-format]').forEach(b => { b.classList.toggle('active', !whole && b.dataset.igFormat === state.igFormat); b.disabled = whole; });
-      $$('[data-ig-brand]').forEach(b => { b.classList.toggle('active', !whole && b.dataset.igBrand === state.igBrand); b.disabled = whole; });
-      $('#slbNote').textContent = whole ? 'Whole Flyer is always portrait and shows your full flyer info.' : '';
+      $$('[data-ig-brand]').forEach(b => b.classList.toggle('active', b.dataset.igBrand === state.igBrand));
+      $('#slbNote').textContent = whole ? 'Whole Flyer is always portrait.' : '';
+      $('#brandNote').textContent = state.igBrand === 'minimal' ? 'One slim line: name, NMLS and Equal Housing.' : 'Available financing plus John’s photo, phone and NMLS.';
+      $$('[data-photo-accent]').forEach(b => b.classList.toggle('active', b.dataset.photoAccent === (state.photoAccent || '')));
+      const hasCutout = !!state.agentCutout;
+      $('#btnCutoutToggle').style.display = hasCutout ? '' : 'none';
+      $('#btnCutoutToggle').classList.toggle('active', cutoutShowing());
+      $('#btnCutoutToggle').textContent = cutoutShowing() ? 'Showing on Post' : 'Show on Post';
+      $('#cutoutSizeWrap').style.display = cutoutShowing() ? '' : 'none';
+      $('#cutoutSize').value = state.cutout.w;
+      $('#cutoutNote').innerHTML = !hasCutout
+        ? 'Add one under Realtor info to place yourself on the post. <button type="button" class="btn-link" id="btnCutoutHow">How to get one</button>'
+        : cutoutShowing() ? 'Drag it on the preview to move it.' : '';
+      const how = $('#btnCutoutHow');
+      if (how) how.addEventListener('click', showCutoutHelp);
       $$('.slb-view').forEach(b => b.classList.toggle('active', (b.dataset.view === 'social') === socialView));
       document.documentElement.classList.toggle('social-view', socialView);
+    }
+    // Opens the realtor section on the "how do I get a cutout" instructions.
+    function showCutoutHelp() {
+      if (typeof setRealtorCollapsed === 'function') setRealtorCollapsed(false);
+      const help = $('.cutout-help');
+      help.open = true;
+      scrollIntoPanel(help);
+      flashHighlight(help.closest('.form-group'));
     }
     function renderSocialPreview() {
       if (!socialView) return;
@@ -5331,28 +5805,88 @@
           const card = inner.querySelector('.whole-flyer-preview');
           const s = Math.min(1, (fmt.h * 0.9) / card.offsetHeight, (fmt.w * 0.86) / card.offsetWidth);
           card.style.setProperty('--wf-scale', s.toFixed(3));
+          // John's NMLS / Equal Housing footer always stays visible: the
+          // cutout photo is cut away wherever it would cover it.
+          const foot = card.querySelector('[data-lender-footer]');
+          const layer = inner.querySelector('.cutout-layer');
+          if (foot && layer) {
+            const fr = foot.getBoundingClientRect(), lr = layer.getBoundingClientRect();
+            const px = v => (v / k).toFixed(1) + 'px';
+            const x0 = px(fr.left - lr.left), y0 = px(fr.top - lr.top), x1 = px(fr.right - lr.left), y1 = px(fr.bottom - lr.top);
+            layer.style.clipPath = `polygon(evenodd, -2000px -2000px, 4000px -2000px, 4000px 4000px, -2000px 4000px, -2000px -2000px, ${x0} ${y0}, ${x1} ${y0}, ${x1} ${y1}, ${x0} ${y1}, ${x0} ${y0})`;
+          }
           const qr = card.querySelector('#qrcode'); if (qr) qr.remove();
           card.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
         }
         // Tap a photo or headshot in the post preview to reposition it, same as on the flyer.
-        inner.querySelectorAll('.pan-container').forEach(el => el.addEventListener('click', () => openPanEditor({ type: 'photo', photoId: el.dataset.photoid })));
+        // The editor is shaped like the box that was tapped, so it shows this crop.
+        inner.querySelectorAll('.pan-container').forEach(el => el.addEventListener('click', () => openPanEditor({ type: 'photo', photoId: el.dataset.photoid, aspect: boxAspect(el) })));
         inner.querySelectorAll('.agent-pan-box').forEach(el => el.addEventListener('click', () => {
           if (!state.agentPhoto) { $('#agentPhotoInput').click(); return; }
-          openPanEditor({ type: 'agent' });
+          openPanEditor({ type: 'agent', aspect: boxAspect(el) });
         }));
+        const layer = inner.querySelector('.cutout-layer');
+        if (layer) enableCutoutDrag(layer, fmt, k);
       }
       renderPreviewImages(inner);
+    }
+    // Drag the cutout photo around the post preview. The position is kept as
+    // a fraction of the post, so it lands in the same spot in the export.
+    function enableCutoutDrag(layer, fmt, k) {
+      let start = null;
+      layer.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        layer.setPointerCapture(e.pointerId);
+        layer.classList.add('dragging');
+        start = { px: e.clientX, py: e.clientY, x: state.cutout.x, y: state.cutout.y };
+      });
+      layer.addEventListener('pointermove', e => {
+        if (!start) return;
+        const w = layer.offsetWidth / fmt.w, h = layer.offsetHeight / fmt.h;
+        // Keep at least a third of it on the post so it can't be lost off the edge.
+        state.cutout.x = Math.min(1 - w / 3, Math.max(-w * 2 / 3, start.x + (e.clientX - start.px) / k / fmt.w));
+        state.cutout.y = Math.min(1 - h / 3, Math.max(-h * 2 / 3, start.y + (e.clientY - start.py) / k / fmt.h));
+        layer.style.left = (state.cutout.x * 100).toFixed(2) + '%';
+        layer.style.top = (state.cutout.y * 100).toFixed(2) + '%';
+      });
+      const end = () => {
+        if (!start) return;
+        start = null;
+        layer.classList.remove('dragging');
+        lastSocialHTML = '';
+        saveToLocal();
+        renderSocialPreview();
+      };
+      layer.addEventListener('pointerup', end);
+      layer.addEventListener('pointercancel', end);
+    }
+    function boxAspect(el) {
+      return el && el.clientWidth && el.clientHeight ? el.clientWidth / el.clientHeight : 0;
     }
     function setSocialView(on) {
       socialView = on;
       syncSocialButtons();
       lastSocialHTML = '';
       renderSocialPreview();
+      // The flyer's photos were placed while it was hidden (0px wide); place them again.
+      if (!on) renderPreviewImages($('#flyer'));
     }
     $$('.slb-view').forEach(b => b.addEventListener('click', () => setSocialView(b.dataset.view === 'social')));
     $$('[data-ig-style]').forEach(b => b.addEventListener('click', () => { state.igStyle = b.dataset.igStyle; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
     $$('[data-ig-format]').forEach(b => b.addEventListener('click', () => { state.igFormat = b.dataset.igFormat; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
     $$('[data-ig-brand]').forEach(b => b.addEventListener('click', () => { state.igBrand = b.dataset.igBrand; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
+    $$('[data-photo-accent]').forEach(b => b.addEventListener('click', () => { state.photoAccent = b.dataset.photoAccent; syncSocialButtons(); updatePreview(); }));
+    $('#btnCutoutToggle').addEventListener('click', () => {
+      state.cutout.show = !state.cutout.show;
+      syncSocialButtons();
+      updatePreview();
+    });
+    $('#cutoutSize').addEventListener('input', e => {
+      state.cutout.w = parseFloat(e.target.value) || 0.32;
+      const layer = $('#socialPreview .cutout-layer');
+      if (layer) layer.style.width = (state.cutout.w * 100).toFixed(2) + '%';
+    });
+    $('#cutoutSize').addEventListener('change', () => { lastSocialHTML = ''; updatePreview(); });
     window.addEventListener('resize', () => { if (socialView) renderSocialPreview(); });
     syncSocialButtons();
     $('#btnShare').addEventListener('click', shareFlyer);
@@ -5385,6 +5919,8 @@
       const none = !($('#animationType').value || $('#animationBadge').value);
       $('#btnDownloadAnimatedFb').disabled = none;
       $('#btnDownloadAnimStill').disabled = none;
+      // The animation plays over the printed flyer, so show that preview.
+      if (!none && socialView) setSocialView(false);
       startLivePreview();
     }
 
@@ -5532,8 +6068,8 @@
       {
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
-        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Tap “Facebook & Instagram Post” just below to see that image and pick its look, shape and branding. Everything saves automatically in this browser as you go.',
-        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to send the Facebook & Instagram image to your photos, Facebook, Instagram or Messages. Tap “Facebook & Instagram Post” just below to see it and pick its look. Everything saves automatically on this phone as you go.'
+        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Pick the post’s look and shape above the preview; the export buttons sit just below it. Everything saves automatically in this browser as you go.',
+        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to send the Facebook & Instagram image to your photos, Facebook, Instagram or Messages. Pick the post’s look above the preview. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
@@ -5749,18 +6285,19 @@
     $('#checklistHideBtn').addEventListener('click', () => setChecklistHidden(true));
 
     /* ---------- Phone helpers ---------- */
-    // Floating button that jumps to the flyer preview and back to the form.
+    // Floating button that jumps down to the preview. It watches the whole
+    // preview panel (the printed flyer is hidden while the post preview is
+    // up, so watching it alone never fired) and fades away as soon as any of
+    // the preview panel is on screen, so it never covers the post or the
+    // export buttons.
     const previewJump = $('#previewJump');
-    let previewInView = false;
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(entries => {
-        previewInView = entries[0].isIntersecting;
-        previewJump.innerHTML = previewInView ? 'Back to Editing &uarr;' : 'See Flyer &darr;';
-      }, { threshold: 0.25 }).observe($('#flyer'));
+        previewJump.classList.toggle('gone', entries[0].isIntersecting);
+      }, { threshold: 0, rootMargin: '0px 0px -12% 0px' }).observe($('.right-panel'));
     }
     previewJump.addEventListener('click', () => {
-      if (previewInView) $('.left-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      else $('.right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('.right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     // The realtor's own info is saved on the phone, so once it's filled in it
