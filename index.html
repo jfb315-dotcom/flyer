@@ -397,14 +397,27 @@
     .export-group-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin: 6px 0 6px; }
     .export-divider { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
     .social-look-bar {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: 8px;
       padding: 8px 24px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: rgba(7, 9, 14, 0.3);
     }
-    .social-look-bar select { width: auto; flex: 0 1 auto; padding: 6px 10px; font-size: 12px; }
+    .slb-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .slb-row .live-label { min-width: 92px; }
+    .slb-social { display: none; flex-direction: column; gap: 8px; }
+    .social-view .slb-social { display: flex; }
+    .slb-opt:disabled { opacity: 0.35; cursor: default; }
+    .slb-note { font-size: 11px; color: var(--text-muted); }
+    .shape-ico { display: inline-block; border: 1.5px solid currentColor; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    /* Live preview of the Facebook & Instagram image, scaled to fit. */
+    #socialPreviewWrap { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    #socialPreview { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+    #socialPreview .pan-container { cursor: pointer; }
+    .social-view #flyer-stage { display: none !important; }
+    .social-view #socialPreviewWrap { display: block !important; }
     @media (max-width: 640px) {
-      .social-look-bar { padding: 4px 14px 12px; }
-      .social-look-bar .live-label { flex: 1 1 100%; }
-      .social-look-bar select { flex: 1 1 calc(50% - 8px); font-size: 16px; }
+      .social-look-bar { padding: 6px 14px 12px; }
+      .slb-row .live-label { flex: 1 1 100%; min-width: 0; }
+      .slb-row .pill-btn { padding: 9px 12px; font-size: 12px; }
+      .slb-view { flex: 1 1 calc(50% - 6px); text-align: center; }
     }
 
     /* MODAL STYLES (shared: caption modal + pan/zoom editor modal) */
@@ -548,6 +561,12 @@
       50% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 0 22px 6px var(--accent-glow); }
     }
     .modal-content.tour-card { position: fixed; width: 320px; max-width: calc(100vw - 24px); padding: 18px 18px 14px; }
+    /* Phones: the card stays put at the bottom of the screen and the ring
+       follows the page with no slide, so nothing jumps while scrolling. */
+    @media (max-width: 640px) {
+      .modal-content.tour-card { left: 12px !important; right: 12px; top: auto !important; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; }
+      .tour-spot { transition: none; }
+    }
     .tour-card .tour-step { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
     .tour-card p { margin-bottom: 12px; }
     .tour-card .modal-btn-row { align-items: center; }
@@ -999,20 +1018,34 @@
         <button type="button" id="btnGoToAnimate" class="pill-btn flash-cta mobile-hide">Want to animate for Facebook post?</button>
       </div>
       <div class="social-look-bar">
-        <span class="live-label">Facebook &amp; Instagram look:</span>
-        <select id="igStyleSelect" aria-label="Facebook and Instagram post design">
-          <option value="bold">Just Listed Banner</option>
-          <option value="split">Color Block</option>
-          <option value="frame">Framed Border</option>
-          <option value="corner">Minimal Corner</option>
-          <option value="ribbon">Diagonal Ribbon</option>
-          <option value="flyer">Whole Flyer on Blurred Photo</option>
-        </select>
-        <select id="igFormatSelect" aria-label="Post shape">
-          <option value="portrait">Portrait (biggest in the feed)</option>
-          <option value="square">Square</option>
-          <option value="landscape">Landscape (wide)</option>
-        </select>
+        <div class="slb-row">
+          <span class="live-label">Preview:</span>
+          <button type="button" class="pill-btn slb-view active" data-view="flyer">Printed Flyer</button>
+          <button type="button" class="pill-btn slb-view" data-view="social">Facebook &amp; Instagram Post</button>
+        </div>
+        <div class="slb-social">
+          <div class="slb-row">
+            <span class="live-label">Look:</span>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="bold">Just Listed Banner</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="split">Color Block</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="frame">Framed Border</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="corner">Minimal Corner</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="ribbon">Diagonal Ribbon</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-style="flyer">Whole Flyer</button>
+          </div>
+          <div class="slb-row">
+            <span class="live-label">Shape:</span>
+            <button type="button" class="pill-btn slb-opt" data-ig-format="portrait"><i class="shape-ico" style="width:9px;height:11px"></i>Portrait</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-format="square"><i class="shape-ico" style="width:11px;height:11px"></i>Square</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-format="landscape"><i class="shape-ico" style="width:15px;height:8px"></i>Landscape</button>
+          </div>
+          <div class="slb-row">
+            <span class="live-label">Your branding:</span>
+            <button type="button" class="pill-btn slb-opt" data-ig-brand="full">Full</button>
+            <button type="button" class="pill-btn slb-opt" data-ig-brand="minimal">Minimal</button>
+            <span class="slb-note" id="slbNote"></span>
+          </div>
+        </div>
       </div>
 
       <div class="preview-container">
@@ -1021,6 +1054,7 @@
           <div id="flyer"></div>
           <canvas id="animPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none"></canvas>
         </div>
+        <div id="socialPreviewWrap" style="display:none"><div id="socialPreview"></div></div>
       </div>
     </section>
   </div>
@@ -1227,7 +1261,9 @@
       exported: false,
       // Look and shape of the Facebook & Instagram image (see buildSocialPostHTML)
       igStyle: 'bold',
-      igFormat: 'portrait'
+      igFormat: 'portrait',
+      // 'full' = financing options + full lender info; 'minimal' = one slim credit line
+      igBrand: 'full'
     };
 
     let photoIdCounter = 0;
@@ -1496,6 +1532,33 @@
           <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="" style="height:11px;width:auto;object-fit:contain;flex-shrink:0;opacity:0.95" />
           <span style="white-space:nowrap">Financing by <strong style="color:${strong}">${L.name}</strong></span>
           <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">NMLS #${L.nmls} ${ehoIcon(color, 9)}</span>
+        </div>`;
+    }
+
+    // The lender branding on the Facebook & Instagram designs: Full (the
+    // financing options plus John's photo, phone, logo and NMLS) or Minimal
+    // (one slim credit line). Never a QR code; that's for printed flyers.
+    // onAccent: sitting on the accent-color panel, where accent-colored text
+    // would disappear, so the highlights go white instead.
+    function socialBrand(dark, align, onAccent) {
+      if (state.igBrand === 'minimal') return socialCredit(dark, align);
+      const L = CONFIG.lender;
+      const left = align === 'left';
+      const text = dark ? 'rgba(255,255,255,0.86)' : '#4a453e';
+      const strong = dark ? '#ffffff' : '#1c1a17';
+      const acc = onAccent ? '#ffffff' : (dark ? accentOnDark() : state.accent);
+      const shortUrl = CONFIG.financingUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return `
+        <div data-pdf-link="${CONFIG.financingUrl}" style="display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}">
+          <div style="font-size:9.5px;line-height:1.45;color:${text}"><strong style="color:${acc}">Financing:</strong> ${CONFIG.financingText} <strong style="color:${acc};white-space:nowrap">Apply: ${shortUrl}</strong></div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:${left ? 'flex-start' : 'center'}">
+            <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="" style="width:28px;height:28px;object-fit:cover;object-position:50% 15%;border:1px solid ${acc};flex-shrink:0" />
+            <div style="font-size:9px;line-height:1.4;color:${text};text-align:left">
+              <div><strong style="color:${strong}">${L.name}</strong> &middot; NMLS #${L.nmls} &middot; <span style="white-space:nowrap">${L.phone}</span></div>
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${L.company} ${ehoIcon(text, 9)}</div>
+            </div>
+            <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="" style="height:20px;width:auto;max-width:56px;object-fit:contain;flex-shrink:0" />
+          </div>
         </div>`;
     }
 
@@ -2770,6 +2833,7 @@
       renderChecklist();
       saveToLocal();
       restartLivePreviewIfActive();
+      if (typeof renderSocialPreview === 'function') renderSocialPreview();
     }
 
     function looksLikeHeic(file) {
@@ -4453,147 +4517,153 @@
       return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}</div>`;
     }
     function exclaim(t) { return t + (t.slice(-1) !== '!' ? '!' : ''); }
+    // A photo that fills whatever space its box ends up with (the info area
+    // takes what it needs and the photo gets the rest), so there's never a
+    // gap or an overflow whatever the shape, branding or text length.
+    function panImageFill(i) {
+      return panImageHTML(i, 0).replace('height:0px;', 'height:100%;');
+    }
+    function igAgent(f, size, align) {
+      return `
+        <div style="display:flex;align-items:center;gap:9px;justify-content:${align === 'center' ? 'center' : 'flex-start'}">
+          ${agentCutoutHTML(size, true)}
+          <div style="min-width:0;text-align:left">
+            <div style="font-family:var(--font-serif);font-size:13.5px;font-weight:700;color:#fff">${f.agentName}</div>
+            <div style="font-size:9.5px;color:rgba(255,255,255,0.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.agentCompany} &middot; ${f.agentPhone}</div>
+          </div>
+        </div>`;
+    }
+    const igRule = (dark) => `<div style="height:1px;background:${dark === false ? 'rgba(28,26,23,0.15)' : 'rgba(255,255,255,0.22)'};align-self:stretch"></div>`;
 
+    // Just Listed Banner: big headline over the photo, info on a dark fade.
     function buildIgBold(f, W, H, wide) {
       const headline = exclaim(f.status || 'Just Listed');
-      const photo = `<div style="position:absolute;inset:0">${panImageHTML(0, H)}</div>`;
+      const photo = `<div style="position:absolute;inset:0">${panImageFill(0)}</div>`;
+      const pill = `<span style="display:inline-block;border:1px solid ${accentOnDark()};padding:5px 14px;color:${accentOnDark()};font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">Listed at ${f.price}</span>`;
       if (wide) {
         return igShell(W, H, '#000', `
           ${photo}
-          <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.7) 38%, rgba(0,0,0,0) 64%)"></div>
-          <div style="position:absolute;top:0;bottom:0;left:0;width:56%;padding:24px 26px;display:flex;flex-direction:column;justify-content:center;gap:9px">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:34px;font-weight:800;color:#fff;line-height:1.05;text-shadow:0 2px 14px rgba(0,0,0,0.5)">${headline}</div>
-            <div><span style="display:inline-block;border:1px solid ${accentOnDark()};padding:4px 14px;color:${accentOnDark()};font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">Listed at ${f.price}</span></div>
-            <div style="font-size:11px;letter-spacing:0.8px;color:rgba(255,255,255,0.82)">${f.address}</div>
+          <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0) 66%)"></div>
+          <div style="position:absolute;top:0;bottom:0;left:0;width:56%;padding:18px 24px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px">
+            <div style="font-family:var(--font-serif);font-style:italic;font-size:30px;font-weight:800;color:#fff;line-height:1.05">${headline}</div>
+            ${pill}
+            <div style="font-size:11px;letter-spacing:0.8px;color:rgba(255,255,255,0.85)">${f.address}</div>
             ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
-            <div style="display:flex;align-items:center;gap:9px;margin-top:4px">
-              ${agentCutoutHTML(40, true)}
-              <div style="min-width:0">
-                <div style="font-family:var(--font-serif);font-size:13px;font-weight:700;color:#fff">${f.agentName}</div>
-                <div style="font-size:9px;color:rgba(255,255,255,0.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.agentCompany} &middot; ${f.agentPhone}</div>
-              </div>
-            </div>
-            <div style="margin-top:2px">${socialCredit(true, 'left')}</div>
+            ${igAgent(f, 36, 'left')}
+            ${socialBrand(true, 'left')}
           </div>`);
       }
-      const big = H > 600;
       return igShell(W, H, '#000', `
         ${photo}
-        <div style="position:absolute;top:0;left:0;right:0;padding:${big ? 30 : 24}px 24px ${big ? 50 : 36}px;background:linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
-          <div style="font-family:var(--font-serif);font-style:italic;font-size:${big ? 38 : 34}px;font-weight:800;color:#fff;letter-spacing:0.5px;text-shadow:0 2px 14px rgba(0,0,0,0.5)">${headline}</div>
-          <div style="display:inline-block;margin-top:8px;border:1px solid ${accentOnDark()};padding:5px 16px;color:${accentOnDark()};font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700">Listed at ${f.price}</div>
+        <div style="position:absolute;top:0;left:0;right:0;padding:26px 24px 44px;background:linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
+          <div style="font-family:var(--font-serif);font-style:italic;font-size:${H > 600 ? 38 : 34}px;font-weight:800;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,0.5)">${headline}</div>
+          <div style="margin-top:8px">${pill}</div>
         </div>
-        <div style="position:absolute;left:0;right:0;bottom:0;padding:${big ? 16 : 12}px 20px 12px;background:linear-gradient(0deg, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.55) 70%, transparent 100%)">
-          <div style="text-align:center;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.8);margin-bottom:${big ? 10 : 8}px">${f.address}</div>
-          <div style="margin-bottom:${big ? 14 : 10}px">${socialStatRow(f.beds, f.baths, f.sqft)}</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            ${agentCutoutHTML(big ? 52 : 44, true)}
-            <div style="flex:1;min-width:0">
-              <div style="font-family:var(--font-serif);font-size:14px;font-weight:700;color:#fff">${f.agentName}</div>
-              <div style="font-size:9.5px;color:rgba(255,255,255,0.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentCompany} &middot; ${f.agentPhone}</div>
-            </div>
-          </div>
-          <div style="margin-top:${big ? 12 : 9}px;padding-top:${big ? 10 : 8}px;border-top:1px solid rgba(255,255,255,0.18)">${socialCredit(true)}</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:40px 22px 16px;background:linear-gradient(0deg, rgba(0,0,0,0.9) 55%, rgba(0,0,0,0.6) 80%, transparent 100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="font-size:11.5px;letter-spacing:1px;color:rgba(255,255,255,0.85)">${f.address}</div>
+          ${socialStatRow(f.beds, f.baths, f.sqft)}
+          ${igAgent(f, H > 600 ? 46 : 40, 'center')}
+          ${igRule()}
+          ${socialBrand(true, 'center')}
         </div>`);
     }
 
+    // Color Block: photo plus a solid accent-color panel, all left-aligned.
     function buildIgSplit(f, W, H, wide) {
-      const chip = f.statusText ? `<div style="position:absolute;top:16px;left:16px;background:rgba(0,0,0,0.65);color:#fff;padding:6px 14px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
+      const chip = f.statusText ? `<div style="position:absolute;top:16px;left:16px;background:rgba(0,0,0,0.68);color:#fff;padding:6px 14px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
+      const info = `
+        <div>
+          <div style="font-family:var(--font-serif);font-size:30px;font-weight:800;line-height:1.1">${f.price}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
+        </div>
+        ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
+        <div style="font-size:10.5px;color:rgba(255,255,255,0.95)">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>
+        ${igRule()}
+        ${socialBrand(true, 'left', true)}`;
       if (wide) {
-        const photoW = Math.round(W * 0.58);
         return igShell(W, H, state.accent, `
-          <div style="position:relative;width:${photoW}px;height:${H}px;flex-shrink:0">${panImageHTML(0, H)}${chip}</div>
-          <div style="flex:1;min-width:0;color:#fff;padding:20px 22px;display:flex;flex-direction:column;justify-content:center;gap:9px">
-            <div style="font-family:var(--font-serif);font-size:30px;font-weight:800;letter-spacing:-0.3px">${f.price}</div>
-            <div style="font-size:10.5px;color:rgba(255,255,255,0.88);word-break:break-word">${f.address}</div>
-            <div style="border-top:1px solid rgba(255,255,255,0.25);padding-top:9px">${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 12)}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.92)">${f.agentName} &middot; ${f.agentPhone}</div>
-            <div style="margin-top:4px">${socialCredit(true, 'left')}</div>
-          </div>`, 'display:flex');
+          <div style="position:relative;width:56%;flex-shrink:0">${panImageFill(0)}${chip}</div>
+          <div style="flex:1;min-width:0;color:#fff;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>`, 'display:flex');
       }
-      const photoH = Math.round(H * (H > 600 ? 0.68 : 0.62));
-      const barH = H - photoH;
       return igShell(W, H, state.accent, `
-        <div style="position:relative;height:${photoH}px;flex-shrink:0">${panImageHTML(0, photoH)}${chip}</div>
-        <div style="height:${barH}px;flex-shrink:0;color:#ffffff;padding:14px 22px 12px;display:flex;flex-direction:column;justify-content:center;gap:8px">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
-            <div style="font-family:var(--font-serif);font-size:30px;font-weight:800;letter-spacing:-0.3px">${f.price}</div>
-            <div style="font-size:10px;letter-spacing:0.5px;text-align:right;color:rgba(255,255,255,0.85);max-width:55%;word-break:break-word">${f.address}</div>
-          </div>
-          <div style="border-top:1px solid rgba(255,255,255,0.25);padding-top:8px">${socialStatRow(f.beds, f.baths, f.sqft)}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.9)">${f.agentName} &middot; ${f.agentPhone}</div>
-          <div>${socialCredit(true)}</div>
-        </div>`, 'display:flex;flex-direction:column');
+        <div style="position:relative;flex:1;min-height:0">${panImageFill(0)}${chip}</div>
+        <div style="flex-shrink:0;color:#fff;padding:18px 24px;display:flex;flex-direction:column;gap:10px">${info}</div>`, 'display:flex;flex-direction:column');
     }
 
+    // Framed Border: photo matted on cream, everything centered.
     function buildIgFrame(f, W, H, wide) {
       const badge = f.statusText ? `<div style="position:absolute;top:12px;right:12px;background:${state.accent};color:#fff;padding:5px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,0.3)">${f.statusText}</div>` : '';
-      const text = (statJustify) => `
-        <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;word-break:break-word">${f.address}</div>
-        <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${state.accent};margin-top:6px">${f.price}</div>
-        <div style="margin:12px 0 10px">${socialStatRow(f.beds, f.baths, f.sqft, false, statJustify, statJustify ? 12 : 18)}</div>
-        <div style="font-size:10.5px;color:#4a453e">${f.agentName} &middot; ${f.agentCompany}</div>
-        <div style="margin-top:10px">${socialCredit(false)}</div>`;
+      const text = `
+        <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;word-break:break-word;line-height:1.2">${f.address}</div>
+        <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${state.accent}">${f.price}</div>
+        ${socialStatRow(f.beds, f.baths, f.sqft, false, 'center', 16)}
+        <div style="font-size:10.5px;color:#4a453e">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>
+        ${igRule(false)}
+        ${socialBrand(false, 'center')}`;
+      const frame = `<div style="position:relative;border:1px solid rgba(28,26,23,0.25);${wide ? 'width:52%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${badge}</div>`;
       if (wide) {
-        const m = 22, photoW = Math.round(W * 0.56);
-        return igShell(W, H, '#faf8f4', `
-          <div style="position:relative;width:${photoW}px;margin:${m}px 0 ${m}px ${m}px;border:1px solid rgba(28,26,23,0.25);flex-shrink:0">${panImageHTML(0, H - m * 2 - 2)}${badge}</div>
-          <div style="flex:1;min-width:0;padding:0 20px;display:flex;flex-direction:column;justify-content:center;text-align:center">${text()}</div>`, 'display:flex;color:#1c1a17');
+        return igShell(W, H, '#faf8f4', `${frame}
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;text-align:center">${text}</div>`,
+          'display:flex;gap:18px;padding:18px;color:#1c1a17');
       }
-      const margin = 28, photoH = H - margin - 190;
-      return igShell(W, H, '#faf8f4', `
-        <div style="position:relative;margin:${margin}px ${margin}px 0;border:1px solid rgba(28,26,23,0.25)">${panImageHTML(0, photoH)}${badge}</div>
-        <div style="text-align:center;padding:16px 30px 0">${text()}</div>`, 'color:#1c1a17');
+      return igShell(W, H, '#faf8f4', `${frame}
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:16px 10px 0">${text}</div>`,
+        'display:flex;flex-direction:column;padding:26px 26px 20px;color:#1c1a17');
     }
 
+    // Minimal Corner: the whole photo, with a floating left-aligned card.
     function buildIgCorner(f, W, H, wide) {
-      const pill = f.statusText ? `<div style="position:absolute;top:20px;right:20px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 16px;border-radius:20px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
-      const cardW = wide ? 330 : W - 40;
+      const pill = f.statusText ? `<div style="position:absolute;top:20px;right:20px;background:rgba(0,0,0,0.62);color:#fff;padding:6px 16px;border-radius:20px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
       return igShell(W, H, '#000', `
-        <div style="position:absolute;inset:0">${panImageHTML(0, H)}</div>
+        <div style="position:absolute;inset:0">${panImageFill(0)}</div>
         ${pill}
-        <div style="position:absolute;left:20px;bottom:${wide ? 18 : 24}px;width:${cardW}px;background:rgba(10,10,10,0.62);border-radius:10px;padding:${wide ? '14px 16px' : '18px 20px'};box-shadow:0 8px 24px rgba(0,0,0,0.4)">
-          <div style="font-family:var(--font-serif);font-size:${wide ? 26 : 30}px;font-weight:800;color:#fff">${f.price}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px;word-break:break-word">${f.address}</div>
-          <div style="margin:${wide ? '9px 0 8px' : '12px 0 10px'}">${socialStatRow(f.beds, f.baths, f.sqft, true, wide ? 'flex-start' : 'center', wide ? 12 : 18)}</div>
-          <div style="display:flex;align-items:center;gap:8px;padding-top:${wide ? 8 : 10}px;border-top:1px solid rgba(255,255,255,0.2)">
-            ${agentCutoutHTML(wide ? 30 : 34, true)}
-            <div style="min-width:0;font-size:10px;color:rgba(255,255,255,0.85);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentName} &middot; ${f.agentPhone}</div>
+        <div style="position:absolute;left:16px;bottom:16px;width:${wide ? 350 : W - 32}px;background:rgba(10,10,10,0.66);border-radius:10px;padding:${wide ? '12px 16px' : '16px 18px'};box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:${wide ? 7 : 9}px;color:#fff">
+          <div>
+            <div style="font-family:var(--font-serif);font-size:${wide ? 24 : 30}px;font-weight:800;line-height:1.1">${f.price}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;word-break:break-word">${f.address}</div>
           </div>
-          <div style="margin-top:${wide ? 8 : 10}px">${socialCredit(true, wide ? 'left' : 'center')}</div>
+          ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
+          ${igAgent(f, wide ? 28 : 34, 'left')}
+          ${igRule()}
+          ${socialBrand(true, 'left')}
         </div>`);
     }
 
+    // Diagonal Ribbon: corner ribbon on the photo, accent panel, dark strip.
     function buildIgRibbon(f, W, H, wide) {
       const headline = f.status || 'Just Listed';
       const ribbon = `<div style="position:absolute;top:34px;left:-64px;width:260px;transform:rotate(-45deg);background:${state.accent};color:#fff;text-align:center;padding:7px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.4)">${headline}</div>`;
+      const info = `
+        <div>
+          <div style="font-family:var(--font-serif);font-size:28px;font-weight:800;line-height:1.1">${f.price}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
+        </div>
+        ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
+        <div style="font-size:10.5px;color:rgba(255,255,255,0.95)">${f.agentName} &middot; ${f.agentCompany} &middot; ${f.agentPhone}</div>`;
+      const strip = `<div style="flex-shrink:0;background:#14141a;padding:10px ${wide ? 16 : 22}px">${socialBrand(true, 'left')}</div>`;
+      const photo = `<div style="position:relative;overflow:hidden;${wide ? 'width:56%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${ribbon}</div>`;
       if (wide) {
-        const photoW = Math.round(W * 0.6);
-        return igShell(W, H, state.accent, `
-          <div style="position:relative;width:${photoW}px;height:${H}px;overflow:hidden;flex-shrink:0">${panImageHTML(0, H)}${ribbon}</div>
+        return igShell(W, H, state.accent, `${photo}
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;color:#fff">
-            <div style="flex:1;padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">
-              <div style="font-family:var(--font-serif);font-size:28px;font-weight:800">${f.price}</div>
-              <div style="font-size:10.5px;color:rgba(255,255,255,0.88);word-break:break-word">${f.address}</div>
-              ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 12)}
-              <div style="font-size:10px;color:rgba(255,255,255,0.92)">${f.agentName} &middot; ${f.agentCompany}</div>
-            </div>
-            <div style="background:#14141a;padding:8px 14px">${socialCredit(true)}</div>
+            <div style="flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>
+            ${strip}
           </div>`, 'display:flex');
       }
-      const barH = H > 600 ? 180 : 160;
-      const photoH = H - barH - 30;
-      return igShell(W, H, '#14141a', `
-        <div style="position:relative;height:${photoH}px;overflow:hidden">${panImageHTML(0, photoH)}${ribbon}</div>
-        <div style="height:${barH}px;background:${state.accent};color:#fff;padding:12px 22px;display:flex;flex-direction:column;justify-content:center;gap:7px">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
-            <div style="font-family:var(--font-serif);font-size:28px;font-weight:800">${f.price}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.85);text-align:right;max-width:55%;word-break:break-word">${f.address}</div>
-          </div>
-          <div>${socialStatRow(f.beds, f.baths, f.sqft)}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.9);text-align:center">${f.agentName} &middot; ${f.agentCompany}</div>
-        </div>
-        <div style="height:30px;display:flex;align-items:center;justify-content:center;padding:0 22px">${socialCredit(true)}</div>`);
+      return igShell(W, H, '#14141a', `${photo}
+        <div style="flex-shrink:0;background:${state.accent};color:#fff;padding:16px 22px;display:flex;flex-direction:column;gap:9px">${info}</div>
+        ${strip}`, 'display:flex;flex-direction:column');
+    }
+
+    // Preview of the "whole flyer on blurred photo" image (the real file is
+    // drawn by renderSocialImage; this shows what it will look like).
+    function buildWholeFlyerPreviewHTML() {
+      const W = 540, H = 675;
+      const hero = state.photos.length ? state.photos[state.heroIndex % state.photos.length].src : '';
+      const bg = hero
+        ? `<img src="${hero}" alt="" style="position:absolute;left:-30px;top:-30px;width:${W + 60}px;height:${H + 60}px;object-fit:cover;filter:blur(18px)" /><div style="position:absolute;inset:0;background:rgba(0,0,0,0.38)"></div>`
+        : `<div style="position:absolute;inset:0;background:${state.accent};filter:brightness(0.45)"></div>`;
+      return igShell(W, H, '#000', `${bg}
+        <div class="whole-flyer-preview" style="position:absolute;left:50%;top:50%;width:440px;transform:translate(-50%,-50%) scale(var(--wf-scale,1));background:#fff;box-shadow:0 12px 30px rgba(0,0,0,0.45)">${buildFlyerHTML()}</div>`);
     }
 
     function buildSocialPostHTML(style, formatKey) {
@@ -5209,12 +5279,82 @@
       if (!file) return;
       await sendShare(file);
     }
-    $('#igStyleSelect').value = state.igStyle;
-    $('#igFormatSelect').value = state.igFormat;
-    function syncIgFormatEnabled() { $('#igFormatSelect').disabled = state.igStyle === 'flyer'; }
-    syncIgFormatEnabled();
-    $('#igStyleSelect').addEventListener('change', e => { state.igStyle = e.target.value; syncIgFormatEnabled(); });
-    $('#igFormatSelect').addEventListener('change', e => { state.igFormat = e.target.value; });
+    /* ---------- Facebook & Instagram post: tap choices + live preview ----------
+       "Preview: Printed Flyer / Facebook & Instagram Post" switches what the
+       preview shows. In post view, every tap on Look / Shape / Branding redraws
+       the preview right away, and that preview is exactly the image the
+       Facebook & Instagram / Save or Share buttons make. The realtor's picks are
+       remembered on this device. */
+    const SOCIAL_PREFS_KEY = 'flyergen_social_prefs';
+    var socialView = false;  // var: updatePreview() can run before this line
+    var lastSocialHTML = '';
+    try {
+      const saved = JSON.parse(localStorage.getItem(SOCIAL_PREFS_KEY) || 'null');
+      if (saved) {
+        if (['bold', 'split', 'frame', 'corner', 'ribbon', 'flyer'].includes(saved.style)) state.igStyle = saved.style;
+        if (IG_FORMATS[saved.format]) state.igFormat = saved.format;
+        if (saved.brand === 'full' || saved.brand === 'minimal') state.igBrand = saved.brand;
+      }
+    } catch (e) { /* storage blocked: defaults are fine */ }
+    function saveSocialPrefs() {
+      try { localStorage.setItem(SOCIAL_PREFS_KEY, JSON.stringify({ style: state.igStyle, format: state.igFormat, brand: state.igBrand })); } catch (e) {}
+    }
+    function syncSocialButtons() {
+      const whole = state.igStyle === 'flyer';
+      $$('[data-ig-style]').forEach(b => b.classList.toggle('active', b.dataset.igStyle === state.igStyle));
+      $$('[data-ig-format]').forEach(b => { b.classList.toggle('active', !whole && b.dataset.igFormat === state.igFormat); b.disabled = whole; });
+      $$('[data-ig-brand]').forEach(b => { b.classList.toggle('active', !whole && b.dataset.igBrand === state.igBrand); b.disabled = whole; });
+      $('#slbNote').textContent = whole ? 'Whole Flyer is always portrait and shows your full flyer info.' : '';
+      $$('.slb-view').forEach(b => b.classList.toggle('active', (b.dataset.view === 'social') === socialView));
+      document.documentElement.classList.toggle('social-view', socialView);
+    }
+    function renderSocialPreview() {
+      if (!socialView) return;
+      const wrap = $('#socialPreviewWrap'), inner = $('#socialPreview');
+      const whole = state.igStyle === 'flyer';
+      const fmt = whole ? { w: 540, h: 675 } : (IG_FORMATS[state.igFormat] || IG_FORMATS.portrait);
+      const html = whole ? buildWholeFlyerPreviewHTML() : buildSocialPostHTML(state.igStyle, state.igFormat);
+      // Fit the preview to the space available (phone width or the desktop pane).
+      const avail = Math.max(240, $('.preview-container').clientWidth - 40);
+      const maxW = fmt.w > fmt.h ? 680 : 480;
+      const k = Math.min(1, Math.min(avail, maxW) / fmt.w) || 1;
+      wrap.style.width = Math.round(fmt.w * k) + 'px';
+      wrap.style.height = Math.round(fmt.h * k) + 'px';
+      inner.style.width = fmt.w + 'px';
+      inner.style.height = fmt.h + 'px';
+      inner.style.transform = `scale(${k})`;
+      if (html !== lastSocialHTML) {
+        inner.innerHTML = html;
+        lastSocialHTML = html;
+        if (whole) {
+          // Shrink the flyer to fit the 4:5 frame like the real image does.
+          const card = inner.querySelector('.whole-flyer-preview');
+          const s = Math.min(1, (fmt.h * 0.9) / card.offsetHeight, (fmt.w * 0.86) / card.offsetWidth);
+          card.style.setProperty('--wf-scale', s.toFixed(3));
+          const qr = card.querySelector('#qrcode'); if (qr) qr.remove();
+          card.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        }
+        // Tap a photo or headshot in the post preview to reposition it, same as on the flyer.
+        inner.querySelectorAll('.pan-container').forEach(el => el.addEventListener('click', () => openPanEditor({ type: 'photo', photoId: el.dataset.photoid })));
+        inner.querySelectorAll('.agent-pan-box').forEach(el => el.addEventListener('click', () => {
+          if (!state.agentPhoto) { $('#agentPhotoInput').click(); return; }
+          openPanEditor({ type: 'agent' });
+        }));
+      }
+      renderPreviewImages(inner);
+    }
+    function setSocialView(on) {
+      socialView = on;
+      syncSocialButtons();
+      lastSocialHTML = '';
+      renderSocialPreview();
+    }
+    $$('.slb-view').forEach(b => b.addEventListener('click', () => setSocialView(b.dataset.view === 'social')));
+    $$('[data-ig-style]').forEach(b => b.addEventListener('click', () => { state.igStyle = b.dataset.igStyle; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
+    $$('[data-ig-format]').forEach(b => b.addEventListener('click', () => { state.igFormat = b.dataset.igFormat; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
+    $$('[data-ig-brand]').forEach(b => b.addEventListener('click', () => { state.igBrand = b.dataset.igBrand; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
+    window.addEventListener('resize', () => { if (socialView) renderSocialPreview(); });
+    syncSocialButtons();
     $('#btnShare').addEventListener('click', shareFlyer);
     $('#btnShare2').addEventListener('click', shareFlyer);
     $('#shareNowBtn').addEventListener('click', () => {
@@ -5392,8 +5532,8 @@
       {
         target: '.preview-export-bar',
         title: 'Download or share your flyer here',
-        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Everything saves automatically in this browser as you go.',
-        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to put the flyer in your photos or send it straight to Facebook, Instagram or Messages. Everything saves automatically on this phone as you go.'
+        text: 'Get a print-ready PDF, or a high-quality image for Facebook and Instagram. Tap “Facebook & Instagram Post” just below to see that image and pick its look, shape and branding. Everything saves automatically in this browser as you go.',
+        phoneText: 'Get a print-ready PDF, or tap Save or Share Image to send the Facebook & Instagram image to your photos, Facebook, Instagram or Messages. Tap “Facebook & Instagram Post” just below to see it and pick its look. Everything saves automatically on this phone as you go.'
       }
     ];
     let tourIndex = -1;
@@ -5415,7 +5555,9 @@
       const vw = Math.min(document.documentElement.clientWidth || window.innerWidth, vv ? vv.width : Infinity);
       const vh = Math.min(window.innerHeight, vv ? vv.height : Infinity);
       const margin = 12, pad = 6;
+      const phone = window.matchMedia('(max-width: 640px)').matches;
       if (!el) {
+        if (phone) { spot.style.display = 'none'; return; }
         // Target not on screen (e.g. hidden at this width) — center the card.
         spot.style.display = 'none';
         card.style.left = Math.max(margin, (vw - card.offsetWidth) / 2) + 'px';
@@ -5431,6 +5573,7 @@
       spot.style.top = top + 'px';
       spot.style.width = Math.max(0, right - left) + 'px';
       spot.style.height = Math.max(0, bottom - top) + 'px';
+      if (phone) return; // card is pinned to the bottom of the screen by CSS
       const cw = card.offsetWidth, ch = card.offsetHeight;
       // Prefer below the target, then above, then beside it; as a last resort
       // pin the card to the bottom of the screen (it may overlap the target).
@@ -5475,8 +5618,11 @@
       }
       if (!sc || sc === document.body) {
         if (getComputedStyle(document.body).overflowY !== 'hidden') {
+          // Center it in the part of the screen the bottom card doesn't cover.
           const er = el.getBoundingClientRect();
-          window.scrollBy(0, er.top - (window.innerHeight - er.height) / 2);
+          const cardH = window.matchMedia('(max-width: 640px)').matches ? ($('#tourCard').offsetHeight + 24) : 0;
+          const space = window.innerHeight - cardH;
+          window.scrollBy(0, er.top - Math.max(12, (space - er.height) / 2));
         }
         return;
       }
@@ -5507,10 +5653,24 @@
       else if (e.key === 'ArrowRight') { e.preventDefault(); tourNext(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); tourBack(); }
     });
-    window.addEventListener('resize', positionTour);
-    window.addEventListener('scroll', positionTour, { passive: true }); // phones: the page scrolls under the tour
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', positionTour);
-    document.addEventListener('scroll', () => positionTour(), true);
+    // While the page or a panel scrolls, move the ring instantly (no slide),
+    // so it stays locked on its target instead of lagging and jumping.
+    let tourScrollTimer = null;
+    function positionTourNow() {
+      if (tourIndex < 0) return;
+      const spot = $('#tourSpot');
+      spot.style.transition = 'none';
+      positionTour();
+      clearTimeout(tourScrollTimer);
+      tourScrollTimer = setTimeout(() => { spot.style.transition = ''; }, 200);
+    }
+    window.addEventListener('resize', positionTourNow);
+    window.addEventListener('scroll', positionTourNow, { passive: true }); // phones: the page scrolls under the tour
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', positionTourNow);
+      window.visualViewport.addEventListener('scroll', positionTourNow);
+    }
+    document.addEventListener('scroll', positionTourNow, true);
 
     /* ---------- "Steps to your flyer" checklist ----------
        Every item is derived from real state, so it can't drift out of sync.
