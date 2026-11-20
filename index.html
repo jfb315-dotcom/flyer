@@ -1507,8 +1507,8 @@
     }
     function agentLogoTag(dark) {
       if (!state.agentLogo) return '';
-      // Sized to roughly match the headshot's height (56px) alongside it.
-      return `<img src="${state.agentLogo}" style="max-height:52px;max-width:100px;object-fit:contain;flex-shrink:0" alt="Logo" />`;
+      // Sized to roughly match the headshot's height (94px) alongside it.
+      return `<img src="${state.agentLogo}" style="max-height:60px;max-width:90px;object-fit:contain;flex-shrink:0" alt="Logo" />`;
     }
 
     // Standard Print's hero photo grows to fill unused vertical space when the
@@ -1741,14 +1741,14 @@
         const coPhone = val('coAgentPhone', '');
         const divider = dark ? 'rgba(255,255,255,0.16)' : 'rgba(28,26,23,0.12)';
         const person = (photoHTML, nm, ph) => `
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;flex:1;min-width:0">
             ${photoHTML}
             <div style="min-width:0">
-              <div style="font-family:var(--font-serif);font-size:13px;font-weight:700;color:${nameColor};line-height:1.2">${nm}</div>
-              ${ph ? `<div style="font-size:9.5px;color:${subColor};white-space:nowrap;margin-top:2px">${ph}</div>` : ''}
+              <div style="font-family:var(--font-serif);font-size:16px;font-weight:800;color:${nameColor};line-height:1.2">${nm}</div>
+              ${ph ? `<div style="font-size:12px;font-weight:700;color:${nameColor};white-space:nowrap;margin-top:2px">${ph}</div>` : ''}
             </div>
           </div>`;
-        const logo = state.agentLogo ? `<img src="${state.agentLogo}" style="max-height:36px;max-width:64px;object-fit:contain;flex-shrink:0" alt="Logo" />` : '';
+        const logo = state.agentLogo ? `<img src="${state.agentLogo}" style="max-height:44px;max-width:72px;object-fit:contain;flex-shrink:0" alt="Logo" />` : '';
         return `
         <div data-protect="1" style="background:${bg};border:1px solid ${border};padding:10px 12px;border-radius:4px">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -1756,24 +1756,22 @@
             <div style="color:${linkAccent};font-weight:600;white-space:nowrap;font-size:9.5px;flex-shrink:0" data-pdf-link="${normalizeUrl(website)}">${website}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
-            ${person(agentPhotoTag(38, 46, dark), name, phone)}
+            ${person(agentPhotoTag(60, 72, dark), name, phone)}
             <div style="width:1px;align-self:stretch;background:${divider};flex-shrink:0"></div>
-            ${person(coAgentPhotoTag(38, 46, dark), coName, coPhone)}
+            ${person(coAgentPhotoTag(60, 72, dark), coName, coPhone)}
             ${logo}
           </div>
         </div>`;
       }
       return `
-        <div data-protect="1" style="display:flex;align-items:center;gap:12px;background:${bg};border:1px solid ${border};padding:12px 14px;border-radius:4px">
-          ${agentPhotoTag(46, 56, dark)}
+        <div data-protect="1" style="display:flex;align-items:center;gap:14px;background:${bg};border:1px solid ${border};padding:14px 16px;border-radius:4px">
+          ${agentPhotoTag(78, 94, dark)}
           <div style="flex:1;min-width:0">
-            <div style="font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:${labelColor};margin-bottom:2px">Presented By</div>
-            <div style="font-family:var(--font-serif);font-size:14px;font-weight:700;color:${nameColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
-            <div style="font-size:10px;color:${subColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${company}</div>
-          </div>
-          <div style="text-align:right;font-size:9.5px;color:${subColor};line-height:1.5;flex-shrink:0">
-            <div style="white-space:nowrap">${phone}</div>
-            <div style="color:${linkAccent};font-weight:600;white-space:nowrap" data-pdf-link="${normalizeUrl(website)}">${website}</div>
+            <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:${labelColor};margin-bottom:3px">Presented By</div>
+            <div style="font-family:var(--font-serif);font-size:21px;font-weight:800;color:${nameColor};line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+            <div style="font-size:12.5px;color:${subColor};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${company}</div>
+            <div style="font-size:15px;font-weight:700;color:${nameColor};margin-top:4px;white-space:nowrap">${phone}</div>
+            <div style="font-size:10.5px;color:${linkAccent};font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-pdf-link="${normalizeUrl(website)}">${website}</div>
           </div>
           ${agentLogoTag(dark)}
         </div>`;
@@ -5052,17 +5050,29 @@
     // The realtor's block on every post look: headshot (left off when their
     // cutout photo is on the post, so their face isn't there twice), name,
     // brokerage, phone and their logo if they uploaded one.
+    // Shape of the post being built, so the realtor block can be as large as
+    // the post allows (set by buildSocialPostHTML before a look is drawn).
+    let igCtx = { W: 540, H: 675, wide: false };
+    // The realtor is the star of the post: a large round headshot with the
+    // name, brokerage and phone set big beside it. The headshot is left off
+    // when their cutout photo is on the post, so their face isn't there twice.
     function igAgent(f, size, align, dark) {
       const light = dark === false;
       const nameColor = light ? '#1c1a17' : '#fff';
-      const subColor = light ? '#4a453e' : 'rgba(255,255,255,0.78)';
-      const logo = state.agentLogo ? `<img src="${state.agentLogo}" alt="" style="max-height:26px;max-width:64px;object-fit:contain;flex-shrink:0" />` : '';
+      const subColor = light ? '#4a453e' : 'rgba(255,255,255,0.86)';
+      const tall = igCtx.H > 600;
+      const photo = igCtx.wide ? 72 : (tall ? 104 : 88);
+      const nameSize = igCtx.wide ? 20 : (tall ? 26 : 23);
+      const subSize = igCtx.wide ? 11.5 : (tall ? 14 : 13);
+      const phoneSize = igCtx.wide ? 14 : (tall ? 18 : 16);
+      const logo = state.agentLogo ? `<img src="${state.agentLogo}" alt="" style="max-height:${tall ? 44 : 38}px;max-width:${tall ? 104 : 90}px;object-fit:contain;flex-shrink:0" />` : '';
       return `
-        <div style="display:flex;align-items:center;gap:9px;justify-content:${align === 'center' ? 'center' : 'flex-start'};align-self:${align === 'center' ? 'center' : 'stretch'}">
-          ${cutoutShowing() ? '' : agentCutoutHTML(size, !light)}
-          <div style="min-width:0;text-align:left">
-            <div style="font-family:var(--font-serif);font-size:13.5px;font-weight:700;color:${nameColor}">${f.agentName}</div>
-            <div style="font-size:9.5px;color:${subColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.agentCompany} &middot; ${f.agentPhone}</div>
+        <div style="display:flex;align-items:center;gap:${tall ? 16 : 13}px;justify-content:${align === 'center' ? 'center' : 'flex-start'};align-self:${align === 'center' ? 'center' : 'stretch'}">
+          ${cutoutShowing() ? '' : agentCutoutHTML(photo, !light)}
+          <div style="min-width:0;text-align:left;line-height:1.2">
+            <div style="font-family:var(--font-serif);font-size:${nameSize}px;font-weight:800;color:${nameColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentName}</div>
+            <div style="font-size:${subSize}px;color:${subColor};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentCompany}</div>
+            <div style="font-size:${phoneSize}px;font-weight:700;color:${nameColor};margin-top:3px;white-space:nowrap">${f.agentPhone}</div>
           </div>
           ${logo}
         </div>`;
@@ -5212,6 +5222,7 @@
       const fmt = IG_FORMATS[formatKey] || IG_FORMATS.portrait;
       const wide = fmt.w / fmt.h > 1.5;
       const f = socialListingFields();
+      igCtx = { W: fmt.w, H: fmt.h, wide };
       const b = { split: buildIgSplit, frame: buildIgFrame, corner: buildIgCorner, ribbon: buildIgRibbon }[style] || buildIgBold;
       return b(f, fmt.w, fmt.h, wide);
     }
