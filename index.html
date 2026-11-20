@@ -93,7 +93,22 @@
     }
     .swatch:hover { transform: scale(1.2); }
     .swatch.active { border-color: #fff; box-shadow: 0 0 12px currentColor; }
-    .custom-color-wrap { display: flex; align-items: center; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 2px 6px; }
+    .swatch-white { border-color: rgba(255,255,255,0.35); }
+    .swatch-white.active { border-color: var(--accent); box-shadow: 0 0 0 2px #fff; }
+    .custom-color-wrap {
+      position: relative; display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px 3px 4px;
+    }
+    .custom-color-wrap.active { border-color: #fff; }
+    .custom-ring {
+      position: relative; width: 26px; height: 26px; border-radius: 50%;
+      background: conic-gradient(#ff3b30, #ffcc00, #34c759, #00c7be, #007aff, #af52de, #ff3b30);
+    }
+    .custom-ring::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--picked, transparent); }
+    .custom-label { font-size: 12px; font-weight: 600; color: var(--text); }
+    .custom-color-wrap input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border-radius: 999px; }
+    .accent-hint { flex: 1 1 100%; }
+    .accent-hint strong { color: var(--text); }
     input[type="color"] { -webkit-appearance: none; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; background: transparent; }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 50%; }
@@ -955,15 +970,8 @@
         </div>
 
         <div class="form-group" style="margin-top:6px">
-          <label>Realtor / Brokerage Logo (optional)</label>
-          <div class="logo-upload-row">
-            <img id="agentLogoPreview" class="logo-preview" style="display:none" alt="Logo" />
-            <button type="button" class="btn btn-secondary" style="width:auto;padding:7px 12px;margin:0;font-size:11px"
-                    onclick="document.getElementById('agentLogoInput').click()">Upload Logo</button>
-            <button type="button" class="btn btn-text" style="width:auto;padding:4px 8px;margin:0;font-size:11px;display:none" id="clearLogoBtn"
-                    onclick="clearAgentLogo()">Clear</button>
-            <input type="file" id="agentLogoInput" accept="image/*" hidden />
-          </div>
+          <button type="button" id="btnGoLogo" class="btn btn-secondary" style="margin:0;border-color:var(--accent);color:var(--accent)">Click here to add and place your company logo &darr;</button>
+          <div class="section-hint" style="margin:6px 0 0">Upload it under the preview, then drag it anywhere on the post and set its size.</div>
         </div>
 
         <div class="form-group" style="margin-top:6px">
@@ -1111,15 +1119,19 @@
         <div class="slb-row accent-row">
           <span class="live-label">Accent color:</span>
           <div class="color-swatches">
-            <div class="swatch active" data-color="#b8863f" style="background:#b8863f" title="Estate Gold"></div>
+            <div class="swatch swatch-white active" data-color="#ffffff" style="background:#ffffff" title="White"></div>
+            <div class="swatch" data-color="#b8863f" style="background:#b8863f" title="Estate Gold"></div>
             <div class="swatch" data-color="#0f4c3a" style="background:#0f4c3a" title="Deep Emerald"></div>
             <div class="swatch" data-color="#1e2a4a" style="background:#1e2a4a" title="Navy"></div>
             <div class="swatch" data-color="#6b2737" style="background:#6b2737" title="Wine"></div>
             <div class="swatch" data-color="#3b3b3b" style="background:#3b3b3b" title="Charcoal"></div>
-            <div class="custom-color-wrap" title="Custom Hex Color">
-              <input type="color" id="customColorPicker" value="#b8863f" />
-            </div>
+            <label class="custom-color-wrap" id="customColorWrap" title="Pick any color you like">
+              <span class="custom-ring"></span>
+              <input type="color" id="customColorPicker" value="#ffffff" />
+              <span class="custom-label">Any color</span>
+            </label>
           </div>
+          <span class="slb-note accent-hint">Tap a color, or the rainbow circle to pick <strong>any</strong> color you want. It colors the headline, price, badges and borders.</span>
         </div>
         <div class="accents-box">
           <div class="accents-head">
@@ -1181,6 +1193,16 @@
           <p><strong>Other phones or a computer:</strong> a free tool such as Adobe Express&rsquo;s <em>Remove background</em> or remove.bg. Download the result as a PNG.</p>
           <p>It has to be a PNG (or WebP) file. A regular JPEG photo always keeps its background.</p>
         </details>
+        <div class="slb-row" id="logoRow">
+          <span class="live-label">Your company logo:</span>
+          <img id="agentLogoPreview" class="cutout-preview" style="display:none" alt="Logo" />
+          <button type="button" class="pill-btn slb-opt" id="btnLogoUpload">Upload Logo</button>
+          <button type="button" class="btn-link" id="clearLogoBtn" style="display:none">Clear</button>
+          <input type="file" id="agentLogoInput" accept="image/*" hidden />
+          <button type="button" class="pill-btn slb-opt" id="btnLogoToggle">Show on Post</button>
+          <label class="cutout-size" id="logoSizeWrap">Size <input type="range" id="logoSize" min="0.06" max="0.6" step="0.01" value="0.26" /></label>
+          <span class="slb-note" id="logoNote"></span>
+        </div>
       </div>
 
       <div class="preview-export-bar">
@@ -1356,6 +1378,9 @@
     // Set while drawing the Whole Flyer post with Minimal branding: the flyer
     // swaps the lender footer for the slim pre-approval line.
     let brandOverride = null;
+    // Set while drawing the Whole Flyer post when the logo is placed on the
+    // post itself: the flyer's own small logo is left out so it isn't there twice.
+    let suppressFlyerLogo = false;
     // '' when nothing is ticked, so callers leave the whole financing section off.
     function financingLine() {
       const picked = FINANCING_PROGRAMS.filter(p => (state.financing || []).includes(p.key)).map(p => p.label);
@@ -1407,6 +1432,13 @@
     function accentOnDark() {
       return relativeLuminance(state.accent) < 0.35 ? lightenHex(state.accent, 0.5) : state.accent;
     }
+    // White (the default) is an accent like any other. On photos and dark
+    // surfaces it is drawn as white; on white and cream surfaces it can't be,
+    // so accentOnLight() turns it into charcoal. inkOn() picks readable
+    // lettering for any solid accent fill (dark on white, white on gold).
+    function accentIsLight() { return relativeLuminance(state.accent) > 0.8; }
+    function accentOnLight() { return accentIsLight() ? '#1c1a17' : state.accent; }
+    function inkOn(hex) { return relativeLuminance(hex) > 0.6 ? '#1c1a17' : '#ffffff'; }
 
     const ICONS = {
       bed: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7"/><path d="M3 18v2"/><path d="M21 18v2"/><path d="M3 13h18"/><path d="M7 13V9a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1"/></svg>',
@@ -1422,7 +1454,7 @@
       agentLogo: null,
       layout: 'classic',
       aspect: 'print',
-      accent: '#b8863f',
+      accent: '#ffffff',
       // offsets are stored as RELATIVE fractions (0..1) of the pannable range,
       // not raw pixels — so a position picked in the editor (or on one layout)
       // stays correct everywhere else the image appears, at any size.
@@ -1446,7 +1478,9 @@
       // Realtor's background-removed photo (profile) and where it sits on the
       // post, as fractions of the post's width/height (per listing)
       agentCutout: null,
-      cutout: { show: true, x: 0.66, y: 0.28, w: 0.32 }
+      cutout: { show: true, x: 0.66, y: 0.28, w: 0.32 },
+      // Company logo placed on the post, same fractions of the post (per listing)
+      logoPlace: { show: true, x: 0.05, y: 0.34, w: 0.26 }
     };
 
     let photoIdCounter = 0;
@@ -1457,7 +1491,7 @@
     const val = (id, fallback) => { const v = $(`#${id}`) ? $(`#${id}`).value : ''; return v || fallback; };
 
     const placeholder = (w, h, t = 'Asset') =>
-      `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect fill="#0f172a" width="${w}" height="${h}"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="${state.accent}" font-size="13" font-weight="bold" font-family="sans-serif">${t}</text></svg>`)}`;
+      `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect fill="#0f172a" width="${w}" height="${h}"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="${accentOnDark()}" font-size="13" font-weight="bold" font-family="sans-serif">${t}</text></svg>`)}`;
 
     function lenderPlaceholder() {
       return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="#e8e2d8"/><text x="30" y="37" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="#8a7d68">JB</text></svg>`)}`;
@@ -1523,7 +1557,7 @@
         </div>`;
     }
     function agentLogoTag(dark) {
-      if (!state.agentLogo) return '';
+      if (!state.agentLogo || suppressFlyerLogo) return '';
       // Sized to roughly match the headshot's height (94px) alongside it.
       return `<img src="${state.agentLogo}" style="max-height:60px;max-width:90px;object-fit:contain;flex-shrink:0" alt="Logo" />`;
     }
@@ -1705,16 +1739,17 @@
       if (variant === 'sold') {
         // Just Sold: celebratory but restrained — a solid accent plate inside a
         // thin offset frame, set in the serif display face.
-        return `<div style="text-align:center;margin-bottom:14px"><div style="display:inline-block;border:1px solid ${state.accent};padding:4px"><div style="background:${state.accent};color:#ffffff;padding:12px 30px 12px 36px;font-family:var(--font-serif);font-size:24px;letter-spacing:6px;text-transform:uppercase;font-weight:700;line-height:1.1">${text}</div></div></div>`;
+        return `<div style="text-align:center;margin-bottom:14px"><div style="display:inline-block;border:1px solid ${accentOnLight()};padding:4px"><div style="background:${accentOnLight()};color:#ffffff;padding:12px 30px 12px 36px;font-family:var(--font-serif);font-size:28px;letter-spacing:6px;text-transform:uppercase;font-weight:700;line-height:1.1">${text}</div></div></div>`;
       }
       if (variant === 'plain') {
         // Editorial Overlay: no box, no outline — bold text sitting directly
         // on the photo, like a magazine cover headline.
-        return `<div style="text-align:center;margin-bottom:10px"><span style="display:inline-block;color:#ffffff;font-size:15px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,0.75)">${text}</span></div>`;
+        return `<div style="text-align:center;margin-bottom:10px"><span style="display:inline-block;color:#ffffff;font-size:19px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,0.75)">${text}</span></div>`;
       }
       // Solid, high-contrast badge on every other layout so the status stands
       // out at a glance, whether the flyer background is light or dark.
-      return `<div style="text-align:center;margin-bottom:14px"><span style="display:inline-block;padding:11px 30px;background:${state.accent};color:#ffffff;font-size:14px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.3)">${text}</span></div>`;
+      const fill = variant === true ? state.accent : accentOnLight();
+      return `<div style="text-align:center;margin-bottom:14px"><span style="display:inline-block;padding:14px 36px;background:${fill};color:${inkOn(fill)};font-size:18px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.3)">${text}</span></div>`;
     }
 
     function statBar(beds, baths, sqft, dark) {
@@ -1762,7 +1797,7 @@
       const labelColor = dark ? 'rgba(255,255,255,0.45)' : 'rgba(28,26,23,0.45)';
       const nameColor = dark ? '#ffffff' : '#1c1a17';
       const subColor = dark ? 'rgba(255,255,255,0.65)' : 'rgba(28,26,23,0.62)';
-      const linkAccent = dark ? accentOnDark() : state.accent;
+      const linkAccent = dark ? accentOnDark() : accentOnLight();
       if (coAgentActive()) {
         // Two agents side by side, sharing one brokerage / website line.
         const coName = val('coAgentName', 'Co-Listing Agent');
@@ -1776,7 +1811,7 @@
               ${ph ? `<div style="font-size:12px;font-weight:700;color:${nameColor};white-space:nowrap;margin-top:2px">${ph}</div>` : ''}
             </div>
           </div>`;
-        const logo = state.agentLogo ? `<img src="${state.agentLogo}" style="max-height:44px;max-width:72px;object-fit:contain;flex-shrink:0" alt="Logo" />` : '';
+        const logo = (state.agentLogo && !suppressFlyerLogo) ? `<img src="${state.agentLogo}" style="max-height:44px;max-width:72px;object-fit:contain;flex-shrink:0" alt="Logo" />` : '';
         return `
         <div data-protect="1" style="background:${bg};border:1px solid ${border};padding:10px 12px;border-radius:4px">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px">
@@ -1820,14 +1855,14 @@
       const L = CONFIG.lender;
       if (brandOverride === 'minimal') {
         // Whole Flyer post, Minimal branding: one slim credit line.
-        return `<div data-lender-footer="1" style="background:${dark ? '#1c1815' : '#faf8f4'};border-top:1px solid ${state.accent};padding:9px 14px">${socialCredit(dark, 'center')}</div>`;
+        return `<div data-lender-footer="1" style="background:${dark ? '#1c1815' : '#faf8f4'};border-top:1px solid ${accentOnLight()};padding:9px 14px">${socialCredit(dark, 'center')}</div>`;
       }
       const bg = dark ? '#1c1815' : '#faf8f4';
       const nameColor = dark ? '#ffffff' : '#1c1a17';
       const subColor = dark ? 'rgba(255,255,255,0.82)' : '#4a453e';
-      const labelAccent = dark ? accentOnDark() : state.accent;
+      const labelAccent = dark ? accentOnDark() : accentOnLight();
       return `
-        <div data-lender-footer="1" style="background:${bg};border-top:1px solid ${state.accent};padding:9px 14px;display:flex;align-items:center;gap:8px">
+        <div data-lender-footer="1" style="background:${bg};border-top:1px solid ${accentOnLight()};padding:9px 14px;display:flex;align-items:center;gap:8px">
           <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="${L.name}"
                style="width:30px;height:30px;flex-shrink:0" />
           <div style="flex:1;min-width:0;font-size:8px;color:${subColor};line-height:1.4">
@@ -1872,7 +1907,7 @@
       const left = align === 'left';
       const text = dark ? 'rgba(255,255,255,0.86)' : '#4a453e';
       const strong = dark ? '#ffffff' : '#1c1a17';
-      const acc = onAccent ? '#ffffff' : (dark ? accentOnDark() : state.accent);
+      const acc = onAccent || (dark ? accentOnDark() : accentOnLight());
       const fin = financingLine();
       const finLine = fin ? `<div style="font-size:9.5px;line-height:1.45;color:${text}"><strong style="color:${acc}">Financing options to explore:</strong> ${fin}</div>` : '';
       const wrap = `position:relative;z-index:7;display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}`;
@@ -1895,12 +1930,12 @@
     // designs (the "cutout photo overlapping the image" look common to
     // realtor social posts) — agentPhotoTag's square frame doesn't fit that
     // treatment, so this is its own small helper.
-    function agentCutoutHTML(diameter, dark) {
+    function agentCutoutHTML(diameter, dark, ringColor) {
       const imgSrc = state.agentPhoto || `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='120' viewBox='0 0 100 120'%3E%3Crect width='100' height='120' fill='%2321262d'/%3E%3Ctext x='50' y='65' text-anchor='middle' fill='%238b949e' font-size='14' font-family='sans-serif'%3EAGENT%3C/text%3E%3C/svg%3E`;
       const off = state.agentOffset || { relX: 0.5, relY: 0.5, zoom: 1 };
-      const ring = dark ? '#ffffff' : '#ffffff';
+      const ring = ringColor || (dark ? accentOnDark() : accentOnLight());
       return `
-        <div class="agent-pan-box" data-target="agent" style="width:${diameter}px;height:${diameter}px;border-radius:50%;overflow:hidden;border:3px solid ${ring};box-shadow:0 3px 12px rgba(0,0,0,0.45);flex-shrink:0;">
+        <div class="agent-pan-box" data-target="agent" style="width:${diameter}px;height:${diameter}px;border-radius:50%;overflow:hidden;border:4px solid ${ring};box-shadow:0 3px 12px rgba(0,0,0,0.45);flex-shrink:0;">
           <img data-natural-pending="1" data-rel-x="${off.relX}" data-rel-y="${off.relY}" data-zoom="${off.zoom}" src="${imgSrc}" />
           <div class="pan-edit-hint">${ICONS.edit}</div>
         </div>`;
@@ -1910,14 +1945,14 @@
       const bg = dark ? 'rgba(255,255,255,0.05)' : '#faf8f4';
       const border = dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,26,23,0.12)';
       const color = dark ? 'rgba(255,255,255,0.75)' : '#4a453e';
-      const noteAccent = dark ? accentOnDark() : state.accent;
+      const noteAccent = dark ? accentOnDark() : accentOnLight();
       return `<div data-protect="1" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
         <strong style="color:${noteAccent}">Financing Options to Explore:</strong> ${text}
       </div>`;
     }
 
     function hairline() {
-      return `<div style="height:1px;background:${state.accent};opacity:0.5;margin:14px 0"></div>`;
+      return `<div style="height:1px;background:${accentOnLight()};opacity:0.5;margin:14px 0"></div>`;
     }
 
     // A simple line-art leaf, used by the fall-themed layouts.
@@ -1985,7 +2020,7 @@
             ${statusRibbon(statusText, false)}
             <div style="text-align:center;margin-bottom:14px">
               <div style="font-family:var(--font-serif);font-size:24px;font-weight:700;letter-spacing:0.3px;word-break:break-word">${address}</div>
-              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${state.accent};margin-top:4px">${price}</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${accentOnLight()};margin-top:4px">${price}</div>
             </div>
             ${hairline()}
             <div style="border-radius:4px;overflow:hidden;margin-bottom:16px">
@@ -2077,7 +2112,7 @@
             <div style="display:grid;grid-template-columns:1.1fr 1fr">
               <div style="padding:20px 16px 16px 22px;display:flex;flex-direction:column;justify-content:center">
                 ${statusRibbon(statusText, false)}
-                <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${state.accent};margin-top:10px">${price}</div>
+                <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${accentOnLight()};margin-top:10px">${price}</div>
                 ${address ? `<div style="font-size:10.5px;letter-spacing:0.5px;color:rgba(28,26,23,0.55);margin-top:4px;word-break:break-word">${address}</div>` : ''}
               </div>
               ${panImageHTML(0, computeHeroHeight(shortDesc, 180))}
@@ -2114,7 +2149,7 @@
               <span>Scale 1:100</span>
             </div>
             <div style="margin:12px 20px 0;height:1px;background:${lineColor};opacity:0.5"></div>
-            ${statusText ? `<div style="text-align:center;margin:14px 0 0"><span style="border:1px solid ${lineColor};color:${lineColor};padding:5px 16px;font-size:10px;letter-spacing:3px;text-transform:uppercase">${statusText}</span></div>` : ''}
+            ${statusText ? `<div style="text-align:center;margin:14px 0 0"><span style="border:1px solid ${lineColor};color:${lineColor};padding:7px 21px;font-size:13.5px;letter-spacing:3px;text-transform:uppercase">${statusText}</span></div>` : ''}
             <div style="position:relative;margin:14px 20px 0">
               ${panImageHTML(0, computeHeroHeight(shortDesc, 210))}
               ${cornerMarks(lineColor)}
@@ -2142,7 +2177,7 @@
         // unlike anything typically seen on a listing flyer.
         return `
           <div style="background:#faf8f4;color:#1c1a17;overflow:hidden;font-family:var(--font-flyer)">
-            <div style="background:${state.accent};color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">
+            <div style="background:${accentOnLight()};color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center">
               <span style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">Now Boarding</span>
               <span style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">Boarding Pass</span>
             </div>
@@ -2167,13 +2202,13 @@
                   <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Bathrooms</div><div style="font-weight:700;font-size:13px">${baths}</div></div>
                   <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Sq Ft</div><div style="font-weight:700;font-size:13px">${sqft}</div></div>
                 </div>
-                ${statusText ? `<div style="margin-top:12px;display:inline-block;background:${state.accent};color:#fff;padding:4px 12px;font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</div>` : ''}
+                ${statusText ? `<div style="margin-top:12px;display:inline-block;background:${accentOnLight()};color:#fff;padding:5px 16px;font-size:12.2px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</div>` : ''}
               </div>
               <div style="background:repeating-linear-gradient(to bottom, rgba(28,26,23,0.35) 0 6px, transparent 6px 12px)"></div>
               <div style="padding:16px 8px;text-align:center;display:flex;flex-direction:column;justify-content:space-between">
                 <div>
                   <div style="font-size:7px;letter-spacing:1px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Fare</div>
-                  <div style="font-family:var(--font-serif);font-size:14px;font-weight:800;color:${state.accent};word-break:break-word">${price}</div>
+                  <div style="font-family:var(--font-serif);font-size:14px;font-weight:800;color:${accentOnLight()};word-break:break-word">${price}</div>
                 </div>
                 <div style="height:24px;background:repeating-linear-gradient(90deg, #1c1a17 0 2px, transparent 2px 3px, #1c1a17 3px 4px, transparent 4px 6px, #1c1a17 6px 7px, transparent 7px 9px)"></div>
               </div>
@@ -2192,15 +2227,15 @@
         // field, a dashed "perforated" white mat around the photo, and a
         // circular postmark badge carrying the status.
         return `
-          <div style="background:${state.accent};color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
+          <div style="background:${accentOnLight()};color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:22px 20px 0">
               <div style="text-align:center;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin-bottom:10px;opacity:0.85">Welcome Home</div>
               <div style="background:#fff;padding:10px;position:relative">
-                <div style="border:5px dashed ${state.accent};padding:6px">
+                <div style="border:5px dashed ${accentOnLight()};padding:6px">
                   ${panImageHTML(0, computeHeroHeight(shortDesc, 210))}
                 </div>
-                ${statusText ? `<div style="position:absolute;top:-10px;right:-10px;width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid ${state.accent};display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.25)">
-                  <span style="font-size:8.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${state.accent};line-height:1.15">${statusText}</span>
+                ${statusText ? `<div style="position:absolute;top:-10px;right:-10px;width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid ${accentOnLight()};display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.25)">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${accentOnLight()};line-height:1.15">${statusText}</span>
                 </div>` : ''}
               </div>
               <div style="text-align:center;margin-top:16px">
@@ -2228,12 +2263,12 @@
                 ${panImageHTML(0, computeHeroHeight(shortDesc, 210))}
               </div>
               <div style="margin-top:18px;font-family:var(--font-serif);font-style:italic;font-size:19px;font-weight:600;word-break:break-word">${address}</div>
-              <div style="width:36px;height:1px;background:${state.accent};margin:10px auto"></div>
+              <div style="width:36px;height:1px;background:${accentOnLight()};margin:10px auto"></div>
               <div style="font-size:9.5px;letter-spacing:1px;color:rgba(43,41,36,0.6);text-transform:uppercase">
                 ${beds} Bed &nbsp;&middot;&nbsp; ${baths} Bath &nbsp;&middot;&nbsp; ${sqft} Sq Ft &nbsp;&middot;&nbsp; Est. ${yearBuilt}
               </div>
-              ${statusText ? `<div style="margin-top:10px;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:${state.accent};font-weight:700">${statusText}</div>` : ''}
-              <div style="font-family:var(--font-serif);font-size:17px;font-weight:700;color:${state.accent};margin-top:12px">${price}</div>
+              ${statusText ? `<div style="margin-top:10px;font-size:12.2px;letter-spacing:2.5px;text-transform:uppercase;color:${accentOnLight()};font-weight:700">${statusText}</div>` : ''}
+              <div style="font-family:var(--font-serif);font-size:17px;font-weight:700;color:${accentOnLight()};margin-top:12px">${price}</div>
             </div>
             <div style="padding:20px 26px 0">
               <div style="font-size:11px;color:#4a453e;line-height:1.7;text-align:center;font-style:italic;margin-bottom:18px">${shortDesc}</div>
@@ -2258,10 +2293,10 @@
         return `
           <div style="background:#111111;color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:20px 20px 0">
-              ${statusText ? `<div style="text-align:center;margin-bottom:12px"><span style="display:inline-block;padding:5px 16px;background:${state.accent};color:#fff;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">${statusText}</span></div>` : ''}
+              ${statusText ? `<div style="text-align:center;margin-bottom:12px"><span style="display:inline-block;padding:7px 21px;background:${accentOnLight()};color:#fff;font-size:12.2px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700">${statusText}</span></div>` : ''}
               <div style="position:relative;width:100%;height:260px">
                 <div style="position:absolute;top:5px;left:130px;width:250px;height:250px;border-radius:50%;background:${grooves}">
-                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:${state.accent};display:flex;align-items:center;justify-content:center">
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:${accentOnLight()};display:flex;align-items:center;justify-content:center">
                     <div style="width:6px;height:6px;border-radius:50%;background:#111"></div>
                   </div>
                 </div>
@@ -2310,7 +2345,7 @@
                 <div style="font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(28,26,23,0.5);margin-top:2px">Property &amp; Homes</div>
               </div>
               <div style="text-align:center;padding:14px 0 10px;border-bottom:1px solid #1c1a17">
-                ${statusText ? `<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:${state.accent};margin-bottom:6px">${statusText}</div>` : ''}
+                ${statusText ? `<div style="font-size:13.5px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:${accentOnLight()};margin-bottom:6px">${statusText}</div>` : ''}
                 <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;line-height:1.2;word-break:break-word">${address}</div>
                 <div style="font-family:var(--font-serif);font-size:16px;font-style:italic;margin-top:4px">Asking ${price}</div>
               </div>
@@ -2340,16 +2375,16 @@
           <div style="background:#faf6ec;color:#2b2620;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:34px 20px 0">
               <div style="position:relative;border:2px double rgba(43,38,32,0.55);padding:26px 22px 20px">
-                <div style="position:absolute;top:-26px;left:50%;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:${state.accent};border:3px solid #faf6ec;box-shadow:0 0 0 1px rgba(43,38,32,0.4);display:flex;align-items:center;justify-content:center">
+                <div style="position:absolute;top:-26px;left:50%;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:${accentOnLight()};border:3px solid #faf6ec;box-shadow:0 0 0 1px rgba(43,38,32,0.4);display:flex;align-items:center;justify-content:center">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                 </div>
                 <div style="text-align:center;margin-top:10px">
                   <div style="font-size:8.5px;letter-spacing:4px;text-transform:uppercase;color:rgba(43,38,32,0.55)">Certificate of Listing</div>
-                  <div style="width:50px;height:1px;background:${state.accent};margin:10px auto 14px"></div>
+                  <div style="width:50px;height:1px;background:${accentOnLight()};margin:10px auto 14px"></div>
                   <div style="font-family:var(--font-serif);font-size:11.5px;font-style:italic;color:rgba(43,38,32,0.7)">This certifies that the property located at</div>
                   <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;margin:8px 0;word-break:break-word">${address}</div>
                   <div style="font-family:var(--font-serif);font-size:11.5px;font-style:italic;color:rgba(43,38,32,0.7)">is hereby offered for sale at</div>
-                  <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${state.accent};margin:8px 0 16px">${price}</div>
+                  <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${accentOnLight()};margin:8px 0 16px">${price}</div>
                 </div>
                 <div style="border:1px solid rgba(43,38,32,0.3);padding:6px">
                   ${panImageHTML(0, computeHeroHeight(shortDesc, 180))}
@@ -2357,7 +2392,7 @@
                 <div style="text-align:center;font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(43,38,32,0.6);margin-top:14px">
                   ${beds} Bedrooms &nbsp;&middot;&nbsp; ${baths} Bathrooms &nbsp;&middot;&nbsp; ${sqft} Sq Ft &nbsp;&middot;&nbsp; Est. ${yearBuilt}
                 </div>
-                ${statusText ? `<div style="text-align:center;margin-top:14px"><span style="border:1px solid ${state.accent};color:${state.accent};padding:5px 18px;font-size:9.5px;letter-spacing:3px;text-transform:uppercase">${statusText}</span></div>` : ''}
+                ${statusText ? `<div style="text-align:center;margin-top:14px"><span style="border:1px solid ${accentOnLight()};color:${accentOnLight()};padding:7px 23px;font-size:12.8px;letter-spacing:3px;text-transform:uppercase">${statusText}</span></div>` : ''}
                 <div style="font-family:var(--font-serif);font-style:italic;font-size:11.5px;color:#3d3830;line-height:1.65;text-align:center;margin:16px 4px 0">${shortDesc}</div>
               </div>
               <div style="margin-top:18px">${presentedByBar(false)}</div>
@@ -2371,7 +2406,7 @@
         // Transit-map treatment: a bold colored "line" runs down the left
         // edge connecting circular station stops (address, photo, price,
         // stats, description, contact) — nothing like a typical flyer.
-        const lineColor = state.accent;
+        const lineColor = accentOnLight();
         const stop = (content) => `
           <div style="display:flex;gap:14px;position:relative;z-index:1;padding-bottom:20px">
             <div style="width:20px;flex-shrink:0;display:flex;justify-content:center">
@@ -2384,7 +2419,7 @@
             <div style="padding:20px 20px 0">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
                 <div style="font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Listing Line</div>
-                ${statusText ? `<span style="background:${lineColor};color:#fff;padding:4px 12px;font-size:8.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</span>` : ''}
+                ${statusText ? `<span style="background:${lineColor};color:#fff;padding:5px 16px;font-size:11.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</span>` : ''}
               </div>
               <div style="position:relative">
                 <div style="position:absolute;left:9px;top:8px;bottom:8px;width:4px;background:${lineColor}"></div>
@@ -2418,8 +2453,8 @@
               </div>
               <div style="font-family:var(--font-serif);font-style:italic;font-size:10.5px;color:rgba(43,41,36,0.75);margin:8px 0 14px">&rarr; Updated kitchen &amp; fresh finishes throughout</div>
               <div style="font-family:var(--font-serif);font-size:19px;font-weight:700;word-break:break-word">${address}</div>
-              ${statusText ? `<div style="font-family:var(--font-serif);font-style:italic;font-size:10.5px;color:${state.accent};margin-top:4px">&rarr; ${statusText}</div>` : ''}
-              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${state.accent};margin:10px 0">${price}</div>
+              ${statusText ? `<div style="font-family:var(--font-serif);font-style:italic;font-size:14.2px;color:${accentOnLight()};margin-top:4px">&rarr; ${statusText}</div>` : ''}
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${accentOnLight()};margin:10px 0">${price}</div>
               <div style="font-size:10.5px;letter-spacing:0.5px;color:rgba(43,41,36,0.7);margin-bottom:12px">${beds} bed &nbsp;/&nbsp; ${baths} bath &nbsp;/&nbsp; ${sqft} sq ft &nbsp;/&nbsp; built ${yearBuilt}</div>
               <div style="font-size:11px;color:#3d3830;line-height:1.7;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
@@ -2442,8 +2477,8 @@
         return `
           <div style="background:#14141a;color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:18px 18px 0">
-              <div style="position:relative;border:3px solid ${state.accent};border-radius:14px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,0.08), 0 0 24px ${glow}66">
-                <div style="position:absolute;top:18px;right:-32px;transform:rotate(45deg);background:${state.accent};color:#fff;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;padding:4px 34px;box-shadow:0 2px 8px rgba(0,0,0,0.4);z-index:2;white-space:nowrap">Rare Listing</div>
+              <div style="position:relative;border:3px solid ${accentOnLight()};border-radius:14px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,0.08), 0 0 24px ${glow}66">
+                <div style="position:absolute;top:18px;right:-32px;transform:rotate(45deg);background:${accentOnLight()};color:#fff;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;padding:4px 34px;box-shadow:0 2px 8px rgba(0,0,0,0.4);z-index:2;white-space:nowrap">Rare Listing</div>
                 <div style="margin-bottom:8px;padding-right:70px">
                   <div style="font-family:var(--font-serif);font-size:14px;font-weight:800;word-break:break-word">${address}</div>
                   <div style="font-family:var(--font-serif);font-size:15px;font-weight:800;color:${glow};margin-top:2px">${price}</div>
@@ -2451,7 +2486,7 @@
                 <div style="border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.15)">
                   ${panImageHTML(0, computeHeroHeight(shortDesc, 190))}
                 </div>
-                ${statusText ? `<div style="text-align:center;margin-top:10px"><span style="background:${state.accent};color:#fff;padding:4px 14px;border-radius:3px;font-size:8.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</span></div>` : ''}
+                ${statusText ? `<div style="text-align:center;margin-top:10px"><span style="background:${accentOnLight()};color:#fff;padding:5px 18px;border-radius:3px;font-size:11.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</span></div>` : ''}
                 <div style="display:flex;gap:8px;margin-top:12px">
                   ${statCell('Beds', beds)}
                   ${statCell('Baths', baths)}
@@ -2474,16 +2509,16 @@
           <div style="background:#f5efe1;color:#2b2620;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:30px 26px 0;text-align:center">
               <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px">
-                <div style="flex:1;height:1px;background:${state.accent}"></div>
-                <div style="width:44px;height:44px;border-radius:50%;border:1.5px solid ${state.accent};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${state.accent}" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
+                <div style="flex:1;height:1px;background:${accentOnLight()}"></div>
+                <div style="width:44px;height:44px;border-radius:50%;border:1.5px solid ${accentOnLight()};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${accentOnLight()}" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
                 </div>
-                <div style="flex:1;height:1px;background:${state.accent}"></div>
+                <div style="flex:1;height:1px;background:${accentOnLight()}"></div>
               </div>
               <div style="font-size:8px;letter-spacing:5px;text-transform:uppercase;color:rgba(43,38,32,0.55)">${val('agentCompany', 'Brokerage Name')}</div>
               <div style="font-family:var(--font-serif);font-size:26px;font-weight:700;margin:14px 0 4px;word-break:break-word">${address}</div>
               <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(43,38,32,0.5)">Est. ${yearBuilt}</div>
-              <div style="width:60px;height:1px;background:${state.accent};margin:16px auto"></div>
+              <div style="width:60px;height:1px;background:${accentOnLight()};margin:16px auto"></div>
             </div>
             <div style="padding:0 40px">
               <div style="border:1px solid rgba(43,38,32,0.3);padding:6px">
@@ -2491,8 +2526,8 @@
               </div>
             </div>
             <div style="padding:18px 26px 0;text-align:center">
-              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${state.accent}">${price}</div>
-              ${statusText ? `<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(43,38,32,0.6);margin-top:6px">${statusText}</div>` : ''}
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${accentOnLight()}">${price}</div>
+              ${statusText ? `<div style="font-size:12.2px;letter-spacing:3px;text-transform:uppercase;color:rgba(43,38,32,0.6);margin-top:6px">${statusText}</div>` : ''}
               <div style="font-size:9.5px;letter-spacing:1px;color:rgba(43,38,32,0.65);text-transform:uppercase;margin-top:12px">
                 ${beds} Bed &nbsp;&middot;&nbsp; ${baths} Bath &nbsp;&middot;&nbsp; ${sqft} Sq Ft
               </div>
@@ -2509,15 +2544,15 @@
         // accent, and a rustic torn-market-sign feel for the price.
         return `
           <div style="background:#f4ece0;color:#3a2b1c;overflow:hidden;font-family:var(--font-flyer);position:relative">
-            <div style="position:absolute;top:10px;right:10px;opacity:0.85">${leafIcon(state.accent, 34)}</div>
+            <div style="position:absolute;top:10px;right:10px;opacity:0.85">${leafIcon(accentOnLight(), 34)}</div>
             <div style="padding:22px 22px 0">
-              <div style="font-size:8.5px;letter-spacing:4px;text-transform:uppercase;color:${state.accent};margin-bottom:6px">Harvest Season Listing</div>
-              ${statusText ? `<div style="display:inline-block;background:${state.accent};color:#fff;padding:5px 16px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:12px">${statusText}</div>` : ''}
+              <div style="font-size:8.5px;letter-spacing:4px;text-transform:uppercase;color:${accentOnLight()};margin-bottom:6px">Harvest Season Listing</div>
+              ${statusText ? `<div style="display:inline-block;background:${accentOnLight()};color:#fff;padding:7px 21px;font-size:12.8px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:12px">${statusText}</div>` : ''}
               <div style="border-radius:4px;overflow:hidden;margin:6px 0 16px;border:4px solid #fff;box-shadow:0 4px 14px rgba(58,43,28,0.25)">
                 ${panImageHTML(0, computeHeroHeight(shortDesc, 200))}
               </div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:700;word-break:break-word">${address}</div>
-              <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${state.accent};margin:6px 0 16px">${price}</div>
+              <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${accentOnLight()};margin:6px 0 16px">${price}</div>
               <div style="margin-bottom:16px">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#4a3a28;line-height:1.65;margin-bottom:16px;font-style:italic">${shortDesc}</div>
               <div style="margin-bottom:16px">${presentedByBar(false)}</div>
@@ -2536,7 +2571,7 @@
         return `
           <div style="background:#3b1410;color:#f3e9dd;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:24px 20px 0;text-align:center">
-              ${statusText ? `<div style="display:inline-block;border:1px solid ${leafColor};color:${leafColor};padding:5px 16px;font-size:9.5px;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px">${statusText}</div>` : ''}
+              ${statusText ? `<div style="display:inline-block;border:1px solid ${leafColor};color:${leafColor};padding:7px 21px;font-size:12.8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px">${statusText}</div>` : ''}
               ${decorativeRing(ringSize, leafColor, null, photoHTML)}
               <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;word-break:break-word">${address}</div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:800;color:${leafColor};margin:8px 0 16px">${price}</div>
@@ -2564,9 +2599,9 @@
               <div style="border:6px solid #ffffff;box-shadow:0 0 0 1px rgba(111,168,201,0.4), 0 8px 20px rgba(28,43,51,0.15);border-radius:6px;overflow:hidden">
                 ${panImageHTML(0, computeHeroHeight(shortDesc, 200))}
               </div>
-              ${statusText ? `<div style="margin-top:14px;display:inline-block;background:${ice};color:#fff;padding:5px 16px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</div>` : ''}
+              ${statusText ? `<div style="margin-top:14px;display:inline-block;background:${ice};color:#fff;padding:7px 21px;font-size:12.8px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${statusText}</div>` : ''}
               <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;margin-top:14px;word-break:break-word">${address}</div>
-              <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${state.accent};margin-top:6px">${price}</div>
+              <div style="font-family:var(--font-serif);font-size:24px;font-weight:800;color:${accentOnLight()};margin-top:6px">${price}</div>
             </div>
             <div style="padding:18px 22px 0">
               <div style="margin-bottom:16px">${statBar(beds, baths, sqft, false)}</div>
@@ -2585,7 +2620,7 @@
         return `
           <div style="background:#1a1613;color:#f3ece2;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:20px 20px 0">
-              ${statusText ? `<div style="text-align:center;margin-bottom:12px"><span style="border:1px solid ${glow};color:${glow};padding:5px 16px;font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase">${statusText}</span></div>` : ''}
+              ${statusText ? `<div style="text-align:center;margin-bottom:12px"><span style="border:1px solid ${glow};color:${glow};padding:7px 21px;font-size:12.8px;letter-spacing:2.5px;text-transform:uppercase">${statusText}</span></div>` : ''}
               <div style="border-radius:6px;overflow:hidden">${panImageHTML(0, computeHeroHeight(shortDesc, 210))}</div>
               <div style="position:relative;text-align:center;margin-top:18px">
                 <div style="position:absolute;left:50%;top:50%;width:220px;height:220px;transform:translate(-50%,-50%);background:radial-gradient(circle, ${glow}33 0%, transparent 70%);pointer-events:none"></div>
@@ -2614,9 +2649,9 @@
             <div style="padding:24px 20px 0">
               <div style="font-family:var(--font-serif);font-style:italic;font-size:12px;color:${green};margin-bottom:14px">Season&rsquo;s Greetings from ${val('agentName', 'Your Name')}</div>
               ${decorativeRing(ringSize, green, berry, photoHTML)}
-              ${statusText ? `<div style="display:inline-block;background:${green};color:#fff;padding:5px 16px;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:12px">${statusText}</div>` : ''}
+              ${statusText ? `<div style="display:inline-block;background:${green};color:#fff;padding:7px 21px;font-size:12.2px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:12px">${statusText}</div>` : ''}
               <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;word-break:break-word">${address}</div>
-              <div style="font-family:var(--font-serif);font-size:23px;font-weight:800;color:${state.accent};margin:8px 0 16px">${price}</div>
+              <div style="font-family:var(--font-serif);font-size:23px;font-weight:800;color:${accentOnLight()};margin:8px 0 16px">${price}</div>
               <div style="margin-bottom:16px;text-align:left">${statBar(beds, baths, sqft, false)}</div>
               <div style="font-size:11.5px;color:#4a453e;line-height:1.65;margin-bottom:16px">${shortDesc}</div>
               <div style="margin-bottom:16px;text-align:left">${presentedByBar(false)}</div>
@@ -2645,9 +2680,9 @@
               <div style="display:flex;gap:20px;flex-wrap:wrap">
                 <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(43,38,32,0.5)">Class</div><div style="font-weight:700;font-size:12px">${beds} Bed / ${baths} Bath</div></div>
                 <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(43,38,32,0.5)">Size</div><div style="font-weight:700;font-size:12px">${sqft} Sq Ft</div></div>
-                <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(43,38,32,0.5)">Fare</div><div style="font-weight:700;font-size:12px;color:${state.accent}">${price}</div></div>
+                <div><div style="font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(43,38,32,0.5)">Fare</div><div style="font-weight:700;font-size:12px;color:${accentOnLight()}">${price}</div></div>
               </div>
-              ${statusText ? `<div style="margin-top:12px;display:inline-block;border:1px solid ${state.accent};color:${state.accent};padding:4px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase">${statusText}</div>` : ''}
+              ${statusText ? `<div style="margin-top:12px;display:inline-block;border:1px solid ${accentOnLight()};color:${accentOnLight()};padding:5px 18px;font-size:12.2px;letter-spacing:2px;text-transform:uppercase">${statusText}</div>` : ''}
             </div>
             <div style="padding:4px 22px 0">
               <div style="font-size:11px;color:#3d3830;line-height:1.6;margin-bottom:16px">${shortDesc}</div>
@@ -2671,7 +2706,7 @@
               <div style="font-family:var(--font-serif);font-style:italic;font-size:22px;font-weight:700;margin-top:14px;word-break:break-word">${address}</div>
               <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(243,237,224,0.55);margin-top:10px">Today&rsquo;s Special</div>
               <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${accentOnDark()}">${price}</div>
-              ${statusText ? `<div style="margin-top:10px;display:inline-block;border:1px solid ${accentOnDark()};color:${accentOnDark()};padding:4px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase">${statusText}</div>` : ''}
+              ${statusText ? `<div style="margin-top:10px;display:inline-block;border:1px solid ${accentOnDark()};color:${accentOnDark()};padding:5px 18px;font-size:12.2px;letter-spacing:2px;text-transform:uppercase">${statusText}</div>` : ''}
             </div>
             <div style="padding:16px 24px 0;text-align:left">
               <div style="font-size:11px;line-height:1.9;border-top:1px dashed rgba(243,237,224,0.25);border-bottom:1px dashed rgba(243,237,224,0.25);padding:10px 0;margin-bottom:16px">
@@ -2702,7 +2737,7 @@
           <div style="background:#0a0e1a;color:#ffffff;overflow:hidden;font-family:var(--font-flyer)">
             <div style="padding:22px 20px 0;text-align:center">
               <div style="font-size:8.5px;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:8px">Your Guiding Star</div>
-              ${statusText ? `<div style="display:inline-block;border:1px solid ${starColor};color:${starColor};padding:5px 16px;font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:14px">${statusText}</div>` : ''}
+              ${statusText ? `<div style="display:inline-block;border:1px solid ${starColor};color:${starColor};padding:7px 21px;font-size:12.8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:14px">${statusText}</div>` : ''}
               <div style="border-radius:6px;overflow:hidden">${panImageHTML(0, computeHeroHeight(shortDesc, 200))}</div>
               <div style="font-family:var(--font-serif);font-size:22px;font-weight:700;margin-top:16px;word-break:break-word">${address}</div>
               <div style="font-family:var(--font-serif);font-size:25px;font-weight:800;color:${starColor};margin-top:6px">${price}</div>
@@ -2739,7 +2774,7 @@
               <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(28,26,23,0.5);margin-bottom:12px">Congratulations to the new homeowners</div>
               ${statusRibbon('Just Sold', 'sold')}
               <div style="font-family:var(--font-serif);font-size:21px;font-weight:700;letter-spacing:0.3px;word-break:break-word;margin-top:4px">${address}</div>
-              ${soldPrice ? `<div style="margin-top:6px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Sold at <span style="font-family:var(--font-serif);font-size:18px;font-weight:800;letter-spacing:0;text-transform:none;color:${state.accent}">${soldPrice}</span></div>` : ''}
+              ${soldPrice ? `<div style="margin-top:6px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(28,26,23,0.5)">Sold at <span style="font-family:var(--font-serif);font-size:18px;font-weight:800;letter-spacing:0;text-transform:none;color:${accentOnLight()}">${soldPrice}</span></div>` : ''}
             </div>
             ${panImageHTML(0, 240)}
             ${gallery}
@@ -3393,7 +3428,7 @@
 
     /* ---------- Snapshots of the working state ---------- */
     function collectProfile() {
-      const p = { accent: state.accent, agentPhoto: state.agentPhoto, agentLogo: state.agentLogo, agentOffset: state.agentOffset, photoIdCounter,
+      const p = { accent: state.accent, accentV: 2, agentPhoto: state.agentPhoto, agentLogo: state.agentLogo, agentOffset: state.agentOffset, photoIdCounter,
         agentCutout: state.agentCutout,
         favoriteLayouts: favoriteLayouts.slice() };
       PROFILE_FIELDS.forEach(id => { p[id] = val(id, ''); });
@@ -3415,7 +3450,8 @@
         checklist: { designPicked: !!state.designPicked, exported: !!state.exported },
         financing: (state.financing || []).slice(),
         accents: (state.accents || []).slice(),
-        cutout: Object.assign({}, state.cutout)
+        cutout: Object.assign({}, state.cutout),
+        logoPlace: Object.assign({}, state.logoPlace)
       };
       LISTING_FIELDS.forEach(id => { l[id] = id === 'status' ? $('#status').value : val(id, ''); });
       return l;
@@ -3572,7 +3608,9 @@
     }
     function applyProfile(p) {
       PROFILE_FIELDS.forEach(id => { if ($(`#${id}`) && p[id] !== undefined) $(`#${id}`).value = p[id]; });
-      state.accent = p.accent || '#b8863f';
+      state.accent = p.accent || '#ffffff';
+      // Profiles saved while gold was the default move to the white default once.
+      if (p.accentV !== 2 && String(p.accent || '#b8863f').toLowerCase() === '#b8863f') state.accent = '#ffffff';
       state.agentPhoto = p.agentPhoto || null;
       state.agentLogo = p.agentLogo || null;
       state.agentCutout = p.agentCutout || null;
@@ -3588,14 +3626,9 @@
       // into buildFlyerHTML's inline styles). The builder's own UI chrome uses
       // the fixed --accent CSS variable set in :root and is never touched here,
       // so picking a brand accent never re-themes the tool itself.
-      $('#customColorPicker').value = state.accent;
-      $$('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === state.accent));
+      syncAccentUI();
       if (state.agentPhoto) $('#agentPhotoPreview').src = state.agentPhoto;
-      if (state.agentLogo) {
-        $('#agentLogoPreview').src = state.agentLogo;
-        $('#agentLogoPreview').style.display = 'block';
-        $('#clearLogoBtn').style.display = 'inline';
-      }
+      syncLogoUI();
     }
     function loadFromLocal() {
       try {
@@ -3646,6 +3679,13 @@
           x: typeof c.x === 'number' ? c.x : 0.66,
           y: typeof c.y === 'number' ? c.y : 0.28,
           w: typeof c.w === 'number' ? c.w : 0.32
+        };
+        const lp = l.logoPlace || {};
+        state.logoPlace = {
+          show: lp.show !== false,
+          x: typeof lp.x === 'number' ? lp.x : 0.05,
+          y: typeof lp.y === 'number' ? lp.y : 0.34,
+          w: typeof lp.w === 'number' ? lp.w : 0.26
         };
         if (typeof syncSocialButtons === 'function') syncSocialButtons();
         $$('.layout-option-btn').forEach(o => o.classList.toggle('active', o.dataset.layout === state.layout));
@@ -4084,7 +4124,7 @@
        Kept as PNG so its see-through background survives (the normal photo
        path converts everything to JPEG, which fills it in white/black). */
     const CUTOUT_MAX = 700;
-    function readCutout(file) {
+    function readCutout(file, maxDim) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(new Error('Could not read that file.'));
@@ -4092,7 +4132,7 @@
           const img = new Image();
           img.onerror = () => reject(new Error('That image couldn\u2019t be opened. Try saving it as a PNG.'));
           img.onload = () => {
-            const k = Math.min(1, CUTOUT_MAX / Math.max(img.width, img.height));
+            const k = Math.min(1, (maxDim || CUTOUT_MAX) / Math.max(img.width, img.height));
             const c = document.createElement('canvas');
             c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
             const ctx = c.getContext('2d');
@@ -4132,6 +4172,7 @@
       $('#btnCutoutUpload').textContent = state.agentCutout ? 'Replace Cutout' : 'Upload Cutout';
     }
     $('#btnGoCutout').addEventListener('click', () => goToCutout(false));
+    $('#btnGoLogo').addEventListener('click', goToLogo);
     $('#btnCutoutUpload').addEventListener('click', () => $('#agentCutoutInput').click());
     $('#agentCutoutInput').addEventListener('change', async e => {
       const file = e.target.files[0];
@@ -4191,18 +4232,37 @@
       updatePreview();
     });
 
+    // Company logo: uploaded under the preview and placed on the post. Kept as
+    // PNG so a see-through logo stays see-through.
+    function syncLogoUI() {
+      const prev = $('#agentLogoPreview');
+      prev.style.display = state.agentLogo ? 'block' : 'none';
+      if (state.agentLogo) prev.src = state.agentLogo;
+      $('#clearLogoBtn').style.display = state.agentLogo ? 'inline' : 'none';
+      $('#btnLogoUpload').textContent = state.agentLogo ? 'Replace Logo' : 'Upload Logo';
+    }
+    $('#btnLogoUpload').addEventListener('click', () => $('#agentLogoInput').click());
     $('#agentLogoInput').addEventListener('change', async e => {
       const file = e.target.files[0];
+      e.target.value = '';
       if (!file) return;
-      let compressed;
-      try { compressed = await compressImage(await convertHeicIfNeeded(file), 400, 0.9); }
+      let res;
+      try { res = await readCutout(await convertHeicIfNeeded(file), 500); }
       catch (err) { alert(err.message || 'That image could not be added.'); return; }
-      state.agentLogo = compressed;
-      $('#agentLogoPreview').src = state.agentLogo;
-      $('#agentLogoPreview').style.display = 'block';
-      $('#clearLogoBtn').style.display = 'inline';
+      const before = state.agentLogo;
+      state.agentLogo = res.src;
+      if (!saveProfile()) {
+        state.agentLogo = before;
+        alert('That logo is too large to save on this device. Try a smaller file.');
+        return;
+      }
+      state.logoPlace.show = true;
+      syncLogoUI();
+      if (typeof syncSocialButtons === 'function') syncSocialButtons();
+      if (!socialView && typeof setSocialView === 'function') setSocialView(true);
       updatePreview();
     });
+    $('#clearLogoBtn').addEventListener('click', () => clearAgentLogo());
 
     /* ---------- Co-listing agent (sidebar) ---------- */
     const CO_AGENT_PLACEHOLDER = $('#coAgentPhotoPreview').getAttribute('src');
@@ -4245,9 +4305,9 @@
 
     function clearAgentLogo() {
       state.agentLogo = null;
-      $('#agentLogoPreview').style.display = 'none';
-      $('#clearLogoBtn').style.display = 'none';
       $('#agentLogoInput').value = '';
+      syncLogoUI();
+      if (typeof syncSocialButtons === 'function') syncSocialButtons();
       updatePreview();
     }
     window.clearAgentLogo = clearAgentLogo;
@@ -4539,8 +4599,18 @@
     // (Caller re-renders.) Only the flyer uses it — never the builder's chrome.
     function setAccent(color) {
       state.accent = color;
-      $('#customColorPicker').value = color;
-      $$('.swatch').forEach(x => x.classList.toggle('active', x.dataset.color.toLowerCase() === color.toLowerCase()));
+      syncAccentUI();
+    }
+    // Highlights the swatch in use; when the color is none of them, the
+    // rainbow "Any color" circle shows the custom pick instead.
+    function syncAccentUI() {
+      const c = String(state.accent).toLowerCase();
+      let match = false;
+      $$('.swatch').forEach(x => { const on = x.dataset.color.toLowerCase() === c; x.classList.toggle('active', on); if (on) match = true; });
+      const wrap = $('#customColorWrap');
+      wrap.classList.toggle('active', !match);
+      wrap.style.setProperty('--picked', match ? 'transparent' : state.accent);
+      if (/^#[0-9a-f]{6}$/i.test(state.accent)) $('#customColorPicker').value = state.accent;
     }
     $$('.swatch').forEach(s => {
       s.addEventListener('click', () => {
@@ -4585,7 +4655,7 @@
 
     $('#customColorPicker').addEventListener('input', e => {
       state.accent = e.target.value;
-      $$('.swatch').forEach(x => x.classList.remove('active'));
+      syncAccentUI();
       updatePreview();
     });
 
@@ -5006,12 +5076,13 @@
 
     // A compact beds/baths/sqft row in white-on-dark, sized for the tight
     // overlays below (statBar's own type is a touch large at this scale).
-    function socialStatRow(beds, baths, sqft, dark, justify, gap) {
+    function socialStatRow(beds, baths, sqft, dark, justify, gap, iconColor) {
       const numColor = dark === false ? '#1c1a17' : '#fff';
       const labelColor = dark === false ? 'rgba(28,26,23,0.55)' : 'rgba(255,255,255,0.65)';
+      const ic = iconColor || (dark === false ? accentOnLight() : accentOnDark());
       const cell = (icon, num, label) => `
         <div style="display:flex;align-items:center;gap:5px;color:${numColor};white-space:nowrap">
-          ${icon}<span style="font-size:14px;font-weight:700;color:${numColor}">${num}</span>
+          <span style="display:inline-flex;color:${ic}">${icon}</span><span style="font-size:14px;font-weight:700;color:${numColor}">${num}</span>
           <span style="font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:${labelColor}">${label}</span>
         </div>`;
       return `
@@ -5068,10 +5139,13 @@
     }
     // The realtor's background-removed photo, placed where they dragged it.
     function cutoutShowing() { return !!(state.agentCutout && state.cutout && state.cutout.show); }
+    function logoShowing() { return !!(state.agentLogo && state.logoPlace && state.logoPlace.show); }
+    function placedLayer(item, c, src) {
+      return `<div class="cutout-layer" data-item="${item}" style="left:${(c.x * 100).toFixed(2)}%;top:${(c.y * 100).toFixed(2)}%;width:${(c.w * 100).toFixed(2)}%"><img src="${src}" alt="" /></div>`;
+    }
     function cutoutLayerHTML() {
-      if (!cutoutShowing()) return '';
-      const c = state.cutout;
-      return `<div class="cutout-layer" style="left:${(c.x * 100).toFixed(2)}%;top:${(c.y * 100).toFixed(2)}%;width:${(c.w * 100).toFixed(2)}%"><img src="${state.agentCutout}" alt="" /></div>`;
+      return (logoShowing() ? placedLayer('logo', state.logoPlace, state.agentLogo) : '')
+        + (cutoutShowing() ? placedLayer('cutout', state.cutout, state.agentCutout) : '');
     }
     function exclaim(t) { return t + (t.slice(-1) !== '!' ? '!' : ''); }
     // A photo that fills whatever space its box ends up with (the info area
@@ -5089,42 +5163,45 @@
     // The realtor is the star of the post: a large round headshot with the
     // name, brokerage and phone set big beside it. The headshot is left off
     // when their cutout photo is on the post, so their face isn't there twice.
-    function igAgent(f, size, align, dark) {
+    function igAgent(f, size, align, dark, accentC) {
       const light = dark === false;
       const nameColor = light ? '#1c1a17' : '#fff';
       const subColor = light ? '#4a453e' : 'rgba(255,255,255,0.86)';
+      const accC = accentC || (light ? accentOnLight() : accentOnDark());
       const tall = igCtx.H > 600;
       const photo = igCtx.wide ? 72 : (tall ? 104 : 88);
       const nameSize = igCtx.wide ? 20 : (tall ? 26 : 23);
       const subSize = igCtx.wide ? 11.5 : (tall ? 14 : 13);
       const phoneSize = igCtx.wide ? 14 : (tall ? 18 : 16);
-      const logo = state.agentLogo ? `<img src="${state.agentLogo}" alt="" style="max-height:${tall ? 44 : 38}px;max-width:${tall ? 104 : 90}px;object-fit:contain;flex-shrink:0" />` : '';
       return `
         <div style="display:flex;align-items:center;gap:${tall ? 16 : 13}px;justify-content:${align === 'center' ? 'center' : 'flex-start'};align-self:${align === 'center' ? 'center' : 'stretch'}">
-          ${cutoutShowing() ? '' : agentCutoutHTML(photo, !light)}
+          ${cutoutShowing() ? '' : agentCutoutHTML(photo, !light, accC)}
           <div style="min-width:0;text-align:left;line-height:1.2">
             <div style="font-family:var(--font-serif);font-size:${nameSize}px;font-weight:800;color:${nameColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentName}</div>
             <div style="font-size:${subSize}px;color:${subColor};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentCompany}</div>
-            <div style="font-size:${phoneSize}px;font-weight:700;color:${nameColor};margin-top:3px;white-space:nowrap">${f.agentPhone}</div>
+            <div style="font-size:${phoneSize}px;font-weight:800;color:${accC};margin-top:3px;white-space:nowrap">${f.agentPhone}</div>
           </div>
-          ${logo}
         </div>`;
     }
-    const igRule = (dark) => `<div style="height:1px;background:${dark === false ? 'rgba(28,26,23,0.15)' : 'rgba(255,255,255,0.22)'};align-self:stretch"></div>`;
+    // A thin neutral rule, or a thick accent-colored one when given a color.
+    const igRule = (dark, color) => `<div style="height:${color ? 3 : 1}px;background:${color || (dark === false ? 'rgba(28,26,23,0.15)' : 'rgba(255,255,255,0.22)')};align-self:stretch;flex-shrink:0"></div>`;
 
     // Headline Banner: big status headline over the photo, info on a dark fade.
+    // The accent colors the headline, the price tag, the rules, icons and phone.
     function buildIgBold(f, W, H, wide) {
+      const tall = H > 600;
+      const A = accentOnDark(), fill = state.accent, ink = inkOn(fill);
       const headline = exclaim(f.status || 'Just Listed');
       const photo = `<div style="position:absolute;inset:0">${panImageFill(0)}</div>`;
-      const pill = `<span style="display:inline-block;border:1px solid ${accentOnDark()};padding:5px 14px;color:${accentOnDark()};font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">Listed at ${f.price}</span>`;
+      const pill = `<span style="display:inline-block;background:${fill};color:${ink};padding:${tall ? '11px 28px' : '9px 24px'};font-size:${tall ? 19 : 17}px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,0.4)">Listed at ${f.price}</span>`;
       if (wide) {
         return igShell(W, H, '#000', `
           ${photo}
           <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0) 66%)"></div>
           <div class="ig-text" style="position:absolute;top:0;bottom:0;left:0;width:56%;padding:18px 24px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:30px;font-weight:800;color:#fff;line-height:1.05">${headline}</div>
+            <div style="font-family:var(--font-serif);font-style:italic;font-size:34px;font-weight:800;color:${A};line-height:1.05">${headline}</div>
             ${pill}
-            <div style="font-size:11px;letter-spacing:0.8px;color:rgba(255,255,255,0.85)">${f.address}</div>
+            <div style="font-size:12px;letter-spacing:0.8px;color:rgba(255,255,255,0.9)">${f.address}</div>
             ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
             ${igAgent(f, 36, 'left')}
             ${socialBrand(true, 'left')}
@@ -5132,52 +5209,59 @@
       }
       return igShell(W, H, '#000', `
         ${photo}
-        <div class="ig-text" style="position:absolute;top:0;left:0;right:0;padding:26px 24px 44px;background:linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
-          <div style="font-family:var(--font-serif);font-style:italic;font-size:${H > 600 ? 38 : 34}px;font-weight:800;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,0.5)">${headline}</div>
-          <div style="margin-top:8px">${pill}</div>
+        <div class="ig-text" style="position:absolute;top:0;left:0;right:0;padding:26px 24px 48px;background:linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.45) 65%, transparent 100%);text-align:center">
+          <div style="font-family:var(--font-serif);font-style:italic;font-size:${tall ? 46 : 40}px;font-weight:800;color:${A};text-shadow:0 2px 14px rgba(0,0,0,0.55)">${headline}</div>
+          <div style="margin-top:10px">${pill}</div>
         </div>
         <div class="ig-text" style="position:absolute;left:0;right:0;bottom:0;padding:40px 22px 16px;background:linear-gradient(0deg, rgba(0,0,0,0.9) 55%, rgba(0,0,0,0.6) 80%, transparent 100%);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
-          <div style="font-size:11.5px;letter-spacing:1px;color:rgba(255,255,255,0.85)">${f.address}</div>
+          <div style="font-size:13px;letter-spacing:1px;color:rgba(255,255,255,0.92)">${f.address}</div>
           ${socialStatRow(f.beds, f.baths, f.sqft)}
           ${igAgent(f, H > 600 ? 46 : 40, 'center')}
-          ${igRule()}
+          ${igRule(true, A)}
           ${socialBrand(true, 'center')}
         </div>`);
     }
 
     // Color Block: photo plus a solid accent-color panel, all left-aligned.
+    // Lettering on the panel flips dark when the accent is light (white).
     function buildIgSplit(f, W, H, wide) {
-      const chip = f.statusText ? `<div style="position:absolute;top:16px;left:16px;background:rgba(0,0,0,0.68);color:#fff;padding:6px 14px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
+      const tall = H > 600;
+      const fill = state.accent, ink = inkOn(fill), onDark = ink === '#ffffff';
+      const sub = onDark ? 'rgba(255,255,255,0.92)' : 'rgba(28,26,23,0.78)';
+      const chip = f.statusText ? `<div style="position:absolute;top:16px;left:16px;background:${fill};color:${ink};padding:10px 22px;font-size:14px;letter-spacing:2.2px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,0.35)">${f.statusText}</div>` : '';
       const info = `
         <div>
-          <div style="font-family:var(--font-serif);font-size:30px;font-weight:800;line-height:1.1">${f.price}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
+          <div style="font-family:var(--font-serif);font-size:${tall ? 42 : 36}px;font-weight:800;line-height:1.05">${f.price}</div>
+          <div style="font-size:13px;color:${sub};margin-top:3px;word-break:break-word">${f.address}</div>
         </div>
-        ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
-        ${igAgent(f, wide ? 32 : 38, 'left')}
-        ${igRule()}
-        ${socialBrand(true, 'left', true)}`;
+        ${socialStatRow(f.beds, f.baths, f.sqft, onDark, 'flex-start', 14, ink)}
+        ${igAgent(f, wide ? 32 : 38, 'left', onDark, ink)}
+        ${igRule(onDark, ink)}
+        ${socialBrand(onDark, 'left', ink)}`;
       if (wide) {
-        return igShell(W, H, state.accent, `
+        return igShell(W, H, fill, `
           <div style="position:relative;width:56%;flex-shrink:0">${panImageFill(0)}${chip}</div>
-          <div class="ig-text" style="flex:1;min-width:0;color:#fff;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>`, 'display:flex');
+          <div class="ig-text" style="flex:1;min-width:0;color:${ink};padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>`, 'display:flex');
       }
-      return igShell(W, H, state.accent, `
+      return igShell(W, H, fill, `
         <div style="position:relative;flex:1;min-height:0">${panImageFill(0)}${chip}</div>
-        <div class="ig-text" style="flex-shrink:0;color:#fff;padding:18px 24px;display:flex;flex-direction:column;gap:10px">${info}</div>`, 'display:flex;flex-direction:column');
+        <div class="ig-text" style="flex-shrink:0;color:${ink};padding:18px 24px;display:flex;flex-direction:column;gap:10px">${info}</div>`, 'display:flex;flex-direction:column');
     }
 
-    // Framed Border: photo matted on cream, everything centered.
+    // Framed Border: photo matted on cream, everything centered. The accent
+    // colors the photo frame, the badge, the price and the rule.
     function buildIgFrame(f, W, H, wide) {
-      const badge = f.statusText ? `<div style="position:absolute;top:12px;right:12px;background:${state.accent};color:#fff;padding:5px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,0.3)">${f.statusText}</div>` : '';
+      const tall = H > 600;
+      const A = accentOnLight(), ink = inkOn(A);
+      const badge = f.statusText ? `<div style="position:absolute;top:14px;right:14px;background:${A};color:${ink};padding:9px 20px;font-size:14px;letter-spacing:2px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,0.3)">${f.statusText}</div>` : '';
       const text = `
-        <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;word-break:break-word;line-height:1.2">${f.address}</div>
-        <div style="font-family:var(--font-serif);font-size:26px;font-weight:800;color:${state.accent}">${f.price}</div>
+        <div style="font-family:var(--font-serif);font-size:${tall ? 24 : 22}px;font-weight:700;word-break:break-word;line-height:1.2">${f.address}</div>
+        <div style="font-family:var(--font-serif);font-size:${tall ? 40 : 34}px;font-weight:800;color:${A};line-height:1.05">${f.price}</div>
         ${socialStatRow(f.beds, f.baths, f.sqft, false, 'center', 16)}
         ${igAgent(f, wide ? 32 : 38, 'center', false)}
-        ${igRule(false)}
+        ${igRule(false, A)}
         ${socialBrand(false, 'center')}`;
-      const frame = `<div style="position:relative;border:1px solid rgba(28,26,23,0.25);${wide ? 'width:52%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${badge}</div>`;
+      const frame = `<div style="position:relative;border:4px solid ${A};${wide ? 'width:52%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${badge}</div>`;
       if (wide) {
         return igShell(W, H, '#faf8f4', `${frame}
           <div class="ig-text" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;text-align:center">${text}</div>`,
@@ -5188,46 +5272,52 @@
         'display:flex;flex-direction:column;padding:26px 26px 20px;color:#1c1a17');
     }
 
-    // Minimal Corner: the whole photo, with a floating left-aligned card.
+    // Minimal Corner: the whole photo, with a floating left-aligned card that
+    // has an accent stripe, an accent price and an accent status tag.
     function buildIgCorner(f, W, H, wide) {
-      const pill = f.statusText ? `<div style="position:absolute;top:20px;right:20px;background:rgba(0,0,0,0.62);color:#fff;padding:6px 16px;border-radius:20px;font-size:9.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700">${f.statusText}</div>` : '';
+      const tall = H > 600;
+      const A = accentOnDark(), fill = state.accent, ink = inkOn(fill);
+      const pill = f.statusText ? `<div style="position:absolute;top:20px;right:20px;background:${fill};color:${ink};padding:10px 24px;border-radius:30px;font-size:14px;letter-spacing:2px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,0.35)">${f.statusText}</div>` : '';
       return igShell(W, H, '#000', `
         <div style="position:absolute;inset:0">${panImageFill(0)}</div>
         ${pill}
-        <div class="ig-text" style="position:absolute;left:16px;bottom:16px;width:${wide ? 350 : W - 32}px;background:rgba(10,10,10,0.66);border-radius:10px;padding:${wide ? '12px 16px' : '16px 18px'};box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:${wide ? 7 : 9}px;color:#fff">
+        <div class="ig-text" style="position:absolute;left:16px;bottom:16px;width:${wide ? 350 : W - 32}px;background:rgba(10,10,10,0.7);border-left:8px solid ${fill};border-radius:10px;padding:${wide ? '12px 16px' : '16px 18px'};box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:${wide ? 7 : 9}px;color:#fff">
           <div>
-            <div style="font-family:var(--font-serif);font-size:${wide ? 24 : 30}px;font-weight:800;line-height:1.1">${f.price}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;word-break:break-word">${f.address}</div>
+            <div style="font-family:var(--font-serif);font-size:${wide ? 28 : (tall ? 40 : 36)}px;font-weight:800;line-height:1.05;color:${A}">${f.price}</div>
+            <div style="font-size:12.5px;color:rgba(255,255,255,0.88);margin-top:3px;word-break:break-word">${f.address}</div>
           </div>
           ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
           ${igAgent(f, wide ? 28 : 34, 'left')}
-          ${igRule()}
+          ${igRule(true, A)}
           ${socialBrand(true, 'left')}
         </div>`);
     }
 
-    // Diagonal Ribbon: corner ribbon on the photo, accent panel, dark strip.
+    // Diagonal Ribbon: a wide corner ribbon on the photo and an accent panel.
     function buildIgRibbon(f, W, H, wide) {
+      const tall = H > 600;
+      const fill = state.accent, ink = inkOn(fill), onDark = ink === '#ffffff';
+      const sub = onDark ? 'rgba(255,255,255,0.92)' : 'rgba(28,26,23,0.78)';
       const headline = f.status || 'Just Listed';
-      const ribbon = `<div style="position:absolute;z-index:6;top:34px;left:-64px;width:260px;transform:rotate(-45deg);background:${state.accent};color:#fff;text-align:center;padding:7px 0;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,0.4)">${headline}</div>`;
+      const ribbon = `<div style="position:absolute;z-index:6;top:52px;left:-86px;width:340px;transform:rotate(-45deg);background:${fill};color:${ink};text-align:center;padding:11px 0;font-size:16px;letter-spacing:3px;text-transform:uppercase;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,0.45)">${headline}</div>`;
       const info = `
         <div>
-          <div style="font-family:var(--font-serif);font-size:28px;font-weight:800;line-height:1.1">${f.price}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:3px;word-break:break-word">${f.address}</div>
+          <div style="font-family:var(--font-serif);font-size:${tall ? 40 : 34}px;font-weight:800;line-height:1.05">${f.price}</div>
+          <div style="font-size:13px;color:${sub};margin-top:3px;word-break:break-word">${f.address}</div>
         </div>
-        ${socialStatRow(f.beds, f.baths, f.sqft, true, 'flex-start', 14)}
-        ${igAgent(f, wide ? 32 : 38, 'left')}`;
+        ${socialStatRow(f.beds, f.baths, f.sqft, onDark, 'flex-start', 14, ink)}
+        ${igAgent(f, wide ? 32 : 38, 'left', onDark, ink)}`;
       const strip = `<div class="ig-text" style="flex-shrink:0;background:#14141a;padding:10px ${wide ? 16 : 22}px">${socialBrand(true, 'left')}</div>`;
       const photo = `<div style="position:relative;overflow:hidden;${wide ? 'width:56%;flex-shrink:0' : 'flex:1;min-height:0'}">${panImageFill(0)}${ribbon}</div>`;
       if (wide) {
-        return igShell(W, H, state.accent, `${photo}
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;color:#fff">
+        return igShell(W, H, fill, `${photo}
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;color:${ink}">
             <div class="ig-text" style="flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px">${info}</div>
             ${strip}
           </div>`, 'display:flex');
       }
       return igShell(W, H, '#14141a', `${photo}
-        <div class="ig-text" style="flex-shrink:0;background:${state.accent};color:#fff;padding:16px 22px;display:flex;flex-direction:column;gap:9px">${info}</div>
+        <div class="ig-text" style="flex-shrink:0;background:${fill};color:${ink};padding:16px 22px;display:flex;flex-direction:column;gap:9px">${info}</div>
         ${strip}`, 'display:flex;flex-direction:column');
     }
 
@@ -5237,14 +5327,15 @@
     // drops the financing box and shrinks the lender footer to one line).
     function wholeFlyerHTML() {
       brandOverride = state.igBrand === 'minimal' ? 'minimal' : null;
-      try { return buildFlyerHTML(); } finally { brandOverride = null; }
+      suppressFlyerLogo = logoShowing();
+      try { return buildFlyerHTML(); } finally { brandOverride = null; suppressFlyerLogo = false; }
     }
     function buildWholeFlyerPreviewHTML() {
       const W = 540, H = 675;
       const hero = state.photos.length ? state.photos[state.heroIndex % state.photos.length].src : '';
       const bg = hero
         ? `<img src="${hero}" alt="" style="position:absolute;left:-30px;top:-30px;width:${W + 60}px;height:${H + 60}px;object-fit:cover;filter:blur(18px)" /><div style="position:absolute;inset:0;background:rgba(0,0,0,0.38)"></div>`
-        : `<div style="position:absolute;inset:0;background:${state.accent};filter:brightness(0.45)"></div>`;
+        : `<div style="position:absolute;inset:0;background:${accentOnLight()};filter:brightness(0.45)"></div>`;
       // Same width as the real flyer (Standard Print is wider), so the
       // preview wraps text exactly like the exported image does.
       return igShell(W, H, '#000', `${bg}
@@ -5338,12 +5429,16 @@
             drawClear(img, 0, SOCIAL_H - gh, gw, gh, protectRects);
           } catch (e) { console.warn('Beach grass could not be drawn', e); }
         }
-        if (cutoutShowing()) {
+        for (const [on, src, c, what] of [
+          [logoShowing(), state.agentLogo, state.logoPlace, 'Logo'],
+          [cutoutShowing(), state.agentCutout, state.cutout, 'Cutout photo']
+        ]) {
+          if (!on) continue;
           try {
-            const img = await loadImage(state.agentCutout);
-            const c = state.cutout, w = c.w * SOCIAL_W, h = w * img.naturalHeight / img.naturalWidth;
+            const img = await loadImage(src);
+            const w = c.w * SOCIAL_W, h = w * img.naturalHeight / img.naturalWidth;
             drawClear(img, c.x * SOCIAL_W, c.y * SOCIAL_H, w, h);
-          } catch (e) { console.warn('Cutout photo could not be drawn', e); }
+          } catch (e) { console.warn(what + ' could not be drawn', e); }
         }
         return out;
       } finally {
@@ -5966,6 +6061,15 @@
       $('#btnCutoutToggle').textContent = cutoutShowing() ? 'Showing on Post' : 'Show on Post';
       $('#cutoutSizeWrap').style.display = cutoutShowing() ? '' : 'none';
       $('#cutoutSize').value = state.cutout.w;
+      // company logo row
+      const hasLogo = !!state.agentLogo;
+      $('#btnLogoToggle').style.display = hasLogo ? '' : 'none';
+      $('#btnLogoToggle').classList.toggle('active', logoShowing());
+      $('#btnLogoToggle').textContent = logoShowing() ? 'Showing on Post' : 'Show on Post';
+      $('#logoSizeWrap').style.display = logoShowing() ? '' : 'none';
+      $('#logoSize').value = state.logoPlace.w;
+      $('#logoNote').textContent = !hasLogo ? 'Upload your company logo to place it on the post.'
+        : logoShowing() ? 'Drag to move. Pinch, or drag the dot in the corner, to resize.' : '';
       $('#cutoutNote').innerHTML = !hasCutout
         ? 'Upload a photo with the background removed to put yourself on the post. <button type="button" class="btn-link" id="btnCutoutHow">How to get one</button>'
         : cutoutShowing() ? 'Drag to move. Pinch, or drag the dot in the corner, to resize.' : '';
@@ -5976,6 +6080,12 @@
     }
     // Jumps to the cutout controls under the preview (switching to the post
     // preview first, since that's where they live).
+    function goToLogo() {
+      if (!socialView) setSocialView(true);
+      const row = $('#logoRow');
+      scrollIntoPanel(row);
+      flashHighlight(row);
+    }
     function goToCutout(openHelp) {
       if (!socialView) setSocialView(true);
       const row = $('#cutoutRow');
@@ -6032,8 +6142,7 @@
           if (!state.agentPhoto) { $('#agentPhotoInput').click(); return; }
           openPanEditor({ type: 'agent', aspect: boxAspect(el) });
         }));
-        const layer = inner.querySelector('.cutout-layer');
-        if (layer) enableCutoutDrag(layer, fmt, k);
+        inner.querySelectorAll('.cutout-layer').forEach(layer => enableCutoutDrag(layer, fmt, k));
       }
       renderPreviewImages(inner);
     }
@@ -6041,16 +6150,18 @@
     // (two fingers) or dragging the dot in its corner. Position and size are
     // kept as fractions of the post, so they land the same way in the export.
     function enableCutoutDrag(layer, fmt, k) {
+      const isLogo = layer.dataset.item === 'logo';
+      const P = () => (isLogo ? state.logoPlace : state.cutout);   // where this layer is stored
       const ptrs = new Map();
       let drag = null, pinch = null, grow = null;
       const sizeTo = w => {
-        w = Math.min(0.9, Math.max(0.12, w));
-        state.cutout.w = w;
+        w = Math.min(isLogo ? 0.6 : 0.9, Math.max(isLogo ? 0.06 : 0.12, w));
+        P().w = w;
         layer.style.width = (w * 100).toFixed(2) + '%';
-        $('#cutoutSize').value = w;
+        $(isLogo ? '#logoSize' : '#cutoutSize').value = w;
       };
       const finish = () => { lastSocialHTML = ''; saveToLocal(); renderSocialPreview(); };
-      const startDrag = p => { drag = { px: p.x, py: p.y, x: state.cutout.x, y: state.cutout.y }; };
+      const startDrag = p => { drag = { px: p.x, py: p.y, x: P().x, y: P().y }; };
 
       layer.addEventListener('pointerdown', e => {
         if (e.target.classList.contains('cutout-handle')) return;
@@ -6062,7 +6173,7 @@
         else if (ptrs.size === 2) {
           drag = null;
           const [a, b] = Array.from(ptrs.values());
-          pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, w: state.cutout.w };
+          pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, w: P().w };
         }
       });
       layer.addEventListener('pointermove', e => {
@@ -6076,10 +6187,10 @@
         if (!drag) return;
         const w = layer.offsetWidth / fmt.w, h = layer.offsetHeight / fmt.h;
         // Keep at least a third of it on the post so it can't be lost off the edge.
-        state.cutout.x = Math.min(1 - w / 3, Math.max(-w * 2 / 3, drag.x + (e.clientX - drag.px) / k / fmt.w));
-        state.cutout.y = Math.min(1 - h / 3, Math.max(-h * 2 / 3, drag.y + (e.clientY - drag.py) / k / fmt.h));
-        layer.style.left = (state.cutout.x * 100).toFixed(2) + '%';
-        layer.style.top = (state.cutout.y * 100).toFixed(2) + '%';
+        P().x = Math.min(1 - w / 3, Math.max(-w * 2 / 3, drag.x + (e.clientX - drag.px) / k / fmt.w));
+        P().y = Math.min(1 - h / 3, Math.max(-h * 2 / 3, drag.y + (e.clientY - drag.py) / k / fmt.h));
+        layer.style.left = (P().x * 100).toFixed(2) + '%';
+        layer.style.top = (P().y * 100).toFixed(2) + '%';
       });
       const end = e => {
         if (!ptrs.delete(e.pointerId)) return;
@@ -6097,7 +6208,7 @@
       handle.addEventListener('pointerdown', e => {
         e.preventDefault(); e.stopPropagation();
         try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-        grow = { px: e.clientX, w: state.cutout.w };
+        grow = { px: e.clientX, w: P().w };
       });
       handle.addEventListener('pointermove', e => { if (grow) sizeTo(grow.w + (e.clientX - grow.px) / k / fmt.w); });
       const growEnd = () => { if (!grow) return; grow = null; finish(); };
@@ -6125,6 +6236,17 @@
       syncSocialButtons(); updatePreview();
     }));
     $('#btnClearAccents').addEventListener('click', () => { state.accents = []; syncSocialButtons(); updatePreview(); });
+    $('#btnLogoToggle').addEventListener('click', () => {
+      state.logoPlace.show = !state.logoPlace.show;
+      syncSocialButtons();
+      updatePreview();
+    });
+    $('#logoSize').addEventListener('input', e => {
+      state.logoPlace.w = parseFloat(e.target.value) || 0.26;
+      const layer = $('#socialPreview .cutout-layer[data-item="logo"]');
+      if (layer) layer.style.width = (state.logoPlace.w * 100).toFixed(2) + '%';
+    });
+    $('#logoSize').addEventListener('change', () => { lastSocialHTML = ''; updatePreview(); });
     $('#btnCutoutToggle').addEventListener('click', () => {
       state.cutout.show = !state.cutout.show;
       syncSocialButtons();
@@ -6132,7 +6254,7 @@
     });
     $('#cutoutSize').addEventListener('input', e => {
       state.cutout.w = parseFloat(e.target.value) || 0.32;
-      const layer = $('#socialPreview .cutout-layer');
+      const layer = $('#socialPreview .cutout-layer[data-item="cutout"]');
       if (layer) layer.style.width = (state.cutout.w * 100).toFixed(2) + '%';
     });
     $('#cutoutSize').addEventListener('change', () => { lastSocialHTML = ''; updatePreview(); });
