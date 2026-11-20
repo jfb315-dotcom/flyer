@@ -477,6 +477,7 @@
       height: 52px; width: auto; max-width: 80px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border);
       background: repeating-conic-gradient(#2a3038 0% 25%, #1b2027 0% 50%) 50% / 12px 12px;
     }
+    .headshot-thumb { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: #21262d; }
     .cutout-help { margin-top: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
     .cutout-help summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 4px 0; }
     .cutout-help p { margin: 6px 0 0; }
@@ -920,6 +921,7 @@
             </div>
             <div class="agent-photo-upload" id="agentPhotoUploadBtn" title="Upload headshot">+</div>
             <input type="file" id="agentPhotoInput" accept="image/*" hidden />
+            <button type="button" id="btnRemoveHeadshot" class="btn-link" style="display:none;font-size:11px;padding:4px 0 0" title="Remove your headshot">Remove</button>
           </div>
           <div style="flex:1">
             <div class="form-group">
@@ -976,7 +978,7 @@
 
         <div class="form-group" style="margin-top:6px">
           <button type="button" id="btnGoCutout" class="btn btn-secondary" style="margin:0;border-color:var(--accent);color:var(--accent)">Click here to use a transparent cutout insert &darr;</button>
-          <div class="section-hint" style="margin:6px 0 0">Put yourself on the post with the background removed. The upload and controls are under the preview.</div>
+          <div class="section-hint" style="margin:6px 0 0">Under the preview, pick how you appear on the post: round headshot, a no-background cutout, or neither.</div>
         </div>
       </div>
 
@@ -1175,13 +1177,24 @@
           <button type="button" class="pill-btn slb-opt" data-ig-brand="minimal">Minimal</button>
           <span class="slb-note" id="brandNote"></span>
         </div>
+        <div class="slb-row" id="photoModeRow">
+          <span class="live-label">Your photo on the post:</span>
+          <button type="button" class="pill-btn slb-opt" data-photo-mode="headshot">Round headshot</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-mode="cutout">No-background cutout</button>
+          <button type="button" class="pill-btn slb-opt" data-photo-mode="none">None</button>
+          <span class="slb-note" id="photoModeNote"></span>
+        </div>
+        <div class="slb-row" id="headshotRow">
+          <img id="headshotThumb" class="headshot-thumb" alt="Your headshot" />
+          <button type="button" class="pill-btn slb-opt" id="btnChangeHeadshot">Change Headshot</button>
+          <button type="button" class="btn-link" id="btnClearHeadshot">Remove</button>
+          <span class="slb-note">Tap the round photo on the post to reposition and zoom it.</span>
+        </div>
         <div class="slb-row" id="cutoutRow">
-          <span class="live-label">Your cutout photo:</span>
           <img id="agentCutoutPreview" class="cutout-preview" style="display:none" alt="Cutout photo" />
-          <button type="button" class="pill-btn slb-opt" id="btnCutoutUpload">Upload Cutout</button>
-          <button type="button" class="btn-link" id="btnCutoutClear" style="display:none">Clear</button>
+          <button type="button" class="pill-btn slb-opt" id="btnCutoutUpload">Replace Cutout</button>
+          <button type="button" class="btn-link" id="btnCutoutClear" style="display:none">Remove</button>
           <input type="file" id="agentCutoutInput" accept="image/png,image/webp,image/*" hidden />
-          <button type="button" class="pill-btn slb-opt" id="btnCutoutToggle">Show on Post</button>
           <label class="cutout-size" id="cutoutSizeWrap">Size <input type="range" id="cutoutSize" min="0.15" max="0.85" step="0.01" value="0.32" /></label>
           <span class="slb-note" id="cutoutNote"></span>
         </div>
@@ -1478,6 +1491,9 @@
       // Realtor's background-removed photo (profile) and where it sits on the
       // post, as fractions of the post's width/height (per listing)
       agentCutout: null,
+      // Which photo of the realtor shows on the post: 'headshot', 'cutout' or 'none'.
+      // null = not chosen yet: a cutout is used if one was uploaded, else the headshot.
+      photoMode: null,
       cutout: { show: true, x: 0.66, y: 0.28, w: 0.32 },
       // Company logo placed on the post, same fractions of the post (per listing)
       logoPlace: { show: true, x: 0.05, y: 0.34, w: 0.26 }
@@ -3451,7 +3467,8 @@
         financing: (state.financing || []).slice(),
         accents: (state.accents || []).slice(),
         cutout: Object.assign({}, state.cutout),
-        logoPlace: Object.assign({}, state.logoPlace)
+        logoPlace: Object.assign({}, state.logoPlace),
+        photoMode: state.photoMode || null
       };
       LISTING_FIELDS.forEach(id => { l[id] = id === 'status' ? $('#status').value : val(id, ''); });
       return l;
@@ -3627,7 +3644,7 @@
       // the fixed --accent CSS variable set in :root and is never touched here,
       // so picking a brand accent never re-themes the tool itself.
       syncAccentUI();
-      if (state.agentPhoto) $('#agentPhotoPreview').src = state.agentPhoto;
+      syncHeadshotUI();
       syncLogoUI();
     }
     function loadFromLocal() {
@@ -3674,19 +3691,10 @@
         state.accents = (Array.isArray(l.accents) ? l.accents.slice() : (l.photoAccent ? [l.photoAccent] : []))
           .filter(k => VALID_ACCENTS.includes(k));
         const c = l.cutout || {};
-        state.cutout = {
-          show: c.show !== false,
-          x: typeof c.x === 'number' ? c.x : 0.66,
-          y: typeof c.y === 'number' ? c.y : 0.28,
-          w: typeof c.w === 'number' ? c.w : 0.32
-        };
+        state.cutout = sanePlacement({ show: c.show !== false, x: c.x, y: c.y, w: c.w }, { x: 0.66, y: 0.28, w: 0.32 });
+        state.photoMode = ['headshot', 'cutout', 'none'].includes(l.photoMode) ? l.photoMode : null;
         const lp = l.logoPlace || {};
-        state.logoPlace = {
-          show: lp.show !== false,
-          x: typeof lp.x === 'number' ? lp.x : 0.05,
-          y: typeof lp.y === 'number' ? lp.y : 0.34,
-          w: typeof lp.w === 'number' ? lp.w : 0.26
-        };
+        state.logoPlace = sanePlacement({ show: lp.show !== false, x: lp.x, y: lp.y, w: lp.w }, { x: 0.05, y: 0.34, w: 0.26 });
         if (typeof syncSocialButtons === 'function') syncSocialButtons();
         $$('.layout-option-btn').forEach(o => o.classList.toggle('active', o.dataset.layout === state.layout));
         renderThumbs();
@@ -4189,14 +4197,30 @@
         alert('That cutout is too large to save on this device. Try a smaller photo.');
         return;
       }
-      state.cutout.show = true;
+      state.photoMode = 'cutout';
+      pendingPhotoMode = null;
+      state.cutout = { show: true, x: 0.66, y: 0.28, w: 0.32 };   // a new cutout always lands in a clear spot
       syncCutoutUI();
       if (typeof syncSocialButtons === 'function') syncSocialButtons();
       if (!socialView && typeof setSocialView === 'function') setSocialView(true);
       updatePreview();
+      revealPlaced('cutout', res.transparent ? 'Cutout added. Drag it to move it.' : 'Added, but it still has a background.');
     });
+    // After an upload: bring the post into view and confirm the photo really is on it.
+    // If it somehow isn't, say so instead of leaving the realtor guessing.
+    function revealPlaced(item, message) {
+      setTimeout(() => {
+        const wrap = $('#socialPreviewWrap');
+        if (wrap) scrollIntoPanel(wrap);
+        const layer = $(`#socialPreview .cutout-layer[data-item="${item}"]`);
+        const img = layer && layer.querySelector('img');
+        const ok = img && img.complete && img.naturalWidth > 0 && layer.getBoundingClientRect().width > 4;
+        showToast(ok ? message : 'That photo was saved but could not be drawn on the post. Try a smaller PNG.', ok ? 3200 : 5200);
+      }, 350);
+    }
     $('#btnCutoutClear').addEventListener('click', () => {
       state.agentCutout = null;
+      if (state.photoMode === 'cutout') state.photoMode = 'headshot';
       syncCutoutUI();
       if (typeof syncSocialButtons === 'function') syncSocialButtons();
       updatePreview();
@@ -4217,18 +4241,42 @@
       if (!state.agentPhoto) { $('#agentPhotoInput').click(); return; }
       openPanEditor({ type: 'agent' });
     });
+    const AGENT_PLACEHOLDER = $('#agentPhotoPreview').getAttribute('src');
+    let pendingPhotoMode = null;   // set when a mode button opened a file picker
+    // Shows/hides the Remove buttons and keeps the thumbnails in step.
+    function syncHeadshotUI() {
+      $('#agentPhotoPreview').src = state.agentPhoto || AGENT_PLACEHOLDER;
+      $('#btnRemoveHeadshot').style.display = state.agentPhoto ? '' : 'none';
+      $('#headshotThumb').src = state.agentPhoto || AGENT_PLACEHOLDER;
+      $('#btnClearHeadshot').style.display = state.agentPhoto ? '' : 'none';
+      $('#btnChangeHeadshot').textContent = state.agentPhoto ? 'Change Headshot' : 'Add Headshot';
+    }
+    function clearHeadshot() {
+      state.agentPhoto = null;
+      state.agentOffset = { relX: 0.5, relY: 0.5, zoom: 1 };
+      $('#agentPhotoInput').value = '';
+      syncHeadshotUI();
+      updatePreview();
+    }
+    $('#btnRemoveHeadshot').addEventListener('click', clearHeadshot);
+    $('#btnClearHeadshot').addEventListener('click', clearHeadshot);
+    $('#btnChangeHeadshot').addEventListener('click', () => $('#agentPhotoInput').click());
+
     $('#agentPhotoInput').addEventListener('change', async e => {
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) { pendingPhotoMode = null; return; }
       let compressed;
       try { compressed = await compressImage(await convertHeicIfNeeded(file), 500, 0.85); }
-      catch (err) { alert(err.message || 'That photo could not be added.'); return; }
+      catch (err) { pendingPhotoMode = null; alert(err.message || 'That photo could not be added.'); return; }
       state.agentPhoto = compressed;
+      if (pendingPhotoMode === 'headshot') state.photoMode = 'headshot';
+      pendingPhotoMode = null;
       // Bias the default crop toward the top of the photo — headshots usually
       // have more headroom below the face than above, so a plain center crop
       // tends to clip the top of the head. Still fully adjustable afterward.
       state.agentOffset = { relX: 0.5, relY: 0.2, zoom: 1 };
-      $('#agentPhotoPreview').src = state.agentPhoto;
+      syncHeadshotUI();
+      if (typeof syncSocialButtons === 'function') syncSocialButtons();
       updatePreview();
     });
 
@@ -4256,11 +4304,12 @@
         alert('That logo is too large to save on this device. Try a smaller file.');
         return;
       }
-      state.logoPlace.show = true;
+      state.logoPlace = { show: true, x: 0.05, y: 0.34, w: 0.26 };   // a new logo lands in a clear spot
       syncLogoUI();
       if (typeof syncSocialButtons === 'function') syncSocialButtons();
       if (!socialView && typeof setSocialView === 'function') setSocialView(true);
       updatePreview();
+      revealPlaced('logo', 'Logo added. Drag it to move it.');
     });
     $('#clearLogoBtn').addEventListener('click', () => clearAgentLogo());
 
@@ -5138,7 +5187,22 @@
       return beachGrassCache;
     }
     // The realtor's background-removed photo, placed where they dragged it.
-    function cutoutShowing() { return !!(state.agentCutout && state.cutout && state.cutout.show); }
+    // A saved position that would leave a placed photo mostly off the post (or
+    // vanishingly small) goes back to its default spot.
+    function sanePlacement(p, d) {
+      const ok = v => typeof v === 'number' && isFinite(v);
+      const x = ok(p.x) ? p.x : d.x, y = ok(p.y) ? p.y : d.y, w = ok(p.w) ? p.w : d.w;
+      const bad = x < -0.3 || x > 0.92 || y < -0.3 || y > 0.92 || w < 0.05 || w > 0.95;
+      return { show: p.show !== false, x: bad ? d.x : x, y: bad ? d.y : y, w: bad ? d.w : w };
+    }
+    function photoMode() {
+      const m = state.photoMode;
+      if (m === 'none' || m === 'headshot') return m;
+      if (m === 'cutout' && state.agentCutout) return 'cutout';
+      return (state.agentCutout && state.cutout && state.cutout.show !== false) ? 'cutout' : 'headshot';
+    }
+    function cutoutShowing() { return photoMode() === 'cutout' && !!state.agentCutout; }
+    function headshotShowing() { return photoMode() === 'headshot'; }
     function logoShowing() { return !!(state.agentLogo && state.logoPlace && state.logoPlace.show); }
     function placedLayer(item, c, src) {
       return `<div class="cutout-layer" data-item="${item}" style="left:${(c.x * 100).toFixed(2)}%;top:${(c.y * 100).toFixed(2)}%;width:${(c.w * 100).toFixed(2)}%"><img src="${src}" alt="" /></div>`;
@@ -5175,7 +5239,7 @@
       const phoneSize = igCtx.wide ? 14 : (tall ? 18 : 16);
       return `
         <div style="display:flex;align-items:center;gap:${tall ? 16 : 13}px;justify-content:${align === 'center' ? 'center' : 'flex-start'};align-self:${align === 'center' ? 'center' : 'stretch'}">
-          ${cutoutShowing() ? '' : agentCutoutHTML(photo, !light, accC)}
+          ${headshotShowing() ? agentCutoutHTML(photo, !light, accC) : ''}
           <div style="min-width:0;text-align:left;line-height:1.2">
             <div style="font-family:var(--font-serif);font-size:${nameSize}px;font-weight:800;color:${nameColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentName}</div>
             <div style="font-size:${subSize}px;color:${subColor};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.agentCompany}</div>
@@ -6055,10 +6119,15 @@
       $('#accentNote').textContent = hasAccent('beachgrass') ? 'Beach Grass shows on the Facebook & Instagram posts; the others also show on the printed flyer.'
         : n ? 'Shown on the main photo, on the printed flyer and every post.' : '';
       $('#btnClearAccents').style.visibility = n ? '' : 'hidden';
+      // your photo on the post: one choice, and only its controls show
+      const mode = photoMode();
+      $$('[data-photo-mode]').forEach(b => b.classList.toggle('active', b.dataset.photoMode === mode));
+      $('#headshotRow').style.display = mode === 'headshot' ? '' : 'none';
+      $('#cutoutRow').style.display = mode === 'cutout' ? '' : 'none';
+      $('#photoModeNote').textContent = mode === 'none' ? 'Only your name, brokerage and phone show.'
+        : mode === 'headshot' ? '' : '';
+      syncHeadshotUI();
       const hasCutout = !!state.agentCutout;
-      $('#btnCutoutToggle').style.display = hasCutout ? '' : 'none';
-      $('#btnCutoutToggle').classList.toggle('active', cutoutShowing());
-      $('#btnCutoutToggle').textContent = cutoutShowing() ? 'Showing on Post' : 'Show on Post';
       $('#cutoutSizeWrap').style.display = cutoutShowing() ? '' : 'none';
       $('#cutoutSize').value = state.cutout.w;
       // company logo row
@@ -6070,11 +6139,7 @@
       $('#logoSize').value = state.logoPlace.w;
       $('#logoNote').textContent = !hasLogo ? 'Upload your company logo to place it on the post.'
         : logoShowing() ? 'Drag to move. Pinch, or drag the dot in the corner, to resize.' : '';
-      $('#cutoutNote').innerHTML = !hasCutout
-        ? 'Upload a photo with the background removed to put yourself on the post. <button type="button" class="btn-link" id="btnCutoutHow">How to get one</button>'
-        : cutoutShowing() ? 'Drag to move. Pinch, or drag the dot in the corner, to resize.' : '';
-      const how = $('#btnCutoutHow');
-      if (how) how.addEventListener('click', showCutoutHelp);
+      $('#cutoutNote').textContent = cutoutShowing() ? 'Drag it on the preview to move it. Pinch, or drag the dot in its corner, to resize.' : '';
       $$('.slb-view').forEach(b => b.classList.toggle('active', (b.dataset.view === 'social') === socialView));
       document.documentElement.classList.toggle('social-view', socialView);
     }
@@ -6088,7 +6153,7 @@
     }
     function goToCutout(openHelp) {
       if (!socialView) setSocialView(true);
-      const row = $('#cutoutRow');
+      const row = $('#photoModeRow');
       if (openHelp) $('#cutoutHelp').open = true;
       scrollIntoPanel(openHelp ? $('#cutoutHelp') : row);
       flashHighlight(row);
@@ -6247,11 +6312,16 @@
       if (layer) layer.style.width = (state.logoPlace.w * 100).toFixed(2) + '%';
     });
     $('#logoSize').addEventListener('change', () => { lastSocialHTML = ''; updatePreview(); });
-    $('#btnCutoutToggle').addEventListener('click', () => {
-      state.cutout.show = !state.cutout.show;
+    // Your photo on the post: pick one. Choosing one with nothing uploaded yet
+    // opens the file picker for it, and leaves things as they were if cancelled.
+    $$('[data-photo-mode]').forEach(b => b.addEventListener('click', () => {
+      const m = b.dataset.photoMode;
+      if (m === 'cutout' && !state.agentCutout) { pendingPhotoMode = 'cutout'; $('#agentCutoutInput').click(); return; }
+      if (m === 'headshot' && !state.agentPhoto) { pendingPhotoMode = 'headshot'; $('#agentPhotoInput').click(); return; }
+      state.photoMode = m;
       syncSocialButtons();
       updatePreview();
-    });
+    }));
     $('#cutoutSize').addEventListener('input', e => {
       state.cutout.w = parseFloat(e.target.value) || 0.32;
       const layer = $('#socialPreview .cutout-layer[data-item="cutout"]');
