@@ -437,7 +437,7 @@
     .accents-sub { min-width: 70px; font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
     .accent-chip.active::before { content: "\2713  "; }
     @media (max-width: 640px) { .accents-sub { flex: 1 1 100%; } }
-    .beach-grass { position: absolute; right: 0; bottom: 0; height: 52%; aspect-ratio: 0.7; z-index: 5; pointer-events: none; }
+    .beach-grass { position: absolute; left: 0; right: 0; bottom: 0; aspect-ratio: 1000 / 360; z-index: 5; pointer-events: none; }
     .beach-grass svg { display: block; width: 100%; height: 100%; }
     /* Text on the post looks paints above the beach grass (z 5); the panel
        colors behind the text stay below it, like the grass is in the scene. */
@@ -445,6 +445,11 @@
     .photo-accent > * { position: absolute; }
     .photo-accent svg { display: block; width: 100%; height: 100%; }
     .fin-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .fin-disclaimer {
+      font-size: 11.5px; line-height: 1.5; color: var(--text-muted); margin: -2px 0 10px; padding: 8px 10px;
+      border-left: 3px solid var(--accent); background: rgba(184, 134, 63, 0.07); border-radius: 0 6px 6px 0;
+    }
+    .fin-disclaimer strong { color: var(--text); }
     .price-slider { width: 100%; margin-top: 10px; accent-color: var(--accent); height: 28px; }
     .fin-chip {
       display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px; cursor: pointer;
@@ -461,6 +466,12 @@
     .cutout-help summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 4px 0; }
     .cutout-help p { margin: 6px 0 0; }
     .cutout-help strong { color: var(--text); }
+    .cutout-help a { color: var(--accent); }
+    .cutout-handle {
+      position: absolute; right: -12px; bottom: -12px; width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: nwse-resize; touch-action: none; z-index: 2;
+    }
     @media (max-width: 640px) {
       .post-options-bar { padding: 10px 14px 12px; }
       .cutout-size { flex: 1 1 100%; font-size: 13px; }
@@ -678,6 +689,7 @@
       #photosSection { order: 1; }
       #detailsSection { order: 2; }
       #statusSection { order: 3; }
+      #financingSection { order: 3; }
       #realtorSection { order: 4; }
       .right-panel { border-top: 1px solid var(--border); }
 
@@ -847,17 +859,20 @@
           <textarea id="shortDesc" maxlength="350" placeholder="Stunning open-concept home with modern updates, fully renovated kitchen, new roof & HVAC (2024), and a fenced backyard with deck. Perfect for families looking for luxury and comfort."></textarea>
           <div class="char-count" id="descCount" aria-live="polite"></div>
         </div>
-        <div class="form-group">
-          <label>Available Financing <span style="text-transform:none;letter-spacing:0">(subject to qualification)</span></label>
-          <div class="fin-options" id="financingOptions">
-            <label class="fin-chip"><input type="checkbox" value="conventional" /><span>Conventional</span></label>
-            <label class="fin-chip"><input type="checkbox" value="fha" /><span>FHA</span></label>
-            <label class="fin-chip"><input type="checkbox" value="va" /><span>VA</span></label>
-            <label class="fin-chip"><input type="checkbox" value="usda" /><span>USDA</span></label>
-            <label class="fin-chip"><input type="checkbox" value="dpa" /><span>Down Payment Assistance</span></label>
-          </div>
-          <div class="section-hint" style="margin:6px 0 0">Tick the loan types this home could qualify for. They print on the flyer and the full-branding posts. Untick them all to leave the financing line off.</div>
+      </div>
+
+      <!-- Financing options the realtor recommends. Nothing ticked = no financing section on the flyer or posts. -->
+      <div class="section" id="financingSection">
+        <div class="section-title">Financing Options to Explore</div>
+        <div class="fin-disclaimer"><strong>Your recommendation only.</strong> These are programs you suggest based on your own research. They are not a loan offer, approval or guarantee, and every buyer is subject to qualification.</div>
+        <div class="fin-options" id="financingOptions">
+          <label class="fin-chip"><input type="checkbox" value="conventional" /><span>Conventional</span></label>
+          <label class="fin-chip"><input type="checkbox" value="fha" /><span>FHA</span></label>
+          <label class="fin-chip"><input type="checkbox" value="va" /><span>VA</span></label>
+          <label class="fin-chip"><input type="checkbox" value="usda" /><span>USDA</span></label>
+          <label class="fin-chip"><input type="checkbox" value="dpa" /><span>Down Payment Assistance</span></label>
         </div>
+        <div class="section-hint" style="margin:8px 0 0">Tick the programs you want to suggest for this home. Tick none and no financing section appears on the flyer or the posts.</div>
       </div>
 
       <!-- Photos -->
@@ -952,21 +967,8 @@
         </div>
 
         <div class="form-group" style="margin-top:6px">
-          <label>Cutout Photo for Posts (background removed, optional)</label>
-          <div class="logo-upload-row">
-            <img id="agentCutoutPreview" class="cutout-preview" style="display:none" alt="Cutout photo" />
-            <button type="button" class="btn btn-secondary" id="btnCutoutUpload" style="width:auto;padding:7px 12px;margin:0;font-size:11px">Upload Cutout</button>
-            <button type="button" class="btn btn-text" id="btnCutoutClear" style="width:auto;padding:4px 8px;margin:0;font-size:11px;display:none">Clear</button>
-            <input type="file" id="agentCutoutInput" accept="image/png,image/webp,image/*" hidden />
-          </div>
-          <div class="section-hint" style="margin:6px 0 0">A photo of you with the background cut away. You can drag it anywhere on a Facebook &amp; Instagram post and set its size.</div>
-          <details class="cutout-help">
-            <summary>How do I get a photo with no background?</summary>
-            <p><strong>iPhone:</strong> open your photo in the Photos app. Touch and hold on yourself until a glowing outline appears, let go, then tap <em>Share</em> &rarr; <em>Save Image</em>. That saves a copy with no background. Upload that copy here.</p>
-            <p><strong>Samsung Galaxy:</strong> open the photo in Gallery, touch and hold on yourself, then tap <em>Save as image</em>.</p>
-            <p><strong>Other phones or a computer:</strong> a free tool such as Adobe Express&rsquo;s <em>Remove background</em> or remove.bg. Download the result as a PNG.</p>
-            <p>It has to be a PNG (or WebP) file. A regular JPEG photo always keeps its background.</p>
-          </details>
+          <button type="button" id="btnGoCutout" class="btn btn-secondary" style="margin:0;border-color:var(--accent);color:var(--accent)">Click here to use a transparent cutout insert &darr;</button>
+          <div class="section-hint" style="margin:6px 0 0">Put yourself on the post with the background removed. The upload and controls are under the preview.</div>
         </div>
       </div>
 
@@ -1126,10 +1128,9 @@
             <button type="button" class="btn-link" id="btnClearAccents">Clear all</button>
           </div>
           <div class="accents-group">
-            <span class="accents-sub">Greenery</span>
+            <span class="accents-sub">Nature</span>
             <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="beachgrass">Beach Grass</button>
-            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="grass">Tall Grass</button>
-            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="flowers">Spring Flowers</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="windleaves">Windy Leaves</button>
           </div>
           <div class="accents-group">
             <span class="accents-sub">Light</span>
@@ -1139,7 +1140,7 @@
           </div>
           <div class="accents-group">
             <span class="accents-sub">Season</span>
-            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="snow">Snow</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="snow">Snow &amp; Snowman</button>
             <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="leaves">Fall Leaves</button>
           </div>
           <div class="slb-note" id="accentNote"></div>
@@ -1164,10 +1165,22 @@
         </div>
         <div class="slb-row" id="cutoutRow">
           <span class="live-label">Your cutout photo:</span>
+          <img id="agentCutoutPreview" class="cutout-preview" style="display:none" alt="Cutout photo" />
+          <button type="button" class="pill-btn slb-opt" id="btnCutoutUpload">Upload Cutout</button>
+          <button type="button" class="btn-link" id="btnCutoutClear" style="display:none">Clear</button>
+          <input type="file" id="agentCutoutInput" accept="image/png,image/webp,image/*" hidden />
           <button type="button" class="pill-btn slb-opt" id="btnCutoutToggle">Show on Post</button>
           <label class="cutout-size" id="cutoutSizeWrap">Size <input type="range" id="cutoutSize" min="0.15" max="0.85" step="0.01" value="0.32" /></label>
           <span class="slb-note" id="cutoutNote"></span>
         </div>
+        <details class="cutout-help" id="cutoutHelp">
+          <summary>How do I get a photo with no background?</summary>
+          <p><strong>An app that does it for you:</strong> <a href="https://apps.apple.com/us/app/background-eraser-ai-remove/id815072622" target="_blank" rel="noopener">Background Eraser on the App Store</a>. Save the result as a PNG and upload it here.</p>
+          <p><strong>iPhone, no app:</strong> open your photo in the Photos app. Touch and hold on yourself until a glowing outline appears, let go, then tap <em>Share</em> &rarr; <em>Save Image</em>. That saves a copy with no background.</p>
+          <p><strong>Samsung Galaxy:</strong> open the photo in Gallery, touch and hold on yourself, then tap <em>Save as image</em>.</p>
+          <p><strong>Other phones or a computer:</strong> a free tool such as Adobe Express&rsquo;s <em>Remove background</em> or remove.bg. Download the result as a PNG.</p>
+          <p>It has to be a PNG (or WebP) file. A regular JPEG photo always keeps its background.</p>
+        </details>
       </div>
 
       <div class="preview-export-bar">
@@ -1300,8 +1313,12 @@
       lender: {
         name: 'John Bischof',
         company: 'HOME MORTGAGE SOLUTIONS LLC',
+        companyDisplay: 'Home Mortgage Solutions LLC',
         nmls: '165831',
         phone: '(423) 505-9811',
+        // "Text 3131 to ..." is printed on the Minimal branding line.
+        textKeyword: '3131',
+        textNumber: '423-505-9811',
         email: 'john@hmsloan.com',
         website: 'https://hmsloan.com/',
         // Where the flyer's QR code goes when the realtor leaves the listing link blank.
@@ -1333,14 +1350,14 @@
       { key: 'usda', label: 'USDA 100%' },
       { key: 'dpa', label: 'Down payment assistance' }
     ];
-    // USDA is off by default: it depends on the home being in an eligible area.
-    const DEFAULT_FINANCING = ['conventional', 'fha', 'va', 'dpa'];
+    // Nothing is ticked until the realtor chooses: the section only appears
+    // when they recommend something.
+    const DEFAULT_FINANCING = [];
     // Set while drawing the Whole Flyer post with Minimal branding: the flyer
-    // drops its financing box and swaps the lender footer for one slim line.
+    // swaps the lender footer for the slim pre-approval line.
     let brandOverride = null;
-    // '' when nothing is ticked (or Minimal branding), so callers leave the line off.
+    // '' when nothing is ticked, so callers leave the whole financing section off.
     function financingLine() {
-      if (brandOverride === 'minimal') return '';
       const picked = FINANCING_PROGRAMS.filter(p => (state.financing || []).includes(p.key)).map(p => p.label);
       if (!picked.length) return '';
       return picked.join(', ') + '. Subject to qualification.';
@@ -1555,6 +1572,8 @@
        markup identical between renders, so the preview isn't rebuilt (and
        clicks aren't lost) when nothing changed. */
     const photoAccentCache = {};
+    // Tall Grass and Spring Flowers were retired (too generic); old listings that used them just drop them.
+    const VALID_ACCENTS = ['beachgrass', 'windleaves', 'sun', 'sunset', 'sparkles', 'snow', 'leaves'];
     function hasAccent(k) { return (state.accents || []).includes(k); }
     function seededRand(seed) {
       let t = seed >>> 0;
@@ -1566,16 +1585,21 @@
       };
     }
     const f1 = n => Math.round(n * 10) / 10;
-    // A field of grass blades along the bottom of a 1200x200 box.
-    function grassBlades(rnd, count, minH, maxH, colors, baseY) {
-      let out = '';
-      for (let i = 0; i < count; i++) {
-        const x = rnd() * 1240 - 20, h = minH + rnd() * (maxH - minH), w = 3 + rnd() * 6;
-        const lean = (rnd() - 0.5) * h * 0.55, y = baseY;
-        const c = colors[Math.floor(rnd() * colors.length)];
-        out += `<path d="M${f1(x - w / 2)} ${y} Q${f1(x + lean * 0.35)} ${f1(y - h * 0.55)} ${f1(x + lean)} ${f1(y - h)} Q${f1(x + lean * 0.3 + w * 0.25)} ${f1(y - h * 0.5)} ${f1(x + w / 2)} ${y}Z" fill="${c}"/>`;
-      }
-      return out;
+    // A small snowman built from plain shapes (top hat, scarf, carrot nose, stick arms).
+    function snowmanShapes() {
+      const edge = 'rgba(176,196,222,0.95)';
+      return `<ellipse cx="50" cy="151" rx="36" ry="5" fill="rgba(206,220,238,0.75)"/>`
+        + `<path d="M28 72L5 55M16 62L9 66M16 62L12 54" stroke="#5a3d28" stroke-width="3" stroke-linecap="round" fill="none"/>`
+        + `<path d="M72 72L95 57M84 64L91 68M84 64L88 55" stroke="#5a3d28" stroke-width="3" stroke-linecap="round" fill="none"/>`
+        + `<circle cx="50" cy="120" r="30" fill="#ffffff" stroke="${edge}" stroke-width="1.6"/>`
+        + `<circle cx="50" cy="75" r="22" fill="#ffffff" stroke="${edge}" stroke-width="1.6"/>`
+        + `<circle cx="50" cy="38" r="16" fill="#ffffff" stroke="${edge}" stroke-width="1.6"/>`
+        + `<rect x="31" y="23" width="38" height="4.5" rx="1.5" fill="#2b2b33"/><rect x="37" y="6" width="26" height="19" rx="2" fill="#2b2b33"/><rect x="37" y="18" width="26" height="4" fill="#b5381f"/>`
+        + `<rect x="33" y="50" width="34" height="8" rx="4" fill="#c0392b"/><rect x="58" y="54" width="8" height="20" rx="3" fill="#c0392b"/>`
+        + `<circle cx="44" cy="35" r="2.2" fill="#222"/><circle cx="56" cy="35" r="2.2" fill="#222"/>`
+        + `<path d="M50 39L71 43L50 45Z" fill="#e8782a"/>`
+        + `<circle cx="43" cy="45" r="1.4" fill="#222"/><circle cx="47" cy="48" r="1.4" fill="#222"/><circle cx="53" cy="48" r="1.4" fill="#222"/><circle cx="57" cy="45" r="1.4" fill="#222"/>`
+        + `<circle cx="50" cy="82" r="2.6" fill="#222"/><circle cx="50" cy="93" r="2.6" fill="#222"/><circle cx="50" cy="104" r="2.6" fill="#222"/>`;
     }
     function leafShape(x, y, size, rot, color) {
       const s = size / 24;
@@ -1587,31 +1611,34 @@
       const rnd = seededRand(kind.length * 7919 + 17);
       const svg = (vb, par, body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" preserveAspectRatio="${par}">${body}</svg>`;
       let html = '';
-      if (kind === 'grass' || kind === 'flowers') {
-        const tall = kind === 'grass';
-        let body = '';
-        body += grassBlades(rnd, 170, tall ? 70 : 40, tall ? 140 : 80, ['#2c4f1f', '#355c25', '#3f6a2b'], 200);
-        body += grassBlades(rnd, 170, tall ? 90 : 50, tall ? 175 : 100, ['#4c7a30', '#5a8a37', '#668f3c', '#b3a866'], 200);
-        if (!tall) {
-          const blooms = ['#f7a8c4', '#ffd84d', '#ffffff', '#c9a6f2', '#ff8a7a'];
-          for (let i = 0; i < 46; i++) {
-            const x = rnd() * 1200, h = 45 + rnd() * 75, r = 5 + rnd() * 6, c = blooms[Math.floor(rnd() * blooms.length)];
-            body += `<path d="M${f1(x)} 200 Q${f1(x + (rnd() - 0.5) * 18)} ${f1(200 - h / 2)} ${f1(x)} ${f1(200 - h)}" stroke="#3f6a2b" stroke-width="2" fill="none"/>`;
-            for (let k = 0; k < 5; k++) {
-              const a = k / 5 * Math.PI * 2 + rnd();
-              body += `<circle cx="${f1(x + Math.cos(a) * r * 0.9)}" cy="${f1(200 - h + Math.sin(a) * r * 0.9)}" r="${f1(r * 0.62)}" fill="${c}"/>`;
-            }
-            body += `<circle cx="${f1(x)}" cy="${f1(200 - h)}" r="${f1(r * 0.42)}" fill="#e2a72e"/>`;
+      if (kind === 'windleaves') {
+        // A whirl of wind: flowing light streaks with fall leaves carried along them.
+        const colors = ['#b5381f', '#d35400', '#e67e22', '#f0b429', '#8e3b1f', '#c0661e'];
+        const bez = (q, t) => {
+          const u = 1 - t;
+          return [u * u * u * q[0][0] + 3 * u * u * t * q[1][0] + 3 * u * t * t * q[2][0] + t * t * t * q[3][0],
+                  u * u * u * q[0][1] + 3 * u * u * t * q[1][1] + 3 * u * t * t * q[2][1] + t * t * t * q[3][1]];
+        };
+        const segs = [
+          [[-40, 450], [120, 310], [260, 530], [400, 390]],     // long swoosh in from the lower left
+          [[400, 390], [540, 250], [600, 210], [670, 270]],     // ...rising out to the upper right
+          [[400, 390], [480, 310], [575, 330], [555, 405]],     // the curl of the whirl
+          [[555, 405], [535, 470], [440, 450], [462, 392]]
+        ];
+        let lines = '', leaves = '';
+        segs.forEach((q, si) => {
+          const d = `M${q[0]} C${q[1]} ${q[2]} ${q[3]}`;
+          lines += `<path d="${d}" stroke="rgba(255,255,255,0.6)" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
+          lines += `<path d="${d}" transform="translate(0 -15)" stroke="rgba(255,255,255,0.32)" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+          lines += `<path d="${d}" transform="translate(0 17)" stroke="rgba(255,255,255,0.24)" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+          const n = si < 2 ? 5 : 3;
+          for (let i = 0; i < n; i++) {
+            const [x, y] = bez(q, (i + rnd() * 0.7) / n);
+            leaves += leafShape(x + (rnd() - 0.5) * 28, y + (rnd() - 0.5) * 28, 20 + rnd() * 16, rnd() * 360, colors[Math.floor(rnd() * colors.length)]);
           }
-        }
-        body += grassBlades(rnd, 150, tall ? 110 : 45, tall ? 198 : 95, ['#6f9a3e', '#7ea548', '#93b553', '#c9c27a', '#d8c98a'], 200);
-        if (tall) {
-          for (let i = 0; i < 26; i++) {   // a few seed heads on the tallest stems
-            const x = rnd() * 1200, top = 6 + rnd() * 30;
-            body += `<path d="M${f1(x)} 200 Q${f1(x + 6)} ${f1(100 + top)} ${f1(x + 3)} ${f1(top + 16)}" stroke="#9c9a5c" stroke-width="1.6" fill="none"/><ellipse cx="${f1(x + 3)}" cy="${f1(top + 8)}" rx="3" ry="10" fill="#d9c98f"/>`;
-          }
-        }
-        html = `<div style="left:0;right:0;bottom:-1px;height:${tall ? 34 : 26}%">${svg('0 0 1200 200', 'xMidYMax slice', body)}</div>`;
+        });
+        for (let i = 0; i < 6; i++) leaves += leafShape(60 + rnd() * 500, 100 + rnd() * 440, 13 + rnd() * 12, rnd() * 360, colors[Math.floor(rnd() * colors.length)]);
+        html = `<div style="inset:0">${svg('0 0 600 600', 'xMidYMid slice', lines + leaves)}</div>`;
       } else if (kind === 'sun') {
         let rays = '';
         for (let i = 0; i < 9; i++) {
@@ -1636,7 +1663,8 @@
         drift += `<path d="${d2} L1290 100Z" fill="#ffffff"/>`;
         html = `<div style="left:0;right:0;top:0;height:22%;background:linear-gradient(180deg, rgba(240,248,255,0.38), rgba(240,248,255,0))"></div>`
           + `<div style="inset:0">${svg('0 0 600 600', 'xMidYMid slice', flakes)}</div>`
-          + `<div style="left:0;right:0;bottom:-1px;height:15%">${svg('0 0 1200 100', 'xMidYMax slice', drift)}</div>`;
+          + `<div style="left:0;right:0;bottom:-1px;height:15%">${svg('0 0 1200 100', 'xMidYMax slice', drift)}</div>`
+          + `<div style="right:6%;bottom:3%;height:25%;aspect-ratio:100/160">${svg('0 0 100 160', 'xMidYMax meet', snowmanShapes())}</div>`;
       } else if (kind === 'sunset') {
         html = `<div style="inset:0;background:linear-gradient(180deg, rgba(255,140,70,0.38) 0%, rgba(255,120,90,0.16) 35%, rgba(255,120,90,0) 60%), radial-gradient(ellipse 80% 55% at 15% 0%, rgba(255,190,120,0.5) 0%, rgba(255,160,100,0) 70%)"></div>`
           + `<div style="left:0;right:0;bottom:0;height:35%;background:linear-gradient(0deg, rgba(120,50,90,0.28), rgba(120,50,90,0))"></div>`;
@@ -1820,37 +1848,38 @@
     // and clickable without it competing for space with the listing itself.
     function socialCredit(dark, align) {
       const L = CONFIG.lender;
-      const color = dark ? 'rgba(255,255,255,0.85)' : 'rgba(28,26,23,0.72)';
+      const color = dark ? 'rgba(255,255,255,0.88)' : 'rgba(28,26,23,0.78)';
       const strong = dark ? '#ffffff' : '#1c1a17';
-      const justify = align === 'left' ? 'flex-start' : 'center';
+      const left = align === 'left';
       return `
-        <div data-pdf-link="${L.qrUrl || L.website}" style="position:relative;z-index:7;display:flex;align-items:center;justify-content:${justify};flex-wrap:wrap;gap:4px 6px;font-size:8.5px;letter-spacing:0.4px;color:${color}">
-          <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="" style="height:11px;width:auto;object-fit:contain;flex-shrink:0;opacity:0.95" />
-          <span style="white-space:nowrap">Financing by <strong style="color:${strong}">${L.name}</strong></span>
-          <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">NMLS #${L.nmls} ${ehoIcon(color, 9)}</span>
+        <div data-pdf-link="${L.qrUrl || L.website}" style="position:relative;z-index:7;display:flex;flex-direction:column;gap:4px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'};color:${color}">
+          <div style="font-size:11px;line-height:1.4">Get pre-approved &amp; qualified by <strong style="color:${strong}">${L.name}</strong> at ${L.companyDisplay}. Text <strong style="color:${strong}">${L.textKeyword}</strong> to <strong style="color:${strong};white-space:nowrap">${L.textNumber}</strong></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:${left ? 'flex-start' : 'center'};font-size:8.5px;letter-spacing:0.4px">
+            <img src="${L.logoUrl}" onerror="this.onerror=null;this.src='${lenderLogoPlaceholder()}'" alt="" style="height:12px;width:auto;object-fit:contain;flex-shrink:0;opacity:0.95" />
+            <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">NMLS #${L.nmls} ${ehoIcon(color, 9)}</span>
+          </div>
         </div>`;
     }
 
-    // The lender branding on the Facebook & Instagram designs: Full (the
-    // financing options plus John's photo, phone, logo and NMLS) or Minimal
-    // (one slim credit line). Never a QR code; that's for printed flyers.
+    // The lender branding on the Facebook & Instagram designs: Full (John's
+    // photo, phone, logo and NMLS) or Minimal (the pre-approval line: text
+    // 3131 to qualify). Both show the realtor's financing options when any are
+    // ticked, and neither has a QR code (that's for printed flyers).
     // onAccent: sitting on the accent-color panel, where accent-colored text
     // would disappear, so the highlights go white instead.
     function socialBrand(dark, align, onAccent) {
-      if (state.igBrand === 'minimal') return socialCredit(dark, align);
       const L = CONFIG.lender;
       const left = align === 'left';
       const text = dark ? 'rgba(255,255,255,0.86)' : '#4a453e';
       const strong = dark ? '#ffffff' : '#1c1a17';
       const acc = onAccent ? '#ffffff' : (dark ? accentOnDark() : state.accent);
-      const shortUrl = CONFIG.financingUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
       const fin = financingLine();
-      const finLine = fin
-        ? `<strong style="color:${acc}">Available financing:</strong> ${fin} <strong style="color:${acc};white-space:nowrap">Apply: ${shortUrl}</strong>`
-        : `<strong style="color:${acc};white-space:nowrap">Apply for financing: ${shortUrl}</strong>`;
+      const finLine = fin ? `<div style="font-size:9.5px;line-height:1.45;color:${text}"><strong style="color:${acc}">Financing options to explore:</strong> ${fin}</div>` : '';
+      const wrap = `position:relative;z-index:7;display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}`;
+      if (state.igBrand === 'minimal') return `<div style="${wrap}">${finLine}${socialCredit(dark, align)}</div>`;
       return `
-        <div data-pdf-link="${CONFIG.financingUrl}" style="position:relative;z-index:7;display:flex;flex-direction:column;gap:7px;align-items:${left ? 'flex-start' : 'center'};text-align:${left ? 'left' : 'center'}">
-          <div style="font-size:9.5px;line-height:1.45;color:${text}">${finLine}</div>
+        <div style="${wrap}">
+          ${finLine}
           <div style="display:flex;align-items:center;gap:8px;justify-content:${left ? 'flex-start' : 'center'}">
             <img src="${L.photoUrl}" onerror="this.onerror=null;this.src='${lenderPlaceholder()}'" alt="" style="width:32px;height:32px;flex-shrink:0" />
             <div style="font-size:9px;line-height:1.4;color:${text};text-align:left">
@@ -1882,9 +1911,8 @@
       const border = dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,26,23,0.12)';
       const color = dark ? 'rgba(255,255,255,0.75)' : '#4a453e';
       const noteAccent = dark ? accentOnDark() : state.accent;
-      return `<div data-protect="1" data-pdf-link="${CONFIG.financingUrl}" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
-        <strong style="color:${noteAccent}">Available Financing:</strong> ${text}
-        <div style="margin-top:5px;font-weight:700;color:${noteAccent}">Apply for financing: ${CONFIG.financingUrl}</div>
+      return `<div data-protect="1" style="border:1px solid ${border};background:${bg};padding:10px 14px;font-size:10px;color:${color};line-height:1.5">
+        <strong style="color:${noteAccent}">Financing Options to Explore:</strong> ${text}
       </div>`;
     }
 
@@ -3610,7 +3638,8 @@
         state.financing = Array.isArray(l.financing) ? l.financing.filter(k => FINANCING_PROGRAMS.some(p => p.key === k)) : DEFAULT_FINANCING.slice();
         syncFinancingUI();
         // Listings from before several accents could be mixed saved one.
-        state.accents = Array.isArray(l.accents) ? l.accents.slice() : (l.photoAccent ? [l.photoAccent] : []);
+        state.accents = (Array.isArray(l.accents) ? l.accents.slice() : (l.photoAccent ? [l.photoAccent] : []))
+          .filter(k => VALID_ACCENTS.includes(k));
         const c = l.cutout || {};
         state.cutout = {
           show: c.show !== false,
@@ -4102,6 +4131,7 @@
       $('#btnCutoutClear').style.display = state.agentCutout ? 'inline' : 'none';
       $('#btnCutoutUpload').textContent = state.agentCutout ? 'Replace Cutout' : 'Upload Cutout';
     }
+    $('#btnGoCutout').addEventListener('click', () => goToCutout(false));
     $('#btnCutoutUpload').addEventListener('click', () => $('#agentCutoutInput').click());
     $('#agentCutoutInput').addEventListener('change', async e => {
       const file = e.target.files[0];
@@ -4622,7 +4652,7 @@
       text += `\nFinancing Partner: ${L.name} - Loan Originator NMLS #${L.nmls}\n`;
       text += `${L.company} - ${L.phone} - ${L.email} - ${L.ehoLabel}\n`;
       const fin = financingLine();
-      if (fin) text += `Available financing: ${fin}\n`;
+      if (fin) text += `Financing options to explore: ${fin}\n`;
       text += `Apply for financing: ${CONFIG.financingUrl}\n`;
       if (L.qrUrl) text += `Learn more: ${L.qrUrl}`;
 
@@ -5004,33 +5034,36 @@
     function beachGrassSVG() {
       if (beachGrassCache) return beachGrassCache;
       const rnd = seededRand(4242);
-      const W = 420, H = 600;
+      const W = 1000, H = 360;
       let blades = '', stems = '', plumes = '';
-      // long thin leaves fanning up from the corner
-      for (let i = 0; i < 46; i++) {
-        const bx = W - rnd() * 230, h = 160 + rnd() * 300, lean = -(40 + rnd() * 170), w = 2.5 + rnd() * 4;
+      // long thin leaves across the whole width, short on the left and tall on the right
+      for (let i = 0; i < 95; i++) {
+        const bx = rnd() * W, r = bx / W;
+        const h = (45 + 230 * r) * (0.6 + 0.55 * rnd()), lean = (rnd() - 0.62) * (40 + 90 * r), w = 2 + rnd() * 3.5;
         const c = ['#a99a6c', '#8e8a62', '#c2b28a', '#b8a479', '#d6c7a0'][Math.floor(rnd() * 5)];
-        blades += `<path d="M${f1(bx - w)} ${H} Q${f1(bx + lean * 0.35)} ${f1(H - h * 0.6)} ${f1(bx + lean)} ${f1(H - h)} Q${f1(bx + lean * 0.3 + w)} ${f1(H - h * 0.55)} ${f1(bx + w)} ${H}Z" fill="${c}" opacity="${(0.55 + rnd() * 0.35).toFixed(2)}"/>`;
+        blades += `<path d="M${f1(bx - w)} ${H} Q${f1(bx + lean * 0.35)} ${f1(H - h * 0.6)} ${f1(bx + lean)} ${f1(H - h)} Q${f1(bx + lean * 0.3 + w)} ${f1(H - h * 0.55)} ${f1(bx + w)} ${H}Z" fill="${c}" opacity="${(0.5 + rnd() * 0.35).toFixed(2)}"/>`;
       }
-      // feathery plumes on slender stems
-      for (let i = 0; i < 15; i++) {
-        const bx = W - 20 - rnd() * 260, topY = 40 + rnd() * 260, lean = -(20 + rnd() * 120);
-        const tx = bx + lean, ty = topY;
-        stems += `<path d="M${f1(bx)} ${H} Q${f1(bx + lean * 0.5)} ${f1((H + ty) / 2)} ${f1(tx)} ${f1(ty)}" stroke="#a3926a" stroke-width="1.6" fill="none" opacity="0.8"/>`;
-        const len = 90 + rnd() * 90, ang = Math.atan2(ty - H, tx - (bx + lean * 0.5));
-        const tone = ['rgba(240,224,186,', 'rgba(226,203,158,', 'rgba(250,238,212,', 'rgba(214,190,146,'];
-        for (let k = 0; k < 34; k++) {
-          const t = k / 34, px = tx - Math.cos(ang) * len * t * 0.95, py = ty - Math.sin(ang) * len * t * 0.95;
-          const spread = (1 - Math.abs(t - 0.35) * 1.2) * (16 + rnd() * 10);
+      // feathery plumes on slender stems, small at the left growing large at the right
+      const n = 24;
+      const tone = ['rgba(240,224,186,', 'rgba(226,203,158,', 'rgba(250,238,212,', 'rgba(214,190,146,'];
+      for (let i = 0; i < n; i++) {
+        const bx = 15 + (i + rnd() * 0.8) / n * (W - 30), r = bx / W;
+        const ty = H - (60 + 240 * r + rnd() * 35), lean = (rnd() - 0.6) * 55, tx = bx + lean;
+        stems += `<path d="M${f1(bx)} ${H} Q${f1(bx + lean * 0.5)} ${f1((H + ty) / 2)} ${f1(tx)} ${f1(ty)}" stroke="#a3926a" stroke-width="1.4" fill="none" opacity="0.8"/>`;
+        const len = 40 + 62 * r + rnd() * 18, ang = Math.atan2(ty - H, tx - (bx + lean * 0.5)), spreadMax = 9 + 10 * r;
+        for (let k = 0; k < 26; k++) {
+          const t = k / 26, px = tx - Math.cos(ang) * len * t * 0.95, py = ty - Math.sin(ang) * len * t * 0.95;
+          const spread = (1 - Math.abs(t - 0.35) * 1.2) * (spreadMax + rnd() * 6);
           for (const side of [-1, 1]) {
             const a2 = ang + side * (0.9 + rnd() * 0.5);
             const ex = px + Math.cos(a2) * spread, ey = py + Math.sin(a2) * spread;
-            plumes += `<path d="M${f1(px)} ${f1(py)} Q${f1((px + ex) / 2 + (rnd() - 0.5) * 6)} ${f1((py + ey) / 2 - 3)} ${f1(ex)} ${f1(ey)}" stroke="${tone[Math.floor(rnd() * tone.length)]}${(0.45 + rnd() * 0.4).toFixed(2)})" stroke-width="${f1(1.2 + rnd() * 1.8)}" fill="none" stroke-linecap="round"/>`;
+            plumes += `<path d="M${f1(px)} ${f1(py)} Q${f1((px + ex) / 2 + (rnd() - 0.5) * 5)} ${f1((py + ey) / 2 - 3)} ${f1(ex)} ${f1(ey)}" stroke="${tone[Math.floor(rnd() * tone.length)]}${(0.45 + rnd() * 0.4).toFixed(2)})" stroke-width="${f1(1 + rnd() * 1.6)}" fill="none" stroke-linecap="round"/>`;
           }
         }
-        plumes += `<ellipse cx="${f1(tx - Math.cos(ang) * len * 0.35)}" cy="${f1(ty - Math.sin(ang) * len * 0.35)}" rx="${f1(len * 0.42)}" ry="${f1(12 + rnd() * 6)}" transform="rotate(${Math.round(ang * 180 / Math.PI)} ${f1(tx - Math.cos(ang) * len * 0.35)} ${f1(ty - Math.sin(ang) * len * 0.35)})" fill="rgba(250,236,200,0.18)"/>`;
+        const cx = tx - Math.cos(ang) * len * 0.35, cy = ty - Math.sin(ang) * len * 0.35;
+        plumes += `<ellipse cx="${f1(cx)}" cy="${f1(cy)}" rx="${f1(len * 0.42)}" ry="${f1(8 + 7 * r)}" transform="rotate(${Math.round(ang * 180 / Math.PI)} ${f1(cx)} ${f1(cy)})" fill="rgba(250,236,200,0.18)"/>`;
       }
-      beachGrassCache = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMaxYMax meet">${blades}${stems}${plumes}</svg>`;
+      beachGrassCache = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet">${blades}${stems}${plumes}</svg>`;
       return beachGrassCache;
     }
     // The realtor's background-removed photo, placed where they dragged it.
@@ -5298,11 +5331,11 @@
         };
         if (hasAccent('beachgrass')) {
           try {
-            // same box as the .beach-grass layer: 52% of the height, 0.7 wide, bottom-right
-            const gh = SOCIAL_H * 0.52, gw = gh * 0.7;
+            // same box as the .beach-grass layer: full width, 0.36 of the width tall, along the bottom
+            const gw = SOCIAL_W, gh = SOCIAL_W * 0.36;
             const svg = beachGrassSVG().replace('<svg ', `<svg width="${Math.round(gw)}" height="${Math.round(gh)}" `);
             const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
-            drawClear(img, SOCIAL_W - gw, SOCIAL_H - gh, gw, gh, protectRects);
+            drawClear(img, 0, SOCIAL_H - gh, gw, gh, protectRects);
           } catch (e) { console.warn('Beach grass could not be drawn', e); }
         }
         if (cutoutShowing()) {
@@ -5921,7 +5954,7 @@
       $$('[data-ig-format]').forEach(b => { b.classList.toggle('active', !whole && b.dataset.igFormat === state.igFormat); b.disabled = whole; });
       $$('[data-ig-brand]').forEach(b => b.classList.toggle('active', b.dataset.igBrand === state.igBrand));
       $('#slbNote').textContent = whole ? 'Whole Flyer is always portrait.' : '';
-      $('#brandNote').textContent = state.igBrand === 'minimal' ? 'One slim line: name, NMLS and Equal Housing.' : 'Available financing plus John’s photo, phone and NMLS.';
+      $('#brandNote').textContent = state.igBrand === 'minimal' ? 'The pre-approval line: text 3131 to qualify. Your financing options still show if you ticked any.' : 'John’s photo, phone and NMLS. Your financing options show above it if you ticked any.';
       $$('[data-photo-accent]').forEach(b => b.classList.toggle('active', hasAccent(b.dataset.photoAccent)));
       const n = (state.accents || []).length;
       $('#accentNote').textContent = hasAccent('beachgrass') ? 'Beach Grass shows on the Facebook & Instagram posts; the others also show on the printed flyer.'
@@ -5934,21 +5967,23 @@
       $('#cutoutSizeWrap').style.display = cutoutShowing() ? '' : 'none';
       $('#cutoutSize').value = state.cutout.w;
       $('#cutoutNote').innerHTML = !hasCutout
-        ? 'Add one under Realtor info to place yourself on the post. <button type="button" class="btn-link" id="btnCutoutHow">How to get one</button>'
-        : cutoutShowing() ? 'Drag it on the preview to move it.' : '';
+        ? 'Upload a photo with the background removed to put yourself on the post. <button type="button" class="btn-link" id="btnCutoutHow">How to get one</button>'
+        : cutoutShowing() ? 'Drag to move. Pinch, or drag the dot in the corner, to resize.' : '';
       const how = $('#btnCutoutHow');
       if (how) how.addEventListener('click', showCutoutHelp);
       $$('.slb-view').forEach(b => b.classList.toggle('active', (b.dataset.view === 'social') === socialView));
       document.documentElement.classList.toggle('social-view', socialView);
     }
-    // Opens the realtor section on the "how do I get a cutout" instructions.
-    function showCutoutHelp() {
-      if (typeof setRealtorCollapsed === 'function') setRealtorCollapsed(false);
-      const help = $('.cutout-help');
-      help.open = true;
-      scrollIntoPanel(help);
-      flashHighlight(help.closest('.form-group'));
+    // Jumps to the cutout controls under the preview (switching to the post
+    // preview first, since that's where they live).
+    function goToCutout(openHelp) {
+      if (!socialView) setSocialView(true);
+      const row = $('#cutoutRow');
+      if (openHelp) $('#cutoutHelp').open = true;
+      scrollIntoPanel(openHelp ? $('#cutoutHelp') : row);
+      flashHighlight(row);
     }
+    function showCutoutHelp() { goToCutout(true); }
     function renderSocialPreview() {
       if (!socialView) return;
       const wrap = $('#socialPreviewWrap'), inner = $('#socialPreview');
@@ -6002,35 +6037,72 @@
       }
       renderPreviewImages(inner);
     }
-    // Drag the cutout photo around the post preview. The position is kept as
-    // a fraction of the post, so it lands in the same spot in the export.
+    // Drag the cutout photo around the post preview, and resize it by pinching
+    // (two fingers) or dragging the dot in its corner. Position and size are
+    // kept as fractions of the post, so they land the same way in the export.
     function enableCutoutDrag(layer, fmt, k) {
-      let start = null;
+      const ptrs = new Map();
+      let drag = null, pinch = null, grow = null;
+      const sizeTo = w => {
+        w = Math.min(0.9, Math.max(0.12, w));
+        state.cutout.w = w;
+        layer.style.width = (w * 100).toFixed(2) + '%';
+        $('#cutoutSize').value = w;
+      };
+      const finish = () => { lastSocialHTML = ''; saveToLocal(); renderSocialPreview(); };
+      const startDrag = p => { drag = { px: p.x, py: p.y, x: state.cutout.x, y: state.cutout.y }; };
+
       layer.addEventListener('pointerdown', e => {
+        if (e.target.classList.contains('cutout-handle')) return;
         e.preventDefault();
-        layer.setPointerCapture(e.pointerId);
+        try { layer.setPointerCapture(e.pointerId); } catch (err) { /* synthetic or already-ended pointer */ }
         layer.classList.add('dragging');
-        start = { px: e.clientX, py: e.clientY, x: state.cutout.x, y: state.cutout.y };
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (ptrs.size === 1) startDrag({ x: e.clientX, y: e.clientY });
+        else if (ptrs.size === 2) {
+          drag = null;
+          const [a, b] = Array.from(ptrs.values());
+          pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, w: state.cutout.w };
+        }
       });
       layer.addEventListener('pointermove', e => {
-        if (!start) return;
+        if (!ptrs.has(e.pointerId)) return;
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pinch && ptrs.size >= 2) {
+          const [a, b] = Array.from(ptrs.values());
+          sizeTo(pinch.w * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d);
+          return;
+        }
+        if (!drag) return;
         const w = layer.offsetWidth / fmt.w, h = layer.offsetHeight / fmt.h;
         // Keep at least a third of it on the post so it can't be lost off the edge.
-        state.cutout.x = Math.min(1 - w / 3, Math.max(-w * 2 / 3, start.x + (e.clientX - start.px) / k / fmt.w));
-        state.cutout.y = Math.min(1 - h / 3, Math.max(-h * 2 / 3, start.y + (e.clientY - start.py) / k / fmt.h));
+        state.cutout.x = Math.min(1 - w / 3, Math.max(-w * 2 / 3, drag.x + (e.clientX - drag.px) / k / fmt.w));
+        state.cutout.y = Math.min(1 - h / 3, Math.max(-h * 2 / 3, drag.y + (e.clientY - drag.py) / k / fmt.h));
         layer.style.left = (state.cutout.x * 100).toFixed(2) + '%';
         layer.style.top = (state.cutout.y * 100).toFixed(2) + '%';
       });
-      const end = () => {
-        if (!start) return;
-        start = null;
-        layer.classList.remove('dragging');
-        lastSocialHTML = '';
-        saveToLocal();
-        renderSocialPreview();
+      const end = e => {
+        if (!ptrs.delete(e.pointerId)) return;
+        if (ptrs.size === 1) { pinch = null; startDrag(Array.from(ptrs.values())[0]); return; }
+        if (ptrs.size === 0) { drag = null; pinch = null; layer.classList.remove('dragging'); finish(); }
       };
       layer.addEventListener('pointerup', end);
       layer.addEventListener('pointercancel', end);
+
+      // Corner dot: drag right to grow, left to shrink (the top-left stays put).
+      const handle = document.createElement('div');
+      handle.className = 'cutout-handle';
+      handle.title = 'Drag to resize';
+      layer.appendChild(handle);
+      handle.addEventListener('pointerdown', e => {
+        e.preventDefault(); e.stopPropagation();
+        try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        grow = { px: e.clientX, w: state.cutout.w };
+      });
+      handle.addEventListener('pointermove', e => { if (grow) sizeTo(grow.w + (e.clientX - grow.px) / k / fmt.w); });
+      const growEnd = () => { if (!grow) return; grow = null; finish(); };
+      handle.addEventListener('pointerup', growEnd);
+      handle.addEventListener('pointercancel', growEnd);
     }
     function boxAspect(el) {
       return el && el.clientWidth && el.clientHeight ? el.clientWidth / el.clientHeight : 0;
