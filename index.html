@@ -430,6 +430,13 @@
     #socialPreview .cutout-layer:hover, #socialPreview .cutout-layer.dragging { outline-color: rgba(255,255,255,0.7); }
     #socialPreview .cutout-layer.dragging { cursor: grabbing; }
     .photo-accent { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .accents-box { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: rgba(22, 27, 34, 0.35); }
+    .accents-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .accents-head .btn-link { margin-left: auto; }
+    .accents-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .accents-sub { min-width: 70px; font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
+    .accent-chip.active::before { content: "\2713  "; }
+    @media (max-width: 640px) { .accents-sub { flex: 1 1 100%; } }
     .beach-grass { position: absolute; right: 0; bottom: 0; height: 52%; aspect-ratio: 0.7; z-index: 5; pointer-events: none; }
     .beach-grass svg { display: block; width: 100%; height: 100%; }
     /* Text on the post looks paints above the beach grass (z 5); the panel
@@ -1112,15 +1119,30 @@
             </div>
           </div>
         </div>
-        <div class="slb-row">
-          <span class="live-label">Photo accent:</span>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="">None</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="beachgrass">Beach Grass</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="grass">Tall Grass</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="flowers">Spring Flowers</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="sun">Sunshine</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="snow">Snow</button>
-          <button type="button" class="pill-btn slb-opt" data-photo-accent="leaves">Fall Leaves</button>
+        <div class="accents-box">
+          <div class="accents-head">
+            <span class="live-label">Accents:</span>
+            <span class="slb-note">Tap to add or remove. Mix as many as you like.</span>
+            <button type="button" class="btn-link" id="btnClearAccents">Clear all</button>
+          </div>
+          <div class="accents-group">
+            <span class="accents-sub">Greenery</span>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="beachgrass">Beach Grass</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="grass">Tall Grass</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="flowers">Spring Flowers</button>
+          </div>
+          <div class="accents-group">
+            <span class="accents-sub">Light</span>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="sun">Sunshine</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="sunset">Sunset Glow</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="sparkles">Sparkles</button>
+          </div>
+          <div class="accents-group">
+            <span class="accents-sub">Season</span>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="snow">Snow</button>
+            <button type="button" class="pill-btn slb-opt accent-chip" data-photo-accent="leaves">Fall Leaves</button>
+          </div>
+          <div class="slb-note" id="accentNote"></div>
         </div>
       </div>
 
@@ -1403,7 +1425,7 @@
       // Loan programs ticked under Property Metrics (per listing)
       financing: DEFAULT_FINANCING.slice(),
       // Decoration along the main photo's edges: '', grass, flowers, sun, snow, leaves (per listing)
-      photoAccent: '',
+      accents: [],
       // Realtor's background-removed photo (profile) and where it sits on the
       // post, as fractions of the post's width/height (per listing)
       agentCutout: null,
@@ -1516,7 +1538,7 @@
       const imgSrc = getPhotoSrc(photoIndex);
       const off = getOffsetFor(photoId);
       // The main photo (slot 0) carries the chosen edge accent on every design.
-      const accent = photoIndex === 0 ? photoAccentHTML(state.photoAccent) : '';
+      const accent = photoIndex === 0 ? (state.accents || []).map(photoAccentHTML).join('') : '';
       return `
         <div class="pan-container" data-photoid="${photoId}" data-slotindex="${photoIndex}" style="height:${heightPx}px;width:100%;">
           <img data-natural-pending="1" data-rel-x="${off.relX}" data-rel-y="${off.relY}" data-zoom="${off.zoom}" src="${imgSrc}" />
@@ -1533,6 +1555,7 @@
        markup identical between renders, so the preview isn't rebuilt (and
        clicks aren't lost) when nothing changed. */
     const photoAccentCache = {};
+    function hasAccent(k) { return (state.accents || []).includes(k); }
     function seededRand(seed) {
       let t = seed >>> 0;
       return () => {
@@ -1614,6 +1637,18 @@
         html = `<div style="left:0;right:0;top:0;height:22%;background:linear-gradient(180deg, rgba(240,248,255,0.38), rgba(240,248,255,0))"></div>`
           + `<div style="inset:0">${svg('0 0 600 600', 'xMidYMid slice', flakes)}</div>`
           + `<div style="left:0;right:0;bottom:-1px;height:15%">${svg('0 0 1200 100', 'xMidYMax slice', drift)}</div>`;
+      } else if (kind === 'sunset') {
+        html = `<div style="inset:0;background:linear-gradient(180deg, rgba(255,140,70,0.38) 0%, rgba(255,120,90,0.16) 35%, rgba(255,120,90,0) 60%), radial-gradient(ellipse 80% 55% at 15% 0%, rgba(255,190,120,0.5) 0%, rgba(255,160,100,0) 70%)"></div>`
+          + `<div style="left:0;right:0;bottom:0;height:35%;background:linear-gradient(0deg, rgba(120,50,90,0.28), rgba(120,50,90,0))"></div>`;
+      } else if (kind === 'sparkles') {
+        let stars = '';
+        for (let i = 0; i < 26; i++) {
+          // most along the top third, a few lower down
+          const x = rnd() * 600, y = (rnd() < 0.7 ? rnd() * 200 : 200 + rnd() * 380), r = 3 + rnd() * rnd() * 11, o = (0.6 + rnd() * 0.4).toFixed(2);
+          stars += `<path d="M${f1(x)} ${f1(y - r)}Q${f1(x + r * 0.16)} ${f1(y - r * 0.16)} ${f1(x + r)} ${f1(y)}Q${f1(x + r * 0.16)} ${f1(y + r * 0.16)} ${f1(x)} ${f1(y + r)}Q${f1(x - r * 0.16)} ${f1(y + r * 0.16)} ${f1(x - r)} ${f1(y)}Q${f1(x - r * 0.16)} ${f1(y - r * 0.16)} ${f1(x)} ${f1(y - r)}Z" fill="rgba(255,250,230,${o})"/>`;
+          if (r > 7) stars += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.9)}" fill="rgba(255,240,200,0.18)"/>`;
+        }
+        html = `<div style="inset:0">${svg('0 0 600 600', 'xMidYMid slice', stars)}</div>`;
       } else if (kind === 'leaves') {
         const colors = ['#b5381f', '#d35400', '#e67e22', '#f0b429', '#8e3b1f', '#c0661e'];
         const cluster = (flip) => {
@@ -3353,7 +3388,7 @@
         coAgentOffset: Object.assign({}, state.coAgentOffset),
         checklist: { designPicked: !!state.designPicked, exported: !!state.exported },
         financing: (state.financing || []).slice(),
-        photoAccent: state.photoAccent || '',
+        accents: (state.accents || []).slice(),
         cutout: Object.assign({}, state.cutout)
       };
       LISTING_FIELDS.forEach(id => { l[id] = id === 'status' ? $('#status').value : val(id, ''); });
@@ -3576,7 +3611,8 @@
         // Listings saved before these options existed get the defaults.
         state.financing = Array.isArray(l.financing) ? l.financing.filter(k => FINANCING_PROGRAMS.some(p => p.key === k)) : DEFAULT_FINANCING.slice();
         syncFinancingUI();
-        state.photoAccent = typeof l.photoAccent === 'string' ? l.photoAccent : '';
+        // Listings from before several accents could be mixed saved one.
+        state.accents = Array.isArray(l.accents) ? l.accents.slice() : (l.photoAccent ? [l.photoAccent] : []);
         const c = l.cutout || {};
         state.cutout = {
           show: c.show !== false,
@@ -4959,7 +4995,7 @@
     }
 
     function igShell(W, H, bg, inner, extra) {
-      const grass = state.photoAccent === 'beachgrass' ? `<div class="beach-grass">${beachGrassSVG()}</div>` : '';
+      const grass = hasAccent('beachgrass') ? `<div class="beach-grass">${beachGrassSVG()}</div>` : '';
       return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${bg};font-family:var(--font-flyer);${extra || ''}">${inner}${grass}${cutoutLayerHTML()}</div>`;
     }
     /* Beach grass: soft, sunlit pampas plumes rising from the post's
@@ -5249,7 +5285,7 @@
           ctx.drawImage(img, x, y, w, h);
           ctx.restore();
         };
-        if (state.photoAccent === 'beachgrass') {
+        if (hasAccent('beachgrass')) {
           try {
             // same box as the .beach-grass layer: 52% of the height, 0.7 wide, bottom-right
             const gh = SOCIAL_H * 0.52, gw = gh * 0.7;
@@ -5875,7 +5911,11 @@
       $$('[data-ig-brand]').forEach(b => b.classList.toggle('active', b.dataset.igBrand === state.igBrand));
       $('#slbNote').textContent = whole ? 'Whole Flyer is always portrait.' : '';
       $('#brandNote').textContent = state.igBrand === 'minimal' ? 'One slim line: name, NMLS and Equal Housing.' : 'Available financing plus John’s photo, phone and NMLS.';
-      $$('[data-photo-accent]').forEach(b => b.classList.toggle('active', b.dataset.photoAccent === (state.photoAccent || '')));
+      $$('[data-photo-accent]').forEach(b => b.classList.toggle('active', hasAccent(b.dataset.photoAccent)));
+      const n = (state.accents || []).length;
+      $('#accentNote').textContent = hasAccent('beachgrass') ? 'Beach Grass shows on the Facebook & Instagram posts; the others also show on the printed flyer.'
+        : n ? 'Shown on the main photo, on the printed flyer and every post.' : '';
+      $('#btnClearAccents').style.visibility = n ? '' : 'hidden';
       const hasCutout = !!state.agentCutout;
       $('#btnCutoutToggle').style.display = hasCutout ? '' : 'none';
       $('#btnCutoutToggle').classList.toggle('active', cutoutShowing());
@@ -5996,7 +6036,12 @@
     $$('[data-ig-style]').forEach(b => b.addEventListener('click', () => { state.igStyle = b.dataset.igStyle; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
     $$('[data-ig-format]').forEach(b => b.addEventListener('click', () => { state.igFormat = b.dataset.igFormat; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
     $$('[data-ig-brand]').forEach(b => b.addEventListener('click', () => { state.igBrand = b.dataset.igBrand; saveSocialPrefs(); syncSocialButtons(); renderSocialPreview(); }));
-    $$('[data-photo-accent]').forEach(b => b.addEventListener('click', () => { state.photoAccent = b.dataset.photoAccent; syncSocialButtons(); updatePreview(); }));
+    $$('[data-photo-accent]').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.photoAccent;
+      state.accents = hasAccent(k) ? state.accents.filter(x => x !== k) : (state.accents || []).concat(k);
+      syncSocialButtons(); updatePreview();
+    }));
+    $('#btnClearAccents').addEventListener('click', () => { state.accents = []; syncSocialButtons(); updatePreview(); });
     $('#btnCutoutToggle').addEventListener('click', () => {
       state.cutout.show = !state.cutout.show;
       syncSocialButtons();
